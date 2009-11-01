@@ -6,7 +6,6 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.vecmath.GVector;
@@ -49,11 +48,10 @@ public class Main {
             }
             else {
                if(cl.hasOption("Tener")){
-				 
+				
 			   }
                 //System.out.println(cl.getOptionValue("dsn"));
-
-				ener();
+					 ener(args);
             }
         }
         catch (ParseException e) {
@@ -95,10 +93,9 @@ public class Main {
 
     }
 
-	private static void ener() throws TransformerConfigurationException, SAXException {
+	private static void ener(String[] args) throws TransformerConfigurationException, SAXException, CDKException {
 		FileOutputStream writer = null;
-		try {
-			//writer = new FileWriter("test/test.xml");
+		try {			
 			writer = new FileOutputStream("test/test.xml");
 
 			StreamResult streamResult = new StreamResult(writer);
@@ -107,26 +104,63 @@ public class Main {
 			TransformerHandler hd = tf.newTransformerHandler();
 			Transformer serializer = hd.getTransformer();
 			serializer.setOutputProperty(OutputKeys.ENCODING, "ISO-8859-1");
-			serializer.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, "users.dtd");
 			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
 			hd.setResult(streamResult);
 			hd.startDocument();
 			AttributesImpl atts = new AttributesImpl();
-// USERS tag.
-			hd.startElement("", "", "USERS", atts);
-// USER tags.
-			String[] id = {"PWD122", "MX787", "A4Q45"};
-			String[] type = {"customer", "manager", "employee"};
-			String[] desc = {"Tim@Home", "Jack&Moud", "John D'oé"};
-			for (int i = 0; i < id.length; i++) {
+			atts.clear();
+			atts.addAttribute("", "", "Potential", "", "Lennard-Jones");
+			
+
+			XYZReader reader=new XYZReader( new FileReader("test/LJlm/lj-pool.xyz"));
+			ChemFile chemFile = (ChemFile) reader.read((ChemObject) new ChemFile());
+			IChemSequence seq = chemFile.getChemSequence(0);
+	
+
+			IPotentialFunction ljfunc = new LennardJonesFunction();
+
+			atts.addAttribute("", "", "NoOfClusters", "", Integer.toString( seq.getChemModelCount()));
+			atts.addAttribute("", "", "Potential", "", ljfunc.toString());
+			hd.startElement("", "", "nqc_ener", atts);
+
+			XYZWriter xyzWriter = new XYZWriter(System.out);
+
+			
+			for (int i = 0; i < seq.getChemModelCount(); i++) {
+
 				atts.clear();
-				atts.addAttribute("", "", "ID", "CDATA", id[i]);
-				atts.addAttribute("", "", "TYPE", "CDATA", type[i]);
-				hd.startElement("", "", "USER", atts);
-				hd.characters(desc[i].toCharArray(), 0, desc[i].length());
-				hd.endElement("", "", "USER");
+				atts.addAttribute("", "", "id", "", Integer.toString(i));
+				
+
+				IMolecule mol = seq.getChemModel(i).getMoleculeSet().getMolecule(0);
+				xyzWriter.write(mol);
+
+				GVector molR  = new GVector(mol.getAtomCount()*3);
+				molR = ForceFieldTools.getCoordinates3xNVector(mol);
+				
+				double energy=ljfunc.energyFunction(molR);
+				atts.addAttribute("","", "Energy", "", Double.toString(energy));
+
+
+				GeometricMinimizer gm = new GeometricMinimizer();
+				//gm.setConvergenceParametersForCGM(100, 0.00001);
+				//gm.conjugateGradientMinimization(molR, ljfunc);
+				//molR.set(gm.getConjugateGradientMinimum());
+
+				gm.setConvergenceParametersForSDM(100, 0.00001);
+		 		gm.steepestDescentsMinimization(molR, ljfunc);
+				molR.set(gm.getSteepestDescentsMinimum());
+				
+				energy=ljfunc.energyFunction(molR);
+				atts.addAttribute("","", "Mininum", "", Double.toString(energy));
+
+
+				hd.startElement("", "", "bench", atts);
+				hd.endElement("", "", "bench");
 			}
-			hd.endElement("", "", "USERS");
+
+			xyzWriter.close();
+			hd.endElement("", "", "nqc_ener");
 			hd.endDocument();
 		} catch (IOException ex) {
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
