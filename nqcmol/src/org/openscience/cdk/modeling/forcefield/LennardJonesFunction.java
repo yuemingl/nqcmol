@@ -25,8 +25,6 @@ public class LennardJonesFunction implements IPotentialFunction {
 	double[] forOrder2ndErrorApproximateHessian = null;
 	int functionEvaluationNumber = 0;
 
-
-
 	//private LoggingTool logger;
 
 	/**
@@ -36,6 +34,12 @@ public class LennardJonesFunction implements IPotentialFunction {
 	public LennardJonesFunction()  {
 		//logger.debug("LJEnergyFunction Constructor");
 		//logger = new LoggingTool(this);
+	}
+
+
+	@Override
+	public String toString(){
+		return "Lennard-Jones";
 	}
 
 
@@ -129,7 +133,7 @@ public class LennardJonesFunction implements IPotentialFunction {
 				for(int k=0;k<3;k++)	a[k]+=f*(_p.getElement(i*3+k)-_p.getElement(j*3+k));
 			}
 			for(int k=0;k<3;k++)	energyGradient.setElement(i*3+k,a[k]);
-		}
+		}		
 	}
 
 
@@ -139,8 +143,8 @@ public class LennardJonesFunction implements IPotentialFunction {
 	 *@return        Gradient value
 	 */
 	public GVector getEnergyGradient() {
-		//return energyGradient;
-		return order2ndErrorApproximateGradient;
+		return energyGradient;
+		//return order2ndErrorApproximateGradient;
 	}
 
 
