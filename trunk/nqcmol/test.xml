@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<nqc_ener NoOfClusters="1" Potential="Lennard-Jones">
+<Note>Duration is measured in miliseconds. Speed is the time for one evaluation.</Note>
+<bench Tag="0" nRuns="1000" Energy="-44.32680141873467" Duration="-56" Speed="-0.056" Mininum="-44.32680141890827"/>
+</nqc_ener>
