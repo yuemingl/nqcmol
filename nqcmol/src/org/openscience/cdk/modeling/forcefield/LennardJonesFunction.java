@@ -28,7 +28,7 @@ public class LennardJonesFunction implements IPotentialFunction {
 	//private LoggingTool logger;
 
 	/**
-	 *  Constructor for the LJEnergyFunction object
+	 *  Constructor 
 	 *
 	 */
 	public LennardJonesFunction()  {
