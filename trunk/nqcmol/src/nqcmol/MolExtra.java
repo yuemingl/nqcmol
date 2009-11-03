@@ -17,6 +17,10 @@ public class MolExtra {
 		if(sPotential.contentEquals("LJ")){
 			pot=new LennardJonesFunction();
 		}
+
+		if(sPotential.contentEquals("OSS2")){
+			pot=new OSS2Function();
+		}
 		return pot;
 	}
 	

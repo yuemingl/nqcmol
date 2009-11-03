@@ -103,7 +103,8 @@ public class MCalculate {
 
 
 
-			IPotentialFunction ljfunc = MolExtra.SetupPotential(sPotential);
+			//IPotentialFunction ljfunc = MolExtra.SetupPotential(sPotential);
+			OSS2Function ljfunc=new OSS2Function();
 
 			atts.addAttribute("", "", "NoOfClusters", "", Integer.toString( seq.getChemModelCount()));
 			atts.addAttribute("", "", "Potential", "", ljfunc.toString());
@@ -116,9 +117,7 @@ public class MCalculate {
 			XYZWriter xyzWriter = new XYZWriter(System.out);
 			//CMLWriter xyzWriter =new CMLWriter(System.out);
 
-			for (int i = 0; i < seq.getChemModelCount(); i++) {
-				
-
+			for (int i = 0; i < seq.getChemModelCount(); i++) {			
 
 				IMolecule mol = seq.getChemModel(i).getMoleculeSet().getMolecule(0);
 				xyzWriter.write(mol);
@@ -132,7 +131,9 @@ public class MCalculate {
 
 				long duration=System.currentTimeMillis();
 
-				for(int k=0; k <myruns ; k++)	energy=ljfunc.energyFunction(molR);
+				//ljfunc.Setup(mol);
+
+				//for(int k=0; k <myruns ; k++)	energy=ljfunc.energyFunction(molR);
 
 				duration= System.currentTimeMillis() - duration ;
 				
