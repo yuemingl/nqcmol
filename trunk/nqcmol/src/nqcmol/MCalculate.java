@@ -72,8 +72,7 @@ public class MCalculate {
 		}
 
 		FileOutputStream fout = null;
-		
-		try {			
+		try {		
 			StreamResult streamResult = null;
 			
 			if(sFileOut.isEmpty()){				
@@ -96,17 +95,9 @@ public class MCalculate {
 			AttributesImpl atts = new AttributesImpl();
 			atts.clear();
 
-
-			XYZReader reader=new XYZReader( new FileReader(sFileIn));
-			ChemFile chemFile = (ChemFile) reader.read((ChemObject) new ChemFile());
-			IChemSequence seq = chemFile.getChemSequence(0);
-
-
-
 			//IPotentialFunction ljfunc = MolExtra.SetupPotential(sPotential);
 			OSS2Function ljfunc=new OSS2Function();
 
-			atts.addAttribute("", "", "NoOfClusters", "", Integer.toString( seq.getChemModelCount()));
 			atts.addAttribute("", "", "Potential", "", ljfunc.toString());
 			hd.startElement("", "", "nqc_ener", atts);
 			hd.startElement("","","Note",null);
@@ -114,18 +105,15 @@ public class MCalculate {
 			hd.characters(sTmp.toCharArray(),0,sTmp.length());
 			hd.endElement("", "", "Note");
 
-			XYZWriter xyzWriter = new XYZWriter(System.out);
-			//CMLWriter xyzWriter =new CMLWriter(System.out);
 
-			for (int i = 0; i < seq.getChemModelCount(); i++) {			
+			Cluster mol=new Cluster();
 
-				IMolecule mol = seq.getChemModel(i).getMoleculeSet().getMolecule(0);
-				xyzWriter.write(mol);
+			FileInputStream is= new FileInputStream(sFileIn);
+			int i=0;
+			while(mol.Read(is, "xyz")){
+				mol.Write(System.out,"xyz");
 
-				GVector molR  = new GVector(mol.getAtomCount()*3);
-				molR = ForceFieldTools.getCoordinates3xNVector(mol);
-
-				int myruns=(int)((nScale>0)?nRuns*Math.pow((double)nScale/mol.getAtomCount(),2):nRuns);
+				int myruns=(int)((nScale>0)?nRuns*Math.pow((double)nScale/mol.getNAtoms(),2):nRuns);
 				
 				double energy=0;
 
@@ -157,16 +145,13 @@ public class MCalculate {
 
 				hd.startElement("", "", "bench", atts);
 				hd.endElement("", "", "bench");
+				i++;
 			}
-
-			xyzWriter.close();
 			hd.endElement("", "", "nqc_ener");
 			hd.endDocument();
 		} catch (IOException ex) {
 			Logger.getLogger(NQCMol.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (TransformerConfigurationException ex) {
-				Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (CDKException ex) {
 				Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (SAXException ex) {
 				Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
@@ -177,7 +162,6 @@ public class MCalculate {
 				Logger.getLogger(NQCMol.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
-
 	}
 
 
