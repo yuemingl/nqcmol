@@ -6,27 +6,21 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.kohsuke.args4j.*;
 
-import javax.vecmath.GVector;
-import org.openscience.cdk.*;
-import org.openscience.cdk.exception.CDKException;
-import org.openscience.cdk.io.*;
-import org.openscience.cdk.interfaces.*;
-import org.openscience.cdk.modeling.forcefield.*;
 
 // SAX classes.
 import org.xml.sax.*;
 import org.xml.sax.helpers.*;
 //JAXP 1.1
-import javax.xml.parsers.*;
 import javax.xml.transform.*;
 import javax.xml.transform.stream.*;
 import javax.xml.transform.sax.*;
+
+import nqcmol.potential.*;
 
 /**
  *
@@ -96,9 +90,11 @@ public class MCalculate {
 			atts.clear();
 
 			//IPotentialFunction ljfunc = MolExtra.SetupPotential(sPotential);
-			OSS2Function ljfunc=new OSS2Function();
+			//OSS2Function ljfunc=new OSS2Function();
 
-			atts.addAttribute("", "", "Potential", "", ljfunc.toString());
+			Potential pot=MolExtra.SetupPotential(sPotential);
+
+			atts.addAttribute("", "", "Potential", "", pot.getEquation());
 			hd.startElement("", "", "nqc_ener", atts);
 			hd.startElement("","","Note",null);
 			String sTmp="Duration is measured in miliseconds. Speed is the time for one evaluation.";
@@ -108,10 +104,11 @@ public class MCalculate {
 
 			Cluster mol=new Cluster();
 
-			FileInputStream is= new FileInputStream(sFileIn);
+
+			Scanner scanner= new Scanner(new File(sFileIn));
 			int i=0;
-			while(mol.Read(is, "xyz")){
-				mol.Write(System.out,"xyz");
+			while(mol.Read(scanner, "xyz")){
+				//mol.Write(System.out,"xyz");
 
 				int myruns=(int)((nScale>0)?nRuns*Math.pow((double)nScale/mol.getNAtoms(),2):nRuns);
 				
@@ -119,9 +116,9 @@ public class MCalculate {
 
 				long duration=System.currentTimeMillis();
 
-				//ljfunc.Setup(mol);
+				pot.setCluster(mol);
 
-				//for(int k=0; k <myruns ; k++)	energy=ljfunc.energyFunction(molR);
+				for(int k=0; k <myruns ; k++)	energy=pot.getEnergy(true);
 
 				duration= System.currentTimeMillis() - duration ;
 				
@@ -146,6 +143,7 @@ public class MCalculate {
 				hd.startElement("", "", "bench", atts);
 				hd.endElement("", "", "bench");
 				i++;
+				//break;
 			}
 			hd.endElement("", "", "nqc_ener");
 			hd.endDocument();

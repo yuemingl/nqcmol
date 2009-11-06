@@ -5,21 +5,21 @@
 
 package nqcmol;
 
-import org.openscience.cdk.modeling.forcefield.*;
+import nqcmol.potential.*;
 
 /**
  *
  * @author nqc
  */
 public class MolExtra {
-	static public IPotentialFunction SetupPotential(String sPotential){
-		IPotentialFunction pot=null;
+	static public Potential SetupPotential(String sPotential){
+		Potential pot=null;
 		if(sPotential.contentEquals("LJ")){
-			pot=new LennardJonesFunction();
+			pot=new LennardJonesPotential();
 		}
 
 		if(sPotential.contentEquals("OSS2")){
-			pot=new OSS2Function();
+			pot=new OSS2Potential();
 		}
 		return pot;
 	}
