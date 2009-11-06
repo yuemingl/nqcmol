@@ -52,12 +52,11 @@ public class Potential {
 	}
 
 	/**
-	 * Set the value of cluster
-	 *
+	 * Set cluster to the internal one. Note that, some potential CAN change cluster to suitable format.
 	 * @param cluster new value of cluster
 	 */
 	public void setCluster(Cluster cluster) {
-		this.cluster = new Cluster();
+		this.cluster = (Cluster) cluster.clone();
 	}
 
 
@@ -170,7 +169,7 @@ public class Potential {
 	 * @param isMolUpdate if true, new energy will be updated to mol
 	 * @return calculated energy
 	 */
-	double getEnergy(Cluster cluster_,boolean isMolUpdate) {
+	public double getEnergy(Cluster cluster_,boolean isMolUpdate) {
 		setCluster(cluster_);
 		double ener=Energy_(cluster.getCoords());
 		cluster.setEnergy(ener);
@@ -184,7 +183,7 @@ public class Potential {
 	 * @return
 	 */
 
-	double getEnergy(boolean isEnergyUpdate){
+	public double getEnergy(boolean isEnergyUpdate){
 		if(isEnergyUpdate){
 			double ener=Energy_(cluster.getCoords());
 			cluster.setEnergy(ener);
@@ -197,22 +196,22 @@ public class Potential {
 	 *
 	 * @return energy
 	 */
-	double getEnergy(final double[] coords_){
+	public double getEnergy(final double[] coords_){
 		return Energy_(coords_) ;
 	}
 
 	
-	double[] getGradient(final double[] coords_){//!< require setup mol first, if update==true, recalculate the gradients
+	public double[] getGradient(final double[] coords_){//!< require setup mol first, if update==true, recalculate the gradients
 		cluster.setCoords(coords_);
 		Gradient_(cluster.getCoords(),cluster.getGradient());
 		return cluster.getGradient();
 	}
 
-	void getGradient(final double[] coords_,double[] gradient_){//!< require setup mol first, if update==true, recalculate the gradients
+	public void getGradient(final double[] coords_,double[] gradient_){//!< require setup mol first, if update==true, recalculate the gradients
 		Gradient_(coords_,gradient_);
 	}
 
-	double[] getGradient(boolean isGradUpdate){//!< require setup mol first, if update==true, recalculate the gradients
+	public double[] getGradient(boolean isGradUpdate){//!< require setup mol first, if update==true, recalculate the gradients
 		if(isGradUpdate){
 			Gradient_(cluster.getCoords(),cluster.getGradient());
 		}
@@ -220,16 +219,16 @@ public class Potential {
 	}
 
 
-	double getDeltaEnergy(final double[] coords_,final boolean[] isUpdate){//!< require setup mol first
+	public double getDeltaEnergy(final double[] coords_,final boolean[] isUpdate){//!< require setup mol first
 		return DeltaEnergy_(coords_,isUpdate) ;
 	}
 
 
-	boolean Optimize(){//!< require setup mol first
+	public boolean Optimize(){//!< require setup mol first
 		return true;
 	}
 
-	boolean Optimize(Cluster cluster_,boolean isMolUpdate){//!< setup mol  and then optimize mol, if update==true, new energy, structures will be updated to mol
+	public boolean Optimize(Cluster cluster_,boolean isMolUpdate){//!< setup mol  and then optimize mol, if update==true, new energy, structures will be updated to mol
 		this.setCluster(cluster_);
 		Optimize();
 		if(isMolUpdate){
@@ -342,11 +341,13 @@ public class Potential {
       Validate the analytical gradients by comparing them to numerical ones. This function has to
       be implemented force field specific. (debugging)
     */
-    double ValidateGradients(int verbose=1);
+    public double ValidateGradients(int verbose){
+		return 0;
+	}
     //@}
 
-		String basisset; //!< for Gaussian or other DFT calculations
+	//	String basisset; //!< for Gaussian or other DFT calculations
 
-	private	void lnsrch(int n, double[] xold, double fold, double g[], double p[], double x[],double *fret, double stpmax, int *check);
-	private	int dfpmin(double p[], int n, int iterMax, double *fret);
+	//private	void lnsrch(int n, double[] xold, double fold, double g[], double p[], double x[],double *fret, double stpmax, int *check);
+	//private	int dfpmin(double[] p, int n, int iterMax, double *fret);
 }

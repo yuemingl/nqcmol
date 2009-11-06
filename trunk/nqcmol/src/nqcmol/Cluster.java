@@ -6,6 +6,7 @@
 package nqcmol;
 
 import java.io.*;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.logging.*;
 
@@ -20,15 +21,29 @@ public class Cluster implements Cloneable{
 	public Cluster(int nAtoms){
 		setNAtoms(nAtoms);
 	};
+
+	public Cluster(Cluster cluster_){
+		Get(cluster_);
+	}
 	
+	@Override
 	public Object clone() {
-            try {
-                return super.clone();
-            }
-            catch (CloneNotSupportedException e) {
-                throw new InternalError(e.toString());
-            }
+           return new Cluster(this);           
         }
+
+	public void Get(Cluster src){
+		//System.out.println(" Come here");
+		setNAtoms(src.getNAtoms());
+		//System.out.println(" Come here");
+		setCoords(src.getCoords());
+		//System.out.println(" Come here");
+		setGradient(src.getGradient());
+		//System.out.println(" Come here");
+		setAtomicNumber(src.getAtomicNumber());
+		//System.out.println(" Come here");
+		tag=src.getTag();
+		rmsGrad=src.getRmsGrad();		
+	}
 
 	
 	protected static Logger logger=Logger.getLogger(Cluster.class.getName());
@@ -37,7 +52,8 @@ public class Cluster implements Cloneable{
 	 */
 	static final int cTypeMax=15;
 
-	/* Name of chemica elements
+	/**
+	 * Symbols of chemical elements
 	 */
 	static final String[] cElements={"$",
 	"H","He","Li","Be","B","C","N","O","F","Ne", //1st and 2nd round
@@ -82,8 +98,7 @@ public class Cluster implements Cloneable{
 			coords=new double[ncoords];
 			gradient=new double[ncoords];
 			hessian=new double[ncoords][ncoords];
-			Nz=new int [nAtoms];
-			
+			Nz=new int [nAtoms];			
 		}
 	}
 
@@ -173,9 +188,9 @@ public class Cluster implements Cloneable{
 	 *
 	 * @param gradient new value of gradient
 	 */
-	public void setGradient(double[] grad) {
-		assert ncoords<=grad.length;
-		System.arraycopy(grad,0,this.gradient,0,ncoords);
+	public void setGradient(double[] gradient_) {
+		assert ncoords<=gradient_.length;
+		System.arraycopy(gradient_,0,this.gradient,0,ncoords);
 	}
 
 	/**
@@ -252,6 +267,14 @@ public class Cluster implements Cloneable{
 
 	/**
 	 * Get the value of Nz
+	 * @return the value of Nz
+	 */
+	public int[] getAtomicNumber() {
+		return Nz;
+	}
+
+	/**
+	 * Get the value of Nz
 	 *
 	 * @param index of atom
 	 * @return the value of Nz
@@ -259,6 +282,16 @@ public class Cluster implements Cloneable{
 	public int getAtomicNumber(int index) {
 		return Nz[index];
 	}
+
+	/**
+	 * Set array of atomic number
+	 * @param iType new value of Nz
+	 */
+	public void setAtomicNumber(int[] Nz_) {
+		assert nAtoms<=Nz_.length;
+		System.arraycopy(Nz_,0,this.Nz,0,nAtoms);
+	}
+
 
 	/**
 	 * Set the value of Nz
@@ -318,44 +351,36 @@ public class Cluster implements Cloneable{
 		return k;
 	}
 
-	public boolean Read(InputStream is,String format){
+	public boolean Read(Scanner scanner,String format){
 		boolean isReadable=false;
-		if(format.contentEquals("xyz"))		isReadable=ReadXYZ(is);
-		//if(format.contentEquals("xyz"))		ReadXYZ(is);
-//			case F_GRO: ReadGro(is);	break; //for GROMACS format
-//			case F_PDB: ReadPDB(is);	break; //for protein data bank format
-//			case F_GAUOUT: ReadGauOut(is);	break; //for Gaussian output format
-//			case F_VASPOUT: ReadVASPOut(is); break; //for VASP output format
-//		}
+		if(format.contentEquals("xyz"))		isReadable=ReadXYZ(scanner);
+		
 		return isReadable;
 	}
-
-	protected boolean ReadXYZ(InputStream is){
-		try {
+	protected boolean ReadXYZ(Scanner scanner){
 			Clear();
-			
-			BufferedReader input = new BufferedReader(new InputStreamReader(is));
-			
+
+			if(!scanner.hasNextInt()) return false;
+			int nAtoms_=scanner.nextInt();
+			//System.out.printf(" Here nAtoms = %d \n",nAtoms_);
+			if (nAtoms_ <= 0) {	return false; }
+			setNAtoms(nAtoms_);
+
+			scanner.nextLine();
+
+			String line=scanner.nextLine();
+
 			StringTokenizer tokenizer;
-			String line = input.readLine();
-			
-			if (input.ready() && line != null) {
-				// parse frame by frame
-				tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
-				int nAtoms_=0;
-				String info = tokenizer.nextToken();	nAtoms_ = Integer.parseInt(info);
-		
-				//System.out.printf(" Here %s nAtoms = %d \n",info,nAtoms);
-				if (nAtoms_ <= 0) {	return false; }
-				setNAtoms(nAtoms_);
+			tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
 
-				line = input.readLine();		tokenizer = new StringTokenizer(line, "\t ,;"); //read tag, energy and so on
-				info = tokenizer.nextToken();	tag = Integer.parseInt(info);
-
+			String info="";
 				if (line.contains("@IN")) {
+					tag=(int) energy;
 					//for my format
 					info = tokenizer.nextToken();		energy = Double.parseDouble(info);
 					info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
+				}else{
+					info= tokenizer.nextToken();     	energy = Double.parseDouble(info);
 				}
 				//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
 
@@ -364,12 +389,13 @@ public class Cluster implements Cloneable{
 
 				//gradient=new double[nAtoms*3];
 				for (int i = 0; i < nAtoms; i++) {
-					line = input.readLine();
+					line = scanner.nextLine();
+					//System.out.printf(" Here %s nAtoms = %d \n",line,nAtoms_);
 					if (line == null) return false;
 
 					if (line.startsWith("#") && line.length() > 1) {
 						i--; // a comment line does not count as an atom
-					} else {						
+					} else {
 						tokenizer = new StringTokenizer(line, "\t ,;");
 						int fields = tokenizer.countTokens();
 						if (fields < 4) {
@@ -378,7 +404,7 @@ public class Cluster implements Cloneable{
 							String atomtype = tokenizer.nextToken();
 							Nz[i] =  getAtomicNumberFromSymbol(atomtype);
 							//System.out.printf(" %s %d \n",atomtype,i);
-							
+
 							if(Nz[i]<=0) return false;
 
 							//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
@@ -395,13 +421,8 @@ public class Cluster implements Cloneable{
 							}
 						}
 					}
-				}	
-				
-			}
-		} catch (IOException ex) {
-			Logger.getLogger(Cluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
-
+				}
+			
 		//System.out.printf(" Here \n");
 		return true;
 	}
