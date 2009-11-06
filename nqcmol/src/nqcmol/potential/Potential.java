@@ -90,20 +90,9 @@ public class Potential {
 		return unit;
 	}
 
-	/**
-	 * Set the value of unit
-	 *
-	 * @param unit new value of unit
-	 */
-	public void setUnit(String unit) {
-		this.unit = unit;
-	}
-
-    /* Does this force field have analytical gradients defined for all
-     * calculation components (bonds, angles, non-bonded, etc.)
-     * If this is true, code should default to using OBFF_ANALYTICAL_GRADIENT
-     * for SteepestDescent() or ConjugateGradients().
-     * \return True if all analytical gradients are implemented.
+    /**
+	 * Does this force field have analytical gradients.
+     * @return True if all analytical gradients are implemented.
      */
     public boolean HasAnalyticalGradients() { return false; }
 
@@ -159,6 +148,17 @@ public class Potential {
 	}
 
 	double getMaxGrad(){return MaxGrad;}
+
+	/**
+	 * Get the value of equation
+	 *
+	 * @return the value of equation
+	 */
+	public String getEquation() {
+		String equation = "Not Specified";
+		return equation;
+	}
+
 
 
     /////////////////////////////////////////////////////////////////////////
@@ -226,7 +226,7 @@ public class Potential {
 
 
 	boolean Optimize(){//!< require setup mol first
-
+		return true;
 	}
 
 	boolean Optimize(Cluster cluster_,boolean isMolUpdate){//!< setup mol  and then optimize mol, if update==true, new energy, structures will be updated to mol
@@ -299,13 +299,20 @@ public class Potential {
     /////////////////////////////////////////////////////////////////////////
     // Logging                                                             //
     /////////////////////////////////////////////////////////////////////////
-	//! \name Methods for logging
-	//@{
-	public string Info(int verbose=0);//!< print setting parameters
-
-	
-    //@}
-
+	/**
+	 * Return info of potential in xml format
+	 * @param type =1: equation name and unit, 2= setting info, 3= status
+	 */
+	public String Info(int type){//!< print setting parameters
+		String info="";
+		if(type==1) info="Potential: { \"equation\"="+getEquation()+"\""+ "}";
+		//if(type==2) info="PotentialSetting: { \"equation\"="+getEquation()+"\""+ "}";
+		//if(type==3) info="PotentialStatus: { \"equation\"="+getEquation()+"\""+ "}";
+//		 JSONObject obj = new JSONObject();
+//    obj.put("userName", name);
+//    obj.put("ID", new Integer(id));
+		return info;
+	}
 
     /////////////////////////////////////////////////////////////////////////
     // Energy Minimization                                                 //
