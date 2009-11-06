@@ -13,9 +13,23 @@ import java.util.logging.*;
  *
  * @author nqc
  */
-public class Cluster {
+public class Cluster implements Cloneable{
 	public Cluster(){
 	};
+
+	public Cluster(int nAtoms){
+		setNAtoms(nAtoms);
+	};
+	
+	public Object clone() {
+            try {
+                return super.clone();
+            }
+            catch (CloneNotSupportedException e) {
+                throw new InternalError(e.toString());
+            }
+        }
+
 	
 	protected static Logger logger=Logger.getLogger(Cluster.class.getName());
 
@@ -62,7 +76,15 @@ public class Cluster {
 	 * @param nAtoms new value of nAtoms
 	 */
 	public void setNAtoms(int nAtoms) {
-		this.nAtoms = nAtoms;
+		if(this.nAtoms!=nAtoms){
+			this.nAtoms = nAtoms;
+			ncoords=nAtoms*3;
+			coords=new double[ncoords];
+			gradient=new double[ncoords];
+			hessian=new double[ncoords][ncoords];
+			Nz=new int [nAtoms];
+			
+		}
 	}
 
 	/**
@@ -85,7 +107,8 @@ public class Cluster {
 	 * @param coords new value of coords
 	 */
 	public void setCoords(double[] coords) {
-		this.coords = coords;
+		assert ncoords<=coords.length;
+		System.arraycopy(coords,0,this.coords,0,ncoords);
 	}
 
 	/**
@@ -108,6 +131,12 @@ public class Cluster {
 		this.coords[index] = newCoords;
 	}
 
+	protected int ncoords = 0;
+
+	public int getNcoords() {
+		return ncoords;
+	}
+
 	protected double energy;
 
 	/**
@@ -128,8 +157,54 @@ public class Cluster {
 		this.energy = energy;
 	}
 
+	protected double[] gradient;
 
-	protected double rmsGrad;
+	/**
+	 * Get the value of gradient
+	 *
+	 * @return the value of gradient
+	 */
+	public double[] getGradient() {
+		return gradient;
+	}
+
+	/**
+	 * Set the value of gradient
+	 *
+	 * @param gradient new value of gradient
+	 */
+	public void setGradient(double[] grad) {
+		assert ncoords<=grad.length;
+		System.arraycopy(grad,0,this.gradient,0,ncoords);
+	}
+
+	/**
+	 * Get the value of gradient at specified index
+	 *
+	 * @param index
+	 * @return the value of gradient at specified index
+	 */
+	public double getGradient(int index) {
+		return this.gradient[index];
+	}
+
+	/**
+	 * Set the value of gradient at specified index.
+	 *
+	 * @param index
+	 * @param newGrad new value of gradient at specified index
+	 */
+	public void setGradient(int index, double newGrad) {
+		this.gradient[index] = newGrad;
+	}
+
+	protected double[][] hessian;
+
+	public double[][] getHessian(){
+		return hessian;
+	}
+
+	protected double rmsGrad=0;
 
 	/**
 	 * Get the value of rmsGrad
@@ -227,6 +302,10 @@ public class Cluster {
 		energy=0; rmsGrad=0;
 	}
 
+	public void ClearGradients(){
+		for(int i=0;i<ncoords;i++) gradient[i]=0;
+	}
+
 	public int getAtomicNumberFromSymbol(String atomsymbol){
 		int k=0;
 		for(int i=0;i< cElements.length ;i++){
@@ -263,13 +342,14 @@ public class Cluster {
 			if (input.ready() && line != null) {
 				// parse frame by frame
 				tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
-				String info = tokenizer.nextToken();	nAtoms = Integer.parseInt(info);
-				
+				int nAtoms_=0;
+				String info = tokenizer.nextToken();	nAtoms_ = Integer.parseInt(info);
+		
 				//System.out.printf(" Here %s nAtoms = %d \n",info,nAtoms);
+				if (nAtoms_ <= 0) {	return false; }
+				setNAtoms(nAtoms_);
 
-				if (nAtoms <= 0) {	return false; }
 				line = input.readLine();		tokenizer = new StringTokenizer(line, "\t ,;"); //read tag, energy and so on
-
 				info = tokenizer.nextToken();	tag = Integer.parseInt(info);
 
 				if (line.contains("@IN")) {
@@ -278,13 +358,11 @@ public class Cluster {
 					info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
 				}
 				//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
-				
-				coords = new double[nAtoms * 3]; //start reading coordinates
-				Nz=new int [nAtoms];
+
 
 				//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
 
-				//grad=new double[nAtoms*3];
+				//gradient=new double[nAtoms*3];
 				for (int i = 0; i < nAtoms; i++) {
 					line = input.readLine();
 					if (line == null) return false;
@@ -310,7 +388,11 @@ public class Cluster {
 							coords[i*3+1] = Double.parseDouble(tokenizer.nextToken());
 							coords[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
 							//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
-
+							if (fields >= 7){
+								gradient[i*3+0] = Double.parseDouble(tokenizer.nextToken());
+								gradient[i*3+1] = Double.parseDouble(tokenizer.nextToken());
+								gradient[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
+							}
 						}
 					}
 				}	
@@ -324,33 +406,38 @@ public class Cluster {
 		return true;
 	}
 
-	public void Write(Writer os,String format) throws IOException {
+	public void Write(Writer writer,String format) {
 		if(nAtoms>0){
-			if(format.contentEquals("xyz")) WriteXYZ(os);
+			try {
+				if(format.contentEquals("xyz")){
+					WriteXYZ(writer);
+				}
+				writer.flush();
+			} catch (IOException ex) {
+				Logger.getLogger(Cluster.class.getName()).log(Level.SEVERE, null, ex);
+			} 
 		}
 	}
 
-	public void Write(OutputStream os,String format) throws IOException {
-		Write( new BufferedWriter(new OutputStreamWriter(os)),format);
-		if(nAtoms>0){
-			if(format.contentEquals("xyz")) WriteXYZ(os);
-		}
+	public void Write(OutputStream os,String format) {
+		BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(os));
+		Write(writer,format);
 	}
 
-	protected void WriteXYZ(Writer os) throws  IOException{		
+	protected void WriteXYZ(Writer writer) throws  IOException{
         String s1 = "" + nAtoms + "\n";		
-        os.append(s1);
+        writer.append(s1);
 		//System.out.printf(" Here %s \n",s1);
 
         s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad) +"% @IN\n";
-		os.append(s1);
+		writer.append(s1);
 		//System.out.printf(" Here %s \n",s1);
 
         // Loop through the atoms and write them out:
         for(int i=0;i<nAtoms;i++){
 			s1=cElements[Nz[i]]+String.format(" %1.6f %1.6f %1.6f\n",coords[i*3],coords[i*3+1],coords[i*3+2]);
-			os.append(s1);
-			System.out.printf(" Here %s \n",s1);
+			writer.append(s1);
+			//System.out.printf(" Here %s \n",s1);
         }
 	}
 }
