@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<nqc_ener Potential="nqcmol.potential.OSS2Potential@798fd984">
+<Note>Duration is measured in miliseconds. Speed is the time for one evaluation.</Note>
+<bench Tag="0" nRuns="192" Energy="-8.234766684554309" Duration="203" Speed="1.0572916666666667"/>
+<bench Tag="1" nRuns="108" Energy="-10.991737980242917" Duration="71" Speed="0.6574074074074074"/>
+<bench Tag="2" nRuns="69" Energy="-13.742813912980314" Duration="38" Speed="0.5507246376811594"/>
+<bench Tag="3" nRuns="48" Energy="-16.482489978923418" Duration="50" Speed="1.0416666666666667"/>
+<bench Tag="4" nRuns="35" Energy="-19.24436637633473" Duration="43" Speed="1.2285714285714286"/>
+<bench Tag="5" nRuns="27" Energy="-21.99833851357892" Duration="29" Speed="1.0740740740740742"/>
+<bench Tag="6" nRuns="21" Energy="-24.750784690173802" Duration="39" Speed="1.8571428571428572"/>
+<bench Tag="7" nRuns="17" Energy="-27.49021233076933" Duration="21" Speed="1.2352941176470589"/>
+<bench Tag="8" nRuns="14" Energy="-30.252792417474755" Duration="22" Speed="1.5714285714285714"/>
+<bench Tag="9" nRuns="12" Energy="-33.007907035900985" Duration="22" Speed="1.8333333333333333"/>
+<bench Tag="10" nRuns="10" Energy="-35.75782301284162" Duration="23" Speed="2.3"/>
+<bench Tag="11" nRuns="8" Energy="-38.497057938758985" Duration="42" Speed="5.25"/>
+<bench Tag="12" nRuns="7" Energy="-41.25861982203118" Duration="23" Speed="3.2857142857142856"/>
+<bench Tag="13" nRuns="6" Energy="-44.01194002646828" Duration="22" Speed="3.6666666666666665"/>
+<bench Tag="14" nRuns="6" Energy="-46.746118236980564" Duration="26" Speed="4.333333333333333"/>
+<bench Tag="15" nRuns="5" Energy="-49.506532666990545" Duration="23" Speed="4.6"/>
+<bench Tag="16" nRuns="4" Energy="-52.263937106026304" Duration="23" Speed="5.75"/>
+<bench Tag="17" nRuns="4" Energy="-54.99996377954085" Duration="24" Speed="6.0"/>
+<bench Tag="18" nRuns="3" Energy="-57.76874848670672" Duration="21" Speed="7.0"/>
+<bench Tag="19" nRuns="3" Energy="-60.518884108042165" Duration="23" Speed="7.666666666666667"/>
+<bench Tag="20" nRuns="3" Energy="-63.283954447576946" Duration="26" Speed="8.666666666666666"/>
+<bench Tag="21" nRuns="3" Energy="-66.03587567099521" Duration="34" Speed="11.333333333333334"/>
+<bench Tag="22" nRuns="2" Energy="-68.77119028762249" Duration="22" Speed="11.0"/>
+<bench Tag="23" nRuns="2" Energy="-71.53116709984467" Duration="24" Speed="12.0"/>
+<bench Tag="24" nRuns="2" Energy="-74.28904001107861" Duration="27" Speed="13.5"/>
+<bench Tag="25" nRuns="2" Energy="-77.03692841363072" Duration="29" Speed="14.5"/>
+<bench Tag="26" nRuns="2" Energy="-79.78646016041404" Duration="38" Speed="19.0"/>
+<bench Tag="27" nRuns="1" Energy="-82.55526153211585" Duration="18" Speed="18.0"/>
+<bench Tag="28" nRuns="1" Energy="-85.29947408228566" Duration="21" Speed="21.0"/>
+<bench Tag="29" nRuns="1" Energy="-88.05137641304624" Duration="37" Speed="37.0"/>
+<bench Tag="30" nRuns="1" Energy="-90.84232967019682" Duration="33" Speed="33.0"/>
+<bench Tag="31" nRuns="1" Energy="-93.61017121724691" Duration="25" Speed="25.0"/>
+<bench Tag="32" nRuns="1" Energy="-96.36392445930096" Duration="27" Speed="27.0"/>
+<bench Tag="33" nRuns="1" Energy="-99.10774504371929" Duration="29" Speed="29.0"/>
+<bench Tag="34" nRuns="1" Energy="-101.86006498653138" Duration="34" Speed="34.0"/>
+<bench Tag="35" nRuns="1" Energy="-104.60679282481607" Duration="38" Speed="38.0"/>
+<bench Tag="36" nRuns="1" Energy="-107.38350379543795" Duration="52" Speed="52.0"/>
+<bench Tag="37" nRuns="1" Energy="-110.14523864327626" Duration="39" Speed="39.0"/>
+<bench Tag="38" nRuns="1" Energy="-112.87942152994262" Duration="41" Speed="41.0"/>
+<bench Tag="39" nRuns="1" Energy="-115.64122025421625" Duration="43" Speed="43.0"/>
+<bench Tag="40" nRuns="1" Energy="-118.3806292154638" Duration="47" Speed="47.0"/>
+<bench Tag="41" nRuns="1" Energy="-121.1735985663237" Duration="55" Speed="55.0"/>
+<bench Tag="42" nRuns="1" Energy="-123.90764363423833" Duration="100" Speed="100.0"/>
+<bench Tag="43" nRuns="1" Energy="-126.67176154622331" Duration="55" Speed="55.0"/>
+<bench Tag="44" nRuns="1" Energy="-129.41639190016832" Duration="62" Speed="62.0"/>
+<bench Tag="45" nRuns="1" Energy="-132.1651362482425" Duration="71" Speed="71.0"/>
+<bench Tag="46" nRuns="1" Energy="-134.93299512053255" Duration="75" Speed="75.0"/>
+<bench Tag="47" nRuns="1" Energy="-137.6873162528329" Duration="79" Speed="79.0"/>
+</nqc_ener>

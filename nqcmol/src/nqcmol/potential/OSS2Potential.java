@@ -18,14 +18,15 @@ import org.apache.commons.math.linear.*;
  * @author nqc
  */
 public class OSS2Potential extends Potential{
-	public OSS2Potential(){};
+	public OSS2Potential(){
+		ParseParameters();
+	};
 
 	@Override
 	public String getEquation(){
 		String equation="OSS2";
 		return equation;
 	}
-
 	
 	@Override
 	public boolean HasAnalyticalGradients() {
@@ -46,6 +47,7 @@ public class OSS2Potential extends Potential{
 	public void setParam(double[] param) {
 		assert alpha.length<param.length;
 		System.arraycopy(param,0,alpha,0,alpha.length);
+		ParseParameters();
 	}
 
 	@Override
@@ -57,52 +59,40 @@ public class OSS2Potential extends Potential{
 		} catch (FileNotFoundException ex) {
 			Logger.getLogger(OSS2Potential.class.getName()).log(Level.SEVERE, null, ex);
 		}
-
+		ParseParameters();
 	}
-
-
 
 	@Override
 	public void setCluster(Cluster cluster_) {
 		super.setCluster(cluster_);
-		InitializePrivateVariables(cluster_.getNAtoms());
+		AllocatePrivateVariables(cluster_.getNAtoms());
 	}
 
 	@Override
 	protected double Energy_(double[] _p){
 		double energy=0;
-		System.out.print(" Size of vec = "+ Integer.toString(_p.length));
-		InitializePrivateVariables(_p.length/3);
+		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
+		AllocatePrivateVariables(_p.length/3);
 
-		//System.out.print(" Size of vec = "+ Integer.toString(coords3d.getSize()));
-
-		for(int i=0;i<nAtom;i++) {
-			x[i][0]= _p[i*3+0];
-			x[i][1]= _p[i*3+1];
-			x[i][2]= _p[i*3+2];
-			// cout<<i<<" d "<<x[i][0]<<" - "<<x[i][1]<<" -  "<<x[i][2]);
-		}
+		CalcDistanceAndCharge(_p,false);
 
 
-		CalcDistance();
+		double VOO=OOInteraction(false);
+		double VOH=OHInteraction(false);
+		double VHH=HHInteraction(false);
+		double VHOH=ThreeBodyInteraction(false);
 
-
-		double VOO=OOInteraction();
-		double VOH=OHInteraction();
-		double VHH=HHInteraction();
-		double VHOH=ThreeBodyInteraction();
-
-		CalcCutoffFunc();
+		CalcCutoffFunc(false);
 		CalcElectricalField();
 		CalcDipoleMoment();
 
-		double Vq=ChargeChargeInteraction();
-		double Vcd=ChargeDipoleInteraction();
-		double Vdd=DipoleDipoleInteraction();
+		double Vq=ChargeChargeInteraction(false);
+		double Vcd=ChargeDipoleInteraction(false);
+		double Vdd=DipoleDipoleInteraction(false);
 		double Vsd=SelfDipoleInteraction();
 
 
-		double Vel=(Vdd + Vcd + Vq + Vsd) * rescale;
+		double Vel=(Vdd + Vcd + Vq + Vsd) ;//* rescale;
 		energy=VOO+VOH+VHH+VHOH + Vel;
 
 //		System.out.print("E : ");
@@ -122,56 +112,64 @@ public class OSS2Potential extends Potential{
 
 	@Override
 	protected void Gradient_(double[] _p, double[] grad) {
-		nAtom=_p.length/3;
-		for (int i=0; i < nAtom ; i++) {
-//			energyGradient.setElement(i,
-			for(int k=0;k<3;k++)	grad[i*3+k]=0;
-			for(int j=0;j<nAtom;j++)	if(i!=j){
-				double rij2=  Math.pow( (_p[i*3+0]-_p[j*3+0] ),2)
-							+ Math.pow( (_p[i*3+1]-_p[j*3+1] ),2)
-							+ Math.pow( (_p[i*3+2]-_p[j*3+2] ),2);
-				double rij6 = Math.pow(rij2,3);
+		double energy=0;
+		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
 
-				double rij14= rij6*rij6*rij2;
-				double f=24.0*(rij6-2.0)/(rij14);
-				for(int k=0;k<3;k++)	grad[i*3+k]+=f*(_p[i*3+k]-_p[j*3+k]);
-			}
 
-		}
+		AllocatePrivateVariables(_p.length/3);
+
+		CalcDistanceAndCharge(_p,true);
+
+		//CalcDistanceAndCharge_deriv();
+
+		double VOO=OOInteraction(true);
+		double VOH=OHInteraction(true);
+		double VHH=HHInteraction(true);
+		double VHOH=ThreeBodyInteraction(true);
+
+		CalcCutoffFunc(true);
+		CalcElectricalField();
+		CalcDipoleMoment();
+
+		double Vq=ChargeChargeInteraction(true);
+		//ChargeChargeInteraction_deriv();
+
+		double Vcd=ChargeDipoleInteraction(true);
+		double Vdd=DipoleDipoleInteraction(true);
+		//double Vsd=SelfDipoleInteraction();
+
+
+		//double Vel=(Vdd + Vcd + Vq + Vsd);// * rescale;
+		//energy=VOO+VOH+VHH+VHOH + Vel;
+
+//		System.out.print("E : ");
+//		for(int i=0;i<nO*3;i++)	System.out.printf( " %f ",E[i]);
+//		System.out.println("");
+//		System.out.printf( "VOO: %f  VOH: %f VHOH: %f VHH:%f \n",VOO,VOH,VHOH,VHH);
+//		System.out.printf( "Vq: %f \n",Vq);
+//		System.out.printf( "Self-dipole: %f \n" , Vsd );
+//		System.out.printf( "Dipole-dipole interaction: %f \n" ,Vdd);
+//		System.out.printf( "Charge-dipole interaction: %f \n" ,Vcd);
+//		System.out.printf( "Vel: %f \n",Vel);
+//		System.out.printf( "Energy: %f \n",energy);
+
+		neval+=3;
 	}
 
-	private void InitializePrivateVariables(int nAtoms_){
-		if(nAtom!=nAtoms_){
-			nAtom=nAtoms_;
-			nO=(nAtom%3 == 2)?(nAtom/3+1):(nAtom/3);
-			x=new double[nAtom][3];
-			q=new double[nAtom];
-			r=new double[nAtom][nAtom];
-			r2=new double[nAtom][nAtom];
-
-			Scd=new double[nAtom][nAtom];
-			Sdd=new double[nO][nO];
-			D=new double[nO*3][nO*3];
-			T=new double[nO*3][nO*3];
-			E=new double[nO*3];
-			mu=new double[nO*3];
-
-			for(int i=0; i<nAtom; i++ ){
-				q[i] = ((i<nO)? -2 : 1);
-			}
-		}
-	}
+	
 
 	//========================== implement OSS2
 	int nAtom,nO;
-	double[] q;
 	double[][] r,x,r2;
-
-	double[] E,mu;
-
+	double[] q,E,mu;
 	double[][] Scd,Sdd,D,T;
 
 	final double rescale=0.529177249;
+
+	//for gradient
+	double[][][] rv,dr;
+	double[][] grad;
+	double[][] dScd,dSdd;
 
 	double p_r0;
 	double p_theta0;
@@ -187,52 +185,52 @@ public class OSS2Potential extends Potential{
 	double[] alpha={0.9614,	1.81733805,	1.73089134,	0.29575999,	332.2852922, 2.84683483,	1.0956864,	0.00000204,	0.00575558,	2.6425374,	1.1274385, 3.3255655,	0.07847734,	40.4858734,	1.3290955,	-41.7260608, 1.3509491, 0.0629396,	6.77909903,	1.8117836,	-0.0420073,	0.16488265,	-0.02509795, -0.37814525, -0.31667595, -0.0114672, 0.06061075, 0.528281, 1.1617627, 0.0765232, -0.21208835, -0.1025385, -0.0762216, -0.228694, 0, -0.029092, 6.25, 0.00377233,	6.25, 1.444 };
 
 
-	void ParseParameters(){
+	private void ParseParameters(){
 		 p_r0= alpha[0];
 		p_theta0= alpha[1];
- p_a[1]= alpha[2];
- p_a[2]= alpha[3];
- p_b[1]= alpha[4];
- p_b[2]= alpha[5];
- p_c[1]= alpha[6];
- p_c[2]= alpha[7];
+		 p_a[1]= alpha[2];
+		 p_a[2]= alpha[3];
+		 p_b[1]= alpha[4];
+		 p_b[2]= alpha[5];
+		 p_c[1]= alpha[6];
+		 p_c[2]= alpha[7];
 
- p_h[1]= alpha[8];
- p_h[2]= alpha[9];
- p_h[3]= alpha[10];
- p_h[4]= alpha[11];
- p_h[5]= alpha[12];
+		 p_h[1]= alpha[8];
+		 p_h[2]= alpha[9];
+		 p_h[3]= alpha[10];
+		 p_h[4]= alpha[11];
+		 p_h[5]= alpha[12];
 
- p_o[1]= alpha[13];
- p_o[2]= alpha[14];
- p_o[3]= alpha[15];
- p_o[4]= alpha[16];
- p_o[5]= alpha[17];
- p_o[6]= alpha[18];
- p_o[7]= alpha[19];
+		 p_o[1]= alpha[13];
+		 p_o[2]= alpha[14];
+		 p_o[3]= alpha[15];
+		 p_o[4]= alpha[16];
+		 p_o[5]= alpha[17];
+		 p_o[6]= alpha[18];
+		 p_o[7]= alpha[19];
 
- p_k[1]= alpha[20];
- p_k[2]= alpha[21];
- p_k[3]= alpha[22];
- p_k[4]= alpha[23];
- p_k[5]= alpha[24];
- p_k[6]= alpha[25];
- p_k[7]= alpha[26];
- p_k[8]= alpha[27];
- p_k[9]= alpha[28];
- p_k[10]= alpha[29];
- p_k[11]= alpha[30];
- p_k[12]= alpha[31];
- p_k[13]= alpha[32];
- p_k[14]= alpha[33];
- p_k[15]= alpha[34];
- p_k[16]= alpha[35];
+		 p_k[1]= alpha[20];
+		 p_k[2]= alpha[21];
+		 p_k[3]= alpha[22];
+		 p_k[4]= alpha[23];
+		 p_k[5]= alpha[24];
+		 p_k[6]= alpha[25];
+		 p_k[7]= alpha[26];
+		 p_k[8]= alpha[27];
+		 p_k[9]= alpha[28];
+		 p_k[10]= alpha[29];
+		 p_k[11]= alpha[30];
+		 p_k[12]= alpha[31];
+		 p_k[13]= alpha[32];
+		 p_k[14]= alpha[33];
+		 p_k[15]= alpha[34];
+		 p_k[16]= alpha[35];
 
- p_m[1]= alpha[36];
- p_m[2]= alpha[37];
- p_m[3]= alpha[38];
+		 p_m[1]= alpha[36];
+		 p_m[2]= alpha[37];
+		 p_m[3]= alpha[38];
 
- p_alpha= alpha[39];
+		 p_alpha= alpha[39];
 		//for(int i=0;i<40;i++) System.out.printf(" a[%d] =%f\n", i,alpha[i]);
 	}
 
@@ -241,60 +239,153 @@ public class OSS2Potential extends Potential{
 		return x*x;
 	}
 
-	void CalcDistance(){
+	private void AllocatePrivateVariables(int nAtoms_){
+		if(nAtom!=nAtoms_){
+			nAtom=nAtoms_;
+			nO=(nAtom%3 == 2)?(nAtom/3+1):(nAtom/3);
+			x=new double[nAtom][3];
+			q=new double[nAtom];
+			r=new double[nAtom][nAtom];
+			r2=new double[nAtom][nAtom];
+
+			Scd=new double[nAtom][nAtom];
+			Sdd=new double[nO][nO];
+			D=new double[nO*3][nO*3];
+			T=new double[nO*3][nO*3];
+			E=new double[nO*3];
+			mu=new double[nO*3];
+
+			//if(true){ ///for gradient
+				grad=new double[nAtom][3];
+				rv=new double[nAtom][nAtom][3];
+				dr=new double[nAtom][nAtom][3];
+				dScd=new double[nAtom][nAtom];
+				dSdd=new double[nAtom][nAtom];
+				//clear gradient vector
+				for(int i=0;i<nAtom;i++)
+					for(int k=0;k<3;k++)
+						grad[i][k]=0;
+			//}
+		}
+	}
+
+	void CalcDistanceAndCharge(double[] _p,boolean isGrad){
+		for(int i=0;i<nAtom;i++) {
+			x[i][0]= _p[i*3+0];
+			x[i][1]= _p[i*3+1];
+			x[i][2]= _p[i*3+2];
+			//System.out.printf(" x[%d] = %f %f %f \n",i,x[i][0],x[i][1],x[i][2]);
+		}
+		
 		for(int i=0; i<nAtom; i++ ){
 			for(int j=i+1; j< nAtom;j++){
 					r2[i][j] = 0;
 					for(int k=0;k<3 ; k++) r2[i][j] += SQR(x[i][k] - x[j][k]);
 					r2[j][i]=r2[i][j];
 					r[i][j] = r[j][i] = Math.sqrt(r2[i][j]);
+
+
+					if(isGrad) ///for gradient
+					for(int k=0;k<3;k++){
+							rv[i][j][k] = x[i][k] - x[j][k];
+							rv[j][i][k] = -rv[i][j][k];
+							dr[i][j][k] = rv[i][j][k]/r[i][j];
+							dr[j][i][k] =-dr[i][j][k];
+						}
 			}
+		}
+
+		for(int i=0; i<nAtom; i++ ){
+				q[i] = ((i<nO)? -2 : 1);
 		}
 	}
 
-	double OOInteraction(){
+	double OOInteraction(boolean isGrad){
 		double VOO=0;
 		for(int i=0; i<nO; i++ )
-			for(int j=i+1; j< nO;j++){
-				{
-					VOO+= p_o[1]*Math.exp(-p_o[2] * r[i][j])
-						 + p_o[3]*Math.exp(-p_o[4] * r[i][j])
-						 + p_o[5]*Math.exp(-p_o[6] * SQR(r[i][j] - p_o[7]))
-						 + Math.exp(-30.0*(r[i][j]-1.8));
-					//System.out.printf("Come here %f \n",Vpairwise[i][j]);
-				}
+			for(int j=i+1; j< nO;j++){				
+					double pt1 = p_o[1]*Math.exp(-p_o[2] * r[i][j]);
+					double pt2 = p_o[3]*Math.exp(-p_o[4] * r[i][j]);
+					double pt3 = p_o[5]*Math.exp(-p_o[6] * SQR(r[i][j] - p_o[7]));
+
+					VOO += pt1 + pt2 + pt3;
+
+					double pt4 =  Math.exp(-30.0*(r[i][j]-1.8));
+					VOO += pt4;
+
+					if(isGrad){ /// for gradient
+						// dp = pt1' + pt2' + pt3'
+						double dp = (-p_o[2]*pt1 - p_o[4]*pt2 - p_o[6]*2.0*(r[i][j] - p_o[7])*pt3);
+						dp+=-30.0*pt4; //prevent unphysically short O-O
+
+						for(int k=0;k<3;k++){
+							double dpk = dp * dr[i][j][k];
+							grad[i][k] += dpk;
+							grad[j][k] -= dpk;
+						}
+					}
+					//System.out.printf("Come here %f \n",VOO);
 			}
 		return VOO;
 	}
 
-	double HHInteraction(){
+	double HHInteraction(boolean isGrad){
 		double VHH=0;
 		for(int i=nO; i<nAtom; i++ ){
 			for(int j=i+1; j< nAtom;j++){
-				VHH+= Math.exp(-100.0*(r[i][j]-1.1));
+				double temp1=Math.exp(-100.0*(r[i][j]-1.1));//prevent unphysically short O-H
+				VHH+=temp1;
+
+				if(isGrad){
+				for(int k=0;k<3;k++){
+					double temp2=-100.0*temp1*dr[i][j][k]; //prevent unphysically short O-H
+					grad[i][k]+=  temp2;
+					grad[j][k]+= -temp2;
+					}
+				}
 			}
 		}
 		return VHH;
 	}
 
-	double OHInteraction(){
+	double OHInteraction(boolean isGrad){
 		double VOH=0;
 		double h5tmp = Math.pow(1.0-p_h[5],2) / (Math.pow(1.0-p_h[5],2) + p_h[5]*p_h[5]);
 
 		for(int i=0; i<nO; i++ ){
 			for(int j=nO; j< nAtom;j++){
-				VOH+= p_h[1] * Math.pow(1 - h5tmp*Math.exp(-p_h[3]*(r[i][j]-p_h[2]))
-							- (1-h5tmp)*Math.exp(-p_h[4]*(r[i][j]-p_h[2])), 2) - p_h[1]
-							+ Math.exp(-70.0*(r[i][j]-0.3));
+				//VOH+= p_h[1] * Math.pow(1 - h5tmp*Math.exp(-p_h[3]*(r[i][j]-p_h[2]))
+				//			- (1-h5tmp)*Math.exp(-p_h[4]*(r[i][j]-p_h[2])), 2) - p_h[1]
+				//			+ Math.exp(-70.0*(r[i][j]-0.3));
+
+				double pt1 = h5tmp*Math.exp(-p_h[3]*(r[i][j]-p_h[2]));
+				double pt2 = (1-h5tmp)*Math.exp(-p_h[4]*(r[i][j]-p_h[2]));
+
+				VOH += p_h[1] * SQR(1 - pt1 - pt2) - p_h[1];
+
+				double pt5=Math.exp(-70.0*(r[i][j]-0.3)); //prevent unphysically short 
+				VOH += pt5;//prevent unphysically short O-H
+
+				if(isGrad){
+					// pt3 = pt1' + pt2'
+					double pt3= -p_h[3] * pt1 - p_h[4]*pt2;
+					double dp = -p_h[1] * 2 * (1-pt1-pt2) * pt3;
+					dp+=-70.0*pt5; //prevent unphysically short
+					for(int k=0;k<3;k++){
+						double dpk = dp * dr[i][j][k];
+						grad[i][k] += dpk;
+						grad[j][k] -= dpk;
+					}
+				}
 
 			}
 		}
 		return VOH;
 	}
 
-	double ThreeBodyInteraction(){
+	double ThreeBodyInteraction(boolean isGrad){
 		double VHOH=0;
-		double r11, r21, r12, r22, t, dt, dt2,fcutoff,temp;
+		double r11, r21, r12, r22, theta, cost, dt, dt2,fcutoff,temp;
 		for(int i=0;i<nO;i++){
 			for(int j=nO;j< nAtom ; j++){
 				for(int k=j+1; k< nAtom ; k++){
@@ -304,8 +395,9 @@ public class OSS2Potential extends Potential{
 							r22 = SQR(r21);
 							if(Math.abs(p_m[1]*(r12+r22))<40){ // improved by chinh
 								// theta & shifted theta
-								t = Math.acos( (r2[i][j] + r2[i][k] - r2[j][k]) / (2.0*r[i][j]*r[i][k]));
-								dt = t - p_theta0;
+								cost = (r2[i][j] + r2[i][k] - r2[j][k]) / (2.0*r[i][j]*r[i][k]);
+								theta = Math.acos( cost);
+								dt = theta - p_theta0;
 								dt2 = SQR(dt);
 
 								fcutoff = Math.exp(-(p_m[1]*(r12+r22) +  p_m[2]*dt2 + p_m[3]*(r12+r22)*dt2));
@@ -321,6 +413,42 @@ public class OSS2Potential extends Potential{
 
 								//cout<<i<<" "<<j<<" "<<k<<" "<<fcutoff<<" "<<temp);
 								VHOH+=temp*fcutoff;
+
+								if(isGrad){ ///for gradient
+									// fcutoff'
+									double dfcutoff_r1=-2.0*(p_m[1]*r11 + p_m[3]*r11*dt2)*fcutoff;
+									double dfcutoff_r2=-2.0*(p_m[1]*r21 + p_m[3]*r21*dt2)*fcutoff;
+									double dfcutoff_t =-2.0*(p_m[2]+p_m[3]*(r12+r22))*dt*fcutoff;
+
+									// temp'
+									double dtemp_r1 = p_k[2] + p_k[4]*2.0*r11 + p_k[5]*r21 + p_k[7]*dt
+									+ p_k[8]*3.0*r12 + p_k[9]*(2.0*r11*r21+r22) + p_k[11]*2.0*r11*dt
+									+ p_k[12]*r21*dt + p_k[13]*dt2 +p_k[14]*4.0*r11*r12 + p_k[15]*2.0*r11*r22;
+									double dtemp_r2 = p_k[2] + p_k[4]*2.0*r21 + p_k[5]*r11 + p_k[7]*dt
+									+ p_k[8]*3.0*r22 + p_k[9]*(2.0*r21*r11+r12) + p_k[11]*2.0*r21*dt
+									+ p_k[12]*r11*dt + p_k[13]*dt2 +p_k[14]*4.0*r21*r22 + p_k[15]*2.0*r21*r12;
+									double dtemp_t  = p_k[3] + p_k[6]*2.0*dt + p_k[7]*(r11+r21) + p_k[10]*3.0*dt2 + p_k[11]*(r12+r22)
+									+ p_k[12]*r11*r21 + p_k[13]*(r11+r21)*2.0*dt + p_k[16]*4.0*dt*dt2;
+
+									// VHOH'
+									double dVHOH_r1 = fcutoff*dtemp_r1 + dfcutoff_r1*temp;
+									double dVHOH_r2 = fcutoff*dtemp_r2 + dfcutoff_r2*temp;
+									double dVHOH_t  = fcutoff*dtemp_t  + dfcutoff_t *temp;
+
+									// r11', r21' and theta'
+									// r11' = dr[i][j] && r21' = dr[i][k]
+									double sint = Math.sqrt(1-SQR(cost));
+
+									for(int t=0;t<3;t++){
+										double dt_rj = (-1.0/sint) * (cost*dr[i][j][t] - dr[i][k][t])/r[i][j];
+										double dt_rk = (-1.0/sint) * (cost*dr[i][k][t] - dr[i][j][t])/r[i][k];
+										double dt_ri = -(dt_rj + dt_rk);
+
+										grad[i][t]+= dVHOH_r1*dr[i][j][t] + dVHOH_r2*dr[i][k][t] + dVHOH_t * dt_ri;
+										grad[j][t]+= dVHOH_r1*dr[j][i][t]  						 + dVHOH_t * dt_rj;
+										grad[k][t]+=                        dVHOH_r2*dr[k][i][t] + dVHOH_t * dt_rk;
+									}
+								}
 						}
 				}
 			}
@@ -328,25 +456,42 @@ public class OSS2Potential extends Potential{
 		return VHOH;
 	}
 
-	double ChargeChargeInteraction(){
+	double ChargeChargeInteraction(boolean isGrad){
 		double Vq=0;
 		for(int i=0; i<nAtom; i++ ){
 			for(int j=i+1; j< nAtom;j++){
-				Vq+= q[i]*q[j] / r[i][j];
+				double temp1=q[i]*q[j] / r[i][j] *rescale;
+				Vq+= temp1;
+				if(isGrad){ //for gradient
+					for(int k=0;k<3;k++){
+						double temp2=(-temp1)*dr[i][j][k];
+						grad[i][k]+= temp2;
+						grad[j][k]+=-temp2;
+					}
+				}
 			}
 		}
 		return Vq;
 	}
 
-	void CalcCutoffFunc(){
+	void CalcCutoffFunc(boolean isGrad){
 		for(int i=0; i<nO;i++) {
 			for(int j=nO; j< nAtom; j++) {
 				Scd[i][j] = Scd[j][i] = 1 / (r[i][j]*(r2[i][j] + p_a[1]*Math.exp(-p_a[2]*r[i][j])));
+
+				if(isGrad){ //for gradient
+					dScd[i][j]= dScd[i][j] = -SQR(Scd[i][j])*(3.0*r2[i][j] + p_a[1]*Math.exp(-p_a[2]*r[i][j])*(1.0-p_a[2]*r[i][j]));
+				}
 			}
 
 			for(int j=i+1;j< nO; j++) {
 				Scd[i][j] = Scd[j][i] = 1 / (r[i][j]*(r2[i][j] + p_b[1]*Math.exp(-p_b[2]*r[i][j])));
 				Sdd[i][j] = Sdd[j][i] = 1 / (r[i][j]*(r2[i][j] + p_c[1]*Math.exp(-p_c[2]*r[i][j])));
+
+				if(isGrad){ //for gradient
+					dScd[i][j] = dScd[i][j] =-SQR(Scd[i][j])*(3.0*r2[i][j] + p_b[1]*Math.exp(-p_b[2]*r[i][j])*(1.0-p_b[2]*r[i][j]));
+					dSdd[i][j] = dSdd[i][j] =-SQR(Sdd[i][j])*(3.0*r2[i][j] + p_c[1]*Math.exp(-p_c[2]*r[i][j])*(1.0-p_c[2]*r[i][j]));
+				}
 			}
 		}
 
@@ -425,19 +570,70 @@ public class OSS2Potential extends Potential{
 //		System.out.println("");
 	}
 
-	double ChargeDipoleInteraction(){
+	double ChargeDipoleInteraction(boolean isGrad){
 		double Vcd = 0;
 		for(int i=0;i< 3*nO; i++){
-			Vcd -= mu[i] * E[i] / p_alpha;
+			Vcd -= mu[i] * E[i] / p_alpha *rescale;
+		}
+
+		if(isGrad){
+				for(int i=0;i<nAtom;i++){
+					for(int j=0;j<nO;j++){
+						if(i!=j){
+							for(int t=0;t<3;t++){
+								double tmp = 0;
+								for(int k=0;k<3;k++) tmp += mu[3*j+k] * rv[i][j][k];
+
+								tmp =q[i]*tmp*dScd[i][j]*dr[i][j][t];
+								tmp+=q[i]*mu[3*j+t]*Scd[i][j];
+
+								tmp*=rescale;
+
+								grad[i][t]+=tmp;
+								grad[j][t]-=tmp;
+							}
+						}
+				}
+			}
 		}
 		return Vcd;
 	}
 
-	double DipoleDipoleInteraction(){
+	double DipoleDipoleInteraction(boolean isGrad){
 		double Vdd = 0;
 		for(int i=0;i< 3*nO; i++){
 			for(int j=i+1;j< 3*nO; j++){
-				Vdd += mu[i]*D[i][j]*mu[j];
+				Vdd += mu[i]*D[i][j]*mu[j] *rescale;
+			}
+		}
+
+		if(isGrad){
+			for(int i=0;i<nO;i++){
+				for(int j=0;j<nO;j++){
+					if(i!=j){
+						double pt1 = 0;
+						for(int k=0;k<3;k++)
+							for(int l=0;l<3;l++)
+								pt1 += mu[3*i+k]*T[3*i+k][3*j+l]*mu[3*j+l];
+
+						double pt2 = 0;
+						double pt3 = 0;
+
+						for(int k=0;k<3;k++) {
+							pt2 += mu[i*3+k] * dr[i][j][k];
+							pt3 += mu[j*3+k] * dr[i][j][k];
+						}
+
+						for(int t=0;t<3;t++){
+							double temp = pt1*dSdd[i][j]*dr[i][j][t];
+							temp += 3.0*(2.0*dr[i][j][t]*pt2*pt3
+							- mu[j*3+t]*pt2
+							- mu[i*3+t]*pt3)/r[i][j]*Sdd[i][j];
+
+							grad[i][t]+=temp*rescale;
+						}
+					}
+				}
 			}
 		}
 		return Vdd;
@@ -446,7 +642,10 @@ public class OSS2Potential extends Potential{
 	double SelfDipoleInteraction(){
 		double Vsd = 0;
 		for(int i=0;i< 3*nO; i++) Vsd += mu[i]*mu[i];
-			Vsd /= 2*p_alpha;
+		Vsd /= 2*p_alpha;
+		Vsd*=rescale;
 		return Vsd;
 	}
+
+	//================== for gradient
 }

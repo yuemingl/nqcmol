@@ -5,22 +5,23 @@
 
 package nqcmol;
 
+import com.thoughtworks.xstream.XStream;
 import java.io.*;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.sax.SAXTransformerFactory;
+import javax.xml.transform.sax.TransformerHandler;
+import javax.xml.transform.stream.StreamResult;
 import org.kohsuke.args4j.*;
 
 
-// SAX classes.
-import org.xml.sax.*;
-import org.xml.sax.helpers.*;
-//JAXP 1.1
-import javax.xml.transform.*;
-import javax.xml.transform.stream.*;
-import javax.xml.transform.sax.*;
-
 import nqcmol.potential.*;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
 
 /**
  *
@@ -59,69 +60,78 @@ public class MCalculate {
 
 
 	public void ener(String[] args)  {		
-		ParseArguments(args);
-		if(isHelp){
-			parser.printUsage(System.out);
-			return;
-		}
-
-		FileOutputStream fout = null;
-		try {		
-			StreamResult streamResult = null;
-			
-			if(sFileOut.isEmpty()){				
-				streamResult = new StreamResult(System.out);
-			}else{
-				fout = new FileOutputStream(sFileOut);
-				streamResult = new StreamResult(fout);
+		try {
+			ParseArguments(args);
+			if (isHelp) {
+				parser.printUsage(System.out);
+				return;
 			}
-				
+			StreamResult streamResult=new StreamResult(System.out);
 			SAXTransformerFactory tf = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
 			// SAX2.0 ContentHandler.
 			TransformerHandler hd = tf.newTransformerHandler();
 			Transformer serializer = hd.getTransformer();
 			serializer.setOutputProperty(OutputKeys.ENCODING, "ISO-8859-1");
 			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
-			hd.setResult(streamResult);
 			
+			hd.setResult(streamResult);
+
 			hd.startDocument();
 
 			AttributesImpl atts = new AttributesImpl();
 			atts.clear();
 
-			//IPotentialFunction ljfunc = MolExtra.SetupPotential(sPotential);
-			//OSS2Function ljfunc=new OSS2Function();
+			Potential pot = MolExtra.SetupPotential(sPotential);
 
-			Potential pot=MolExtra.SetupPotential(sPotential);
 
-			atts.addAttribute("", "", "Potential", "", pot.getEquation());
+			atts.addAttribute("", "", "Potential", "", pot.toString());
 			hd.startElement("", "", "nqc_ener", atts);
 			hd.startElement("","","Note",null);
 			String sTmp="Duration is measured in miliseconds. Speed is the time for one evaluation.";
 			hd.characters(sTmp.toCharArray(),0,sTmp.length());
 			hd.endElement("", "", "Note");
 
+			//XStream xs=new XStream();
+			//xs.omitField(this, parser);
+			//xs.toXML(this,System.out);
 
-			Cluster mol=new Cluster();
-
-
-			Scanner scanner= new Scanner(new File(sFileIn));
-			int i=0;
-			while(mol.Read(scanner, "xyz")){
+//			JSONObject jsChild1 = new JSONObject();
+//			jsChild1.put("Potential", pot.getEquation());
+//			jsChild1.put("Note", "Duration is measured in miliseconds. Speed is the time for one evaluation.");
+//
+//			JSONObject jsParent = new JSONObject();
+//			jsParent.put("nqc_ener", jsChild1);
+			
+			Cluster mol = new Cluster();
+			Scanner scanner = new Scanner(new File(sFileIn));
+			int i = 0;
+			//JSONArray jsChild2=new JSONArray();
+			while (mol.Read(scanner, "xyz")) {
 				//mol.Write(System.out,"xyz");
-
-				int myruns=(int)((nScale>0)?nRuns*Math.pow((double)nScale/mol.getNAtoms(),2):nRuns);
-				
-				double energy=0;
-
-				long duration=System.currentTimeMillis();
-
+				int myruns = (int) ((nScale>0)?nRuns*Math.pow((double)nScale/mol.getNAtoms(),2):nRuns);
+				myruns=Math.max(myruns, 1);
+				double energy = 0;
+				long duration = System.currentTimeMillis();
 				pot.setCluster(mol);
+				for (int k = 0; k < myruns; k++) {
+					energy = pot.getEnergy(true);
+				}
+				duration = System.currentTimeMillis() - duration;
+//				JSONObject jsBench = new JSONObject();
+//				jsBench.put("Tag", i);
+//				jsBench.put("nAtoms", pot.getCluster().getNAtoms());
+//				jsBench.put("nRuns", myruns);
+//				jsBench.put("Energy", energy);
+//				jsBench.put("Duration", duration);
+//				jsBench.put("Speed", (double) duration / myruns);
+//				jsChild1.put("bench", jsBench);
+//		
+//				GeometricMinimizer gm = new GeometricMinimizer();
+//
+//				gm.setConvergenceParametersForSDM(100, 0.00001);
+//		 		gm.steepestDescentsMinimization(molR, ljfunc);
+//				molR.set(gm.getSteepestDescentsMinimum());
 
-				for(int k=0; k <myruns ; k++)	energy=pot.getEnergy(true);
-
-				duration= System.currentTimeMillis() - duration ;
-				
 				atts.clear();
 				atts.addAttribute("", "", "Tag", "", Integer.toString(i));
 				atts.addAttribute("", "", "nRuns", "", Integer.toString(myruns));
@@ -130,37 +140,55 @@ public class MCalculate {
 				atts.addAttribute("","", "Speed", "", Double.toString((double)duration/myruns));
 
 
-//				GeometricMinimizer gm = new GeometricMinimizer();
-//
-//				gm.setConvergenceParametersForSDM(100, 0.00001);
-//		 		gm.steepestDescentsMinimization(molR, ljfunc);
-//				molR.set(gm.getSteepestDescentsMinimum());
-//
-//				energy=ljfunc.energyFunction(molR);
-//				atts.addAttribute("","", "Mininum", "", Double.toString(energy));
-
 
 				hd.startElement("", "", "bench", atts);
 				hd.endElement("", "", "bench");
+//
 				i++;
+				
 				//break;
 			}
 			hd.endElement("", "", "nqc_ener");
 			hd.endDocument();
-		} catch (IOException ex) {
-			Logger.getLogger(NQCMol.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (TransformerConfigurationException ex) {
-				Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
+
+			//System.out.print(jsParent);
 		} catch (SAXException ex) {
-				Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
-		} finally {
-			try {
-				fout.close();
-			} catch (IOException ex) {
-				Logger.getLogger(NQCMol.class.getName()).log(Level.SEVERE, null, ex);
-			}
+			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (TransformerConfigurationException ex) {
+			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
+		} catch (FileNotFoundException ex) {
+			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
 
+	public void opt(String[] args){
+		
+	}
+
+	public void validgrad(String[] args)  {
+		try {
+			ParseArguments(args);
+			if (isHelp) {
+				parser.printUsage(System.out);
+				return;
+			}
+
+			
+			Potential pot = MolExtra.SetupPotential(sPotential);
+
+			Cluster mol = new Cluster();
+			Scanner scanner = new Scanner(new File(sFileIn));
+			int i = 0;
+			while (mol.Read(scanner, "xyz")) {
+				//mol.Write(System.out,"xyz");
+				pot.setCluster(mol);
+				pot.ValidateGradient(1);
+				
+				i++;
+			}
+		} catch (FileNotFoundException ex) {
+			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
 
 }

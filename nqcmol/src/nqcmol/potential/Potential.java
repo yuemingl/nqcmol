@@ -280,12 +280,12 @@ public class Potential {
 		double[] x=xt.clone();
 
 	//for(int i=0;i<_ncoords;i++) x[i]=xt[i];
-	//cout<<" No coords = "<<_ncoords<<endl;
+	//System.out.printf(" No coords = "<<_ncoords<<endl;
 		double rms=0;
 		for(int i=0;i<cluster.getNcoords();i++){
 			x[i]+=delta;	e1=Energy_(x);	x[i]-=delta;
 			x[i]-=delta;	e2=Energy_(x);	x[i]+=delta;
-			//cout<<i<<" = "<<e1<<" "<<e2<<" = "<<(e1-e2)/(2.0*delta)<<endl;
+			//System.out.printf(i<<" = "<<e1<<" "<<e2<<" = "<<(e1-e2)/(2.0*delta)<<endl;
 			
 				grad[i]=(e1-e2)/(2.0*delta);			
 	}
@@ -341,8 +341,43 @@ public class Potential {
       Validate the analytical gradients by comparing them to numerical ones. This function has to
       be implemented force field specific. (debugging)
     */
-    public double ValidateGradients(int verbose){
-		return 0;
+    public double ValidateGradient(int verbose){
+		double maxerr=0;
+
+		if(verbose>0){
+			System.out.printf("\nValidate Gradients of %s\n\n",getEquation());
+			System.out.printf("ATOM IDX                    NUMERICAL GRADIENT                        ANALYTICAL GRADIENT                     REL. ERROR ()   \n");
+			System.out.printf("-------------------------------------------------------------------------------------------------------------------------------\n");
+		}
+
+
+		if(HasAnalyticalGradients())	Gradient_(cluster.getCoords(),cluster.getGradient());
+		double[] anagrad=cluster.getGradient();
+
+		double[] numgrad=new double[cluster.getNcoords()];		
+		NumericalGradient_(cluster.getCoords(),numgrad,1e-4);
+
+
+		for(int i=0;i<cluster.getNAtoms();i++){
+			double[] err=new double[3];
+			for(int k=0;k<3;k++)
+				if(numgrad[i*3+k]!=0){
+					err[k]=100*Math.abs((anagrad[i*3+k]-numgrad[i*3+k])/numgrad[i*3+k]);
+					maxerr=(err[k]<maxerr)?maxerr:err[k];
+				}else err[k]=100.0;
+
+		if(verbose>0){
+			System.out.printf("%2d       (%12.6f, %12.6f, %12.6f)  (%12.6f, %12.6f, %12.6f)  (%6.3f, %6.3f, %6.3f)\n", i
+			 , numgrad[i*3]% numgrad[i*3+1]% numgrad[i*3+2]
+			 , anagrad[i*3]% anagrad[i*3+1]% anagrad[i*3+2]
+			 , err[0] % err[1]% err[2]);
+		}
+	}
+	if(verbose>0){
+		System.out.printf(" Maximum error = %f \n",maxerr);
+		System.out.printf("-------------------------------------------------------------------------------------------------------------------------------\n");
+	}
+		return maxerr;
 	}
     //@}
 

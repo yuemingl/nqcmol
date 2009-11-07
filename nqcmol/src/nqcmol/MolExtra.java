@@ -21,6 +21,7 @@ public class MolExtra {
 		if(sPotential.contentEquals("OSS2")){
 			pot=new OSS2Potential();
 		}
+		assert pot==null;
 		return pot;
 	}
 	
