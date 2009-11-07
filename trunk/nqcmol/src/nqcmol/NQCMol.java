@@ -14,7 +14,7 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class NQCMol {
-	@Option(name="-T",usage="Please choose a task",metaVar="task")
+	@Option(name="-t",usage="Please choose a task",metaVar="task")
     String sTask="ener";
 
     @Option(name="-h",usage="Print out the help")
@@ -47,6 +47,19 @@ public class NQCMol {
 		if(sTask.contentEquals("ener")){
 			MCalculate calc=new MCalculate();
 			calc.ener(args);
+			return;
+		}
+
+
+		if(sTask.contentEquals("validgrad")){
+			MCalculate calc=new MCalculate();
+			calc.validgrad(args);
+			return;
+		}
+
+		if(sTask.contentEquals("opt")){
+			MCalculate calc=new MCalculate();
+			calc.opt(args);
 			return;
 		}
 

@@ -5,8 +5,12 @@
 
 package nqcmol.potential;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.Cluster;
@@ -31,23 +35,19 @@ public class LennardJonesPotentialTest {
 	
     @Before
     public void setUp() {
-		FileInputStream is = null;
+		Scanner is = null;
 		try {
 			System.out.print(" Read Cluster \n");
 			cluster = new Cluster();
-			is = new FileInputStream("test/LJlm/lj13.xyz");
+			is = new Scanner(new File("test/LJlm/lj13.xyz"));
 			Assert.assertTrue(cluster.Read(is,"xyz"));
 
 			System.out.print(" Testing Write XYZ method in Cluster \n");
 			cluster.Write(System.out,"xyz");
-		} catch (IOException ex) {
+		} catch (FileNotFoundException ex) {
 			Logger.getLogger(LennardJonesPotentialTest.class.getName()).log(Level.SEVERE, null, ex);
 		}  finally {
-			try {
-				is.close();
-			} catch (IOException ex) {
-				Logger.getLogger(LennardJonesPotentialTest.class.getName()).log(Level.SEVERE, null, ex);
-			}
+			is.close();
 		}
     }
 
@@ -72,7 +72,8 @@ public class LennardJonesPotentialTest {
 	public void testGradient_() {
 		System.out.println("Gradient_");
 		LennardJonesPotential instance = new LennardJonesPotential();
-		instance.Gradient_(cluster.getCoords(),cluster.getGradient());
+		instance.ValidateGradient(1);
+		//instance.Gradient_(cluster.getCoords(),cluster.getGradient());
 		// TODO review the generated test code and remove the default call to fail.
 		//fail("The test case is a prototype.");
 	}
