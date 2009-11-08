@@ -58,7 +58,7 @@ public class LennardJonesPotentialTest {
 	 */
 	@Test
 	public void testEnergy_() {
-		System.out.println("Energy_");
+		System.out.println("Test Energy_");
 		LennardJonesPotential instance = new LennardJonesPotential();
 		double expResult =  -44.326801;
 		double result = instance.Energy_(cluster.getCoords());
@@ -70,9 +70,10 @@ public class LennardJonesPotentialTest {
 	 */
 	@Test
 	public void testGradient_() {
-		System.out.println("Gradient_");
+		System.out.println("Validate Gradient_");
 		LennardJonesPotential instance = new LennardJonesPotential();
-		instance.ValidateGradient(1);
+		instance.setCluster(cluster);
+		System.out.println(instance.ValidateGradient(1e-4));
 		//instance.Gradient_(cluster.getCoords(),cluster.getGradient());
 		// TODO review the generated test code and remove the default call to fail.
 		//fail("The test case is a prototype.");

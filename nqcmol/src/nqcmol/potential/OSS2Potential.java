@@ -76,7 +76,6 @@ public class OSS2Potential extends Potential{
 
 		CalcDistanceAndCharge(_p,false);
 
-
 		double VOO=OOInteraction(false);
 		double VOH=OHInteraction(false);
 		double VHH=HHInteraction(false);
@@ -90,7 +89,6 @@ public class OSS2Potential extends Potential{
 		double Vcd=ChargeDipoleInteraction(false);
 		double Vdd=DipoleDipoleInteraction(false);
 		double Vsd=SelfDipoleInteraction();
-
 
 		double Vel=(Vdd + Vcd + Vq + Vsd) ;//* rescale;
 		energy=VOO+VOH+VHH+VHOH + Vel;
@@ -111,16 +109,13 @@ public class OSS2Potential extends Potential{
 	}
 
 	@Override
-	protected void Gradient_(double[] _p, double[] grad) {
+	protected void Gradient_(double[] _p, double[] gradient) {
 		double energy=0;
 		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
-
 
 		AllocatePrivateVariables(_p.length/3);
 
 		CalcDistanceAndCharge(_p,true);
-
-		//CalcDistanceAndCharge_deriv();
 
 		double VOO=OOInteraction(true);
 		double VOH=OHInteraction(true);
@@ -136,22 +131,25 @@ public class OSS2Potential extends Potential{
 
 		double Vcd=ChargeDipoleInteraction(true);
 		double Vdd=DipoleDipoleInteraction(true);
-		//double Vsd=SelfDipoleInteraction();
+		double Vsd=SelfDipoleInteraction();
 
+		for(int i=0;i<nAtom;i++)
+			for(int k=0;k<3;k++)
+				gradient[i*3+k]=this.grad[i][k];
 
-		//double Vel=(Vdd + Vcd + Vq + Vsd);// * rescale;
-		//energy=VOO+VOH+VHH+VHOH + Vel;
+		double Vel=(Vdd + Vcd + Vq + Vsd);// * rescale;
+		energy=VOO+VOH+VHH+VHOH + Vel;
 
-//		System.out.print("E : ");
-//		for(int i=0;i<nO*3;i++)	System.out.printf( " %f ",E[i]);
-//		System.out.println("");
-//		System.out.printf( "VOO: %f  VOH: %f VHOH: %f VHH:%f \n",VOO,VOH,VHOH,VHH);
-//		System.out.printf( "Vq: %f \n",Vq);
-//		System.out.printf( "Self-dipole: %f \n" , Vsd );
-//		System.out.printf( "Dipole-dipole interaction: %f \n" ,Vdd);
-//		System.out.printf( "Charge-dipole interaction: %f \n" ,Vcd);
-//		System.out.printf( "Vel: %f \n",Vel);
-//		System.out.printf( "Energy: %f \n",energy);
+		System.err.print("E : ");
+		for(int i=0;i<nO*3;i++)	System.err.printf( " %f ",E[i]);
+		System.err.println("");
+		System.err.printf( "VOO: %f  VOH: %f VHOH: %f VHH:%f \n",VOO,VOH,VHOH,VHH);
+		System.err.printf( "Vq: %f \n",Vq);
+		System.err.printf( "Self-dipole: %f \n" , Vsd );
+		System.err.printf( "Dipole-dipole interaction: %f \n" ,Vdd);
+		System.err.printf( "Charge-dipole interaction: %f \n" ,Vcd);
+		System.err.printf( "Vel: %f \n",Vel);
+		System.err.printf( "Energy: %f \n",energy);
 
 		neval+=3;
 	}
@@ -480,7 +478,7 @@ public class OSS2Potential extends Potential{
 				Scd[i][j] = Scd[j][i] = 1 / (r[i][j]*(r2[i][j] + p_a[1]*Math.exp(-p_a[2]*r[i][j])));
 
 				if(isGrad){ //for gradient
-					dScd[i][j]= dScd[i][j] = -SQR(Scd[i][j])*(3.0*r2[i][j] + p_a[1]*Math.exp(-p_a[2]*r[i][j])*(1.0-p_a[2]*r[i][j]));
+					dScd[i][j]= dScd[j][i] = -SQR(Scd[i][j])*(3.0*r2[i][j] + p_a[1]*Math.exp(-p_a[2]*r[i][j])*(1.0-p_a[2]*r[i][j]));
 				}
 			}
 
@@ -489,8 +487,8 @@ public class OSS2Potential extends Potential{
 				Sdd[i][j] = Sdd[j][i] = 1 / (r[i][j]*(r2[i][j] + p_c[1]*Math.exp(-p_c[2]*r[i][j])));
 
 				if(isGrad){ //for gradient
-					dScd[i][j] = dScd[i][j] =-SQR(Scd[i][j])*(3.0*r2[i][j] + p_b[1]*Math.exp(-p_b[2]*r[i][j])*(1.0-p_b[2]*r[i][j]));
-					dSdd[i][j] = dSdd[i][j] =-SQR(Sdd[i][j])*(3.0*r2[i][j] + p_c[1]*Math.exp(-p_c[2]*r[i][j])*(1.0-p_c[2]*r[i][j]));
+					dScd[i][j] = dScd[j][i] =-SQR(Scd[i][j])*(3.0*r2[i][j] + p_b[1]*Math.exp(-p_b[2]*r[i][j])*(1.0-p_b[2]*r[i][j]));
+					dSdd[i][j] = dSdd[j][i] =-SQR(Sdd[i][j])*(3.0*r2[i][j] + p_c[1]*Math.exp(-p_c[2]*r[i][j])*(1.0-p_c[2]*r[i][j]));
 				}
 			}
 		}

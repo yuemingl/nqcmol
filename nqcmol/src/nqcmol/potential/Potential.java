@@ -5,6 +5,11 @@
 
 package nqcmol.potential;
 
+import com.generationjava.io.WritingException;
+import com.generationjava.io.xml.XmlWriter;
+import java.io.Writer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nqcmol.Cluster;
 
 /**
@@ -300,16 +305,25 @@ public class Potential {
     /////////////////////////////////////////////////////////////////////////
 	/**
 	 * Return info of potential in xml format
-	 * @param type =1: equation name and unit, 2= setting info, 3= status
+	 * @param verbose =1: equation name and unit, 2= setting info, 3= status
 	 */
-	public String Info(int type){//!< print setting parameters
-		String info="";
-		if(type==1) info="Potential: { \"equation\"="+getEquation()+"\""+ "}";
-		//if(type==2) info="PotentialSetting: { \"equation\"="+getEquation()+"\""+ "}";
-		//if(type==3) info="PotentialStatus: { \"equation\"="+getEquation()+"\""+ "}";
-//		 JSONObject obj = new JSONObject();
-//    obj.put("userName", name);
-//    obj.put("ID", new Integer(id));
+	public String Info(int verbose){//!< print setting parameters
+		String info = "";
+		try {
+			//!< print setting parameters
+			Writer writer = new java.io.StringWriter();
+			XmlWriter xmlwriter = new XmlWriter(writer);
+			xmlwriter.writeEntity("Potential");
+			if (verbose == 1) {
+				xmlwriter.writeAttribute("Equation", getEquation()).writeAttribute("Unit",getUnit());
+			}
+			xmlwriter.endEntity();
+			xmlwriter.close();
+			info = writer.toString();
+
+		} catch (WritingException ex) {
+			Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);
+		}
 		return info;
 	}
 
@@ -337,48 +351,89 @@ public class Potential {
     /////////////////////////////////////////////////////////////////////////
 
     //! \name Methods for forcefield validation
-    /*!
-      Validate the analytical gradients by comparing them to numerical ones. This function has to
-      be implemented force field specific. (debugging)
+    /**
+	 * Validate the analytical gradients by comparing them to numerical ones.
+	 * @param deltaX small displacment for numerical gradients.
+	 * @return a string in XML format.
     */
-    public double ValidateGradient(int verbose){
-		double maxerr=0;
+    public String ValidateGradient(double deltaX){
+		String sVerbose="";
+		
+		try {
+			double maxerr = 100;
+			//XmlWriter.test1();
+			Writer writer = new java.io.StringWriter();
+			XmlWriter xmlwriter = new XmlWriter(writer);
+			xmlwriter.writeEntity("ValidateGradient");
+			xmlwriter.writeAttribute("Equation",getEquation());
+			xmlwriter.writeAttribute("DeltaX",Double.toString(deltaX));
+					
+//			if (verbose > 0) {
+//				System.out.printf("\nValidate Gradients of %s\n\n", getEquation());
+//				System.out.print("ATOM IDX                    NUMERICAL GRADIENT                        ANALYTICAL GRADIENT                     REL. ERROR ()   \n");
+//				System.out.print("-------------------------------------------------------------------------------------------------------------------------------\n");
+//			}
+			if (HasAnalyticalGradients()) {
+				Gradient_(cluster.getCoords(), cluster.getGradient());
+			}
+			double[] anagrad = cluster.getGradient();
+			double[] numgrad = new double[cluster.getNcoords()];
+			NumericalGradient_(cluster.getCoords(), numgrad, deltaX);
+			for (int i = 0; i < cluster.getNAtoms(); i++) {
+				double[] err = new double[3];
+				for (int k = 0; k < 3; k++) {
+					if (numgrad[i * 3 + k] != 0) {
+						err[k] = 100 * Math.abs((anagrad[i * 3 + k] - numgrad[i * 3 + k]) / numgrad[i * 3 + k]);
+						maxerr = Math.max(err[k],maxerr);
+					} else {
+						err[k] = 100.0;
+					}
+				}
 
-		if(verbose>0){
-			System.out.printf("\nValidate Gradients of %s\n\n",getEquation());
-			System.out.printf("ATOM IDX                    NUMERICAL GRADIENT                        ANALYTICAL GRADIENT                     REL. ERROR ()   \n");
-			System.out.printf("-------------------------------------------------------------------------------------------------------------------------------\n");
+				//String info=String.format("%2d       (%12.6f, %12.6f, %12.6f)  (%12.6f, %12.6f, %12.6f)  (%6.3f, %6.3f, %6.3f)\n", i, numgrad[i * 3], numgrad[i * 3 + 1], numgrad[i * 3 + 2], anagrad[i * 3], anagrad[i * 3 + 1], anagrad[i * 3 + 2], err[0], err[1], err[2]);
+
+				xmlwriter.writeEntity("Test");
+					xmlwriter.writeAttribute("AtomID",Integer.toString(i));
+					xmlwriter.writeEntity("NumGrad");
+						xmlwriter.writeAttribute("x",Double.toString(numgrad[i*3+0]));
+						xmlwriter.writeAttribute("y",Double.toString(numgrad[i*3+1]));
+						xmlwriter.writeAttribute("z",Double.toString(numgrad[i*3+2]));
+					xmlwriter.endEntity();
+					xmlwriter.writeEntity("AnaGrad");
+						xmlwriter.writeAttribute("x",Double.toString(anagrad[i*3+0]));
+						xmlwriter.writeAttribute("y",Double.toString(anagrad[i*3+1]));
+						xmlwriter.writeAttribute("z",Double.toString(anagrad[i*3+2]));
+					xmlwriter.endEntity();
+					xmlwriter.writeEntity("RelError");
+						xmlwriter.writeAttribute("x",Double.toString(err[0]));
+						xmlwriter.writeAttribute("y",Double.toString(err[1]));
+						xmlwriter.writeAttribute("z",Double.toString(err[2]));
+					xmlwriter.endEntity();
+				xmlwriter.endEntity();
+
+//				if (verbose > 0) {
+//					System.out.printf("%2d       (%12.6f, %12.6f, %12.6f)  (%12.6f, %12.6f, %12.6f)  (%6.3f, %6.3f, %6.3f)\n", i, numgrad[i * 3], numgrad[i * 3 + 1], numgrad[i * 3 + 2], anagrad[i * 3], anagrad[i * 3 + 1], anagrad[i * 3 + 2], err[0], err[1], err[2]);
+//				}
+			}
+			xmlwriter.writeEntity("MaxError");
+			xmlwriter.writeText(Double.toString(maxerr));
+			xmlwriter.endEntity();
+//			if (verbose > 0) {
+//				System.out.printf(" Maximum error = %f \n", maxerr);
+//				System.out.printf("-------------------------------------------------------------------------------------------------------------------------------\n");
+//			}
+			
+			xmlwriter.endEntity();
+			xmlwriter.close();
+
+			sVerbose=writer.toString();
+
+		} catch (WritingException ex) {
+			Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);
 		}
-
-
-		if(HasAnalyticalGradients())	Gradient_(cluster.getCoords(),cluster.getGradient());
-		double[] anagrad=cluster.getGradient();
-
-		double[] numgrad=new double[cluster.getNcoords()];		
-		NumericalGradient_(cluster.getCoords(),numgrad,1e-4);
-
-
-		for(int i=0;i<cluster.getNAtoms();i++){
-			double[] err=new double[3];
-			for(int k=0;k<3;k++)
-				if(numgrad[i*3+k]!=0){
-					err[k]=100*Math.abs((anagrad[i*3+k]-numgrad[i*3+k])/numgrad[i*3+k]);
-					maxerr=(err[k]<maxerr)?maxerr:err[k];
-				}else err[k]=100.0;
-
-		if(verbose>0){
-			System.out.printf("%2d       (%12.6f, %12.6f, %12.6f)  (%12.6f, %12.6f, %12.6f)  (%6.3f, %6.3f, %6.3f)\n", i
-			 , numgrad[i*3]% numgrad[i*3+1]% numgrad[i*3+2]
-			 , anagrad[i*3]% anagrad[i*3+1]% anagrad[i*3+2]
-			 , err[0] % err[1]% err[2]);
-		}
+		return sVerbose;
 	}
-	if(verbose>0){
-		System.out.printf(" Maximum error = %f \n",maxerr);
-		System.out.printf("-------------------------------------------------------------------------------------------------------------------------------\n");
-	}
-		return maxerr;
-	}
+	
     //@}
 
 	//	String basisset; //!< for Gaussian or other DFT calculations
