@@ -5,25 +5,19 @@
 
 package nqcmol;
 
-import com.generationjava.io.WritingException;
-import com.generationjava.io.xml.XmlWriter;
-import com.thoughtworks.xstream.XStream;
+//import com.thoughtworks.xstream.XStream;
 import java.io.*;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.sax.SAXTransformerFactory;
-import javax.xml.transform.sax.TransformerHandler;
-import javax.xml.transform.stream.StreamResult;
+
 import org.kohsuke.args4j.*;
 
 
 import nqcmol.potential.*;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.AttributesImpl;
+import nqcmol.xml.XmlWriter;
+//import org.xml.sax.SAXException;
+//import org.xml.sax.helpers.AttributesImpl;
 
 /**
  *
@@ -45,6 +39,9 @@ public class MCalculate {
 
 	@Option(name="-nScale",usage=" number of interations",metaVar="INTNUM")
     int nScale=0;
+
+	@Option(name="-grad",usage="Benchmark gradients or not.")
+    boolean isGrad= false;
 
     @Option(name="-h",usage="Print out the help")
     boolean isHelp= false;
@@ -68,18 +65,6 @@ public class MCalculate {
 				parser.printUsage(System.out);
 				return;
 			}
-//			StreamResult streamResult=new StreamResult(System.out);
-//			SAXTransformerFactory tf = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
-//			// SAX2.0 ContentHandler.
-//			TransformerHandler hd = tf.newTransformerHandler();
-//			Transformer serializer = hd.getTransformer();
-//			serializer.setOutputProperty(OutputKeys.ENCODING, "ISO-8859-1");
-//			serializer.setOutputProperty(OutputKeys.INDENT, "yes");
-//
-//			hd.setResult(streamResult);
-//			hd.startDocument();
-//			AttributesImpl atts = new AttributesImpl();
-//			atts.clear();
 
 			Potential pot = MolExtra.SetupPotential(sPotential);
 
@@ -87,27 +72,8 @@ public class MCalculate {
 			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
 			XmlWriter xmlwriter=new XmlWriter(writer);
 			xmlwriter.writeEntity("BenchmarkEnergy");
-			xmlwriter.writeAttribute("Potential",pot.getEquation());
+			xmlwriter.writeNormalText(pot.Info(1));
 
-			xmlwriter.writeText(pot.Info(1));
-
-//			atts.addAttribute("", "", "Potential", "", pot.getEquation());
-//			hd.startElement("", "", "nqc_ener", atts);
-//			hd.startElement("","","Note",null);
-//			String sTmp="Duration is measured in miliseconds. Speed is the time for one evaluation.";
-//			hd.characters(sTmp.toCharArray(),0,sTmp.length());
-//			hd.endElement("", "", "Note");
-
-			//XStream xs=new XStream();
-			//xs.omitField(this, parser);
-			//xs.toXML(this,System.out);
-
-//			JSONObject jsChild1 = new JSONObject();
-//			jsChild1.put("Potential", pot.getEquation());
-//			jsChild1.put("Note", "Duration is measured in miliseconds. Speed is the time for one evaluation.");
-//
-//			JSONObject jsParent = new JSONObject();
-//			jsParent.put("nqc_ener", jsChild1);
 			
 			Cluster mol = new Cluster();
 			Scanner scanner = new Scanner(new File(sFileIn));
@@ -127,16 +93,34 @@ public class MCalculate {
 					energy = pot.getEnergy(true);
 				}
 				duration = System.currentTimeMillis() - duration;
-				double speed=0;
-				if(myruns!=0) speed=duration/myruns;
+				double EnergySpeed=0;
+				if(myruns!=0) EnergySpeed=duration/myruns;
 
+
+				
 				xmlwriter.writeEntity("Bench");
 				xmlwriter.writeAttribute("Tag", Integer.toString(i));
 				xmlwriter.writeAttribute("nAtoms", Integer.toString(pot.getCluster().getNAtoms()));
 				xmlwriter.writeAttribute("nRuns", Integer.toString(myruns));
 				xmlwriter.writeAttribute("Energy", Double.toString(energy));
-				xmlwriter.writeAttribute("Duration", Long.toString(duration));
-				xmlwriter.writeAttribute("Speed", Double.toString(speed));
+				xmlwriter.writeAttribute("EnergyDuration", Long.toString(duration));
+				xmlwriter.writeAttribute("EnergySpeed", Double.toString(EnergySpeed));
+
+
+				if(isGrad){
+					duration = System.currentTimeMillis();
+					for (int k = 0; k < myruns; k++) {
+						double[] grad = pot.getGradient(true);
+					}
+					duration = System.currentTimeMillis() - duration;
+
+					double GradientSpeed=0;
+					if(myruns!=0) GradientSpeed=duration/myruns;
+					xmlwriter.writeAttribute("GradientDuration", Long.toString(duration));
+					xmlwriter.writeAttribute("GradientSpeed", Double.toString(GradientSpeed));
+				}
+
+
 				xmlwriter.endEntity();
 //				JSONObject jsBench = new JSONObject();
 //				jsBench.put("Tag", i);
@@ -174,13 +158,52 @@ public class MCalculate {
 			//System.out.print(jsParent);
 		} catch (IOException ex) {
 			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (WritingException ex) {
-			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
 		} 
 	}
 
 	public void opt(String[] args){
-		
+		try {
+			ParseArguments(args);
+			if (isHelp) {
+				parser.printUsage(System.out);
+				return;
+			}
+
+			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
+			XmlWriter xmlwriter=new XmlWriter(writer);
+			xmlwriter.writeEntity("Optimization");
+
+
+
+			Potential pot = MolExtra.SetupPotential(sPotential);
+
+			xmlwriter.writeNormalText(pot.Info(3));
+
+			Cluster mol = new Cluster();
+			Scanner scanner = new Scanner(new File(sFileIn));
+			//System.out.println("What the fuck!"+sFileIn);
+			int i = 0;
+			while (mol.Read(scanner, "xyz")) {
+				//mol.Write(System.out,"xyz");
+
+
+				xmlwriter.writeEntity("Opt").writeAttribute("Tag",Integer.toString(i));
+				
+//				xmlwriter.writeEntity("XYZ");
+
+//				xmlwriter.endEntity();
+				xmlwriter.writeAttribute("nAtom",Integer.toString(12));
+				pot.Optimize(mol,true);
+				mol.Write(System.err, "xyz");
+				xmlwriter.endEntity();
+				
+				i++;
+			}
+			xmlwriter.endEntity();
+			writer.close();
+		} catch (IOException ex) {
+			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
+		} 
 	}
 
 	public void validgrad(String[] args)  {
