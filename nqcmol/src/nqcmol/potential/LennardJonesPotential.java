@@ -18,9 +18,6 @@ public class LennardJonesPotential extends Potential{
 		return equation;
 	}
 
-	
-
-
 	@Override
 	public boolean isValidSetup() {
 		return true;

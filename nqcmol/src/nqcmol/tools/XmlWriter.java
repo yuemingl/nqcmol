@@ -1,4 +1,4 @@
-package nqcmol.xml;
+package nqcmol.tools;
 
 import java.io.IOException;
 import java.io.Writer;

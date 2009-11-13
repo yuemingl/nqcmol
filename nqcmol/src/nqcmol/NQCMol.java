@@ -46,20 +46,26 @@ public class NQCMol {
 	
 		if(sTask.contentEquals("ener")){
 			MCalculate calc=new MCalculate();
-			calc.ener(args);
+			calc.CalculateEnergy(args);
 			return;
 		}
 
 
 		if(sTask.contentEquals("validgrad")){
 			MCalculate calc=new MCalculate();
-			calc.validgrad(args);
+			calc.ValidateGradients(args);
 			return;
 		}
 
 		if(sTask.contentEquals("opt")){
 			MCalculate calc=new MCalculate();
-			calc.opt(args);
+			calc.Optimize(args);
+			return;
+		}
+
+		if(sTask.contentEquals("vib")){
+			MCalculate calc=new MCalculate();
+			calc.HarmonicVibrationAnalysis(args);
 			return;
 		}
 

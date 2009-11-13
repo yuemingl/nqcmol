@@ -9,6 +9,7 @@ import java.io.*;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.logging.*;
+import nqcmol.tools.MTools;
 
 /**
  *
@@ -38,6 +39,10 @@ public class Cluster implements Cloneable{
 		setCoords(src.getCoords());
 		//System.out.println(" Come here");
 		setGradient(src.getGradient());
+		//System.out.println(" Come here");
+		setHessian(src.getHessian());
+		//System.out.println(" Come here");
+		setFreqs(src.getFreqs());
 		//System.out.println(" Come here");
 		setAtomicNumber(src.getAtomicNumber());
 		//System.out.println(" Come here");
@@ -219,6 +224,44 @@ public class Cluster implements Cloneable{
 		return hessian;
 	}
 
+	public void setHessian(double[][] hessian_){
+		assert ncoords<=hessian_.length;
+		for(int i=0;i<ncoords;i++){
+			assert ncoords<=hessian_[i].length;
+			System.arraycopy(hessian_[i],0,this.hessian[i],0,ncoords);
+		}
+	}
+
+	protected double[] freqs = null;
+
+	/**
+	 * Get the value of freqs
+	 *
+	 * @return the value of freqs
+	 */
+	public double[] getFreqs() {
+		return freqs;
+	}
+
+	/**
+	 * Set the value of freqs
+	 *
+	 * @param freqs new value of freqs
+	 */
+	public void setFreqs(double[] freqs) {
+		this.freqs = freqs.clone();
+	}
+
+	/**
+	 * Get the value of freqs at specified index
+	 *
+	 * @param index
+	 * @return the value of freqs at specified index
+	 */
+	public double getFreqs(int index) {
+		return this.freqs[index];
+	}
+
 	protected double rmsGrad=0;
 
 	/**
@@ -315,15 +358,15 @@ public class Cluster implements Cloneable{
 	public double getTotalMass() {
 		double TotalMass=0;
 		for(int i=0;i<nAtoms;i++)
-			TotalMass+=Mass(i);
+			TotalMass+=getMass(i);
 		return TotalMass;
 	}
 
 	/**
 	 * @param i index of atom
-	 * @return Mass of an atom
+	 * @return getMass of an atom
 	 */
-	public double Mass(int i){
+	public double getMass(int i){
 		return cMass[Nz[i]];
 	}
 
@@ -350,6 +393,297 @@ public class Cluster implements Cloneable{
 		//System.out.printf(" %s %d \n",cElements[k],k);
 		return k;
 	}
+
+	public void R(int i,double[] dr){
+		for(int l=0;l<3;l++) dr[l]=coords[i*3+l];
+	}
+
+
+	public void dR(int i,int j,double[] dr){
+			for(int l=0;l<3;l++)	dr[l]=coords[j*3+l]-coords[i*3+l];
+	};
+
+	public void dnR(int i,int j,double[] dr){ //!< normalised dR(i,j)
+			dR(i,j,dr);	double d=distance(i,j);
+			//cout<<" l= "<<d<<" "<<dr[0]<<" "<<dr[1]<<" "<<dr[2]<<endl;
+			for(int l=0;l<3;l++)	dr[l]/=d;
+		};
+
+	public double distance(int i,int j){//!< distance between i and j atoms
+			double[] vec=new double[3];	dR(i,j,vec);
+			return  Math.sqrt(MTools.DOTPRODUCT(vec,vec));
+	}
+
+	public double distance(int i,double[] d){//!< distance between i and a given point
+			double[] vec={coords[i*3],coords[i*3+1],coords[i*3+2]};
+			if(d!=null){ vec[0]-=d[0];vec[1]-=d[1];vec[2]-=d[2];}
+			return  Math.sqrt(MTools.DOTPRODUCT(vec,vec));
+		}
+
+	public double angle(int ow,int hw1,int hw2){ //!< angle between (hw1,ow,hw2)
+			double[] l1=new double[3];
+			double[] l2=new double[3];
+			dR(hw1,ow,l1);
+			dR(hw2,ow,l2);
+			return Math.acos(MTools.DOTPRODUCT(l1,l2)/Math.sqrt(MTools.DOTPRODUCT(l1,l1)*MTools.DOTPRODUCT(l2,l2)));
+		}
+
+	public double angle_dgr(int ow,int hw1,int hw2){ //!< angle between (hw1,ow,hw2) in degree
+			return angle(ow,hw1,hw2)*180.0/Math.PI;
+	}
+
+	public double torsion_dgr(int i1,int i2,int i3,int i4){ //!< torsion angle of four atoms i1-i2-i3-i4 in degree
+			return torsion(i1,i2,i3,i4)*180.0/Math.PI;
+	}
+
+
+	public double torsion(int i1,int i2,int i3,int i4){
+		double t=0;
+		double[] b1=new double[3];
+		double[] b2=new double[3];
+		double[] b3=new double[3];
+		double[] c1=new double[3];
+		double[] c2=new double[3];
+		double[] c3=new double[3];
+
+		dR(i2,i1,b1);//b1 = a - b;
+		dR(i3,i2,b2);//b2 = b - c;
+		dR(i4,i3,b3);//b3 = c - d;
+
+		MTools.CROSSPRODUCT(c1,b1,b2); //c1 = cross(b1,b2);
+		MTools.CROSSPRODUCT(c2,b2,b3); //c2 = cross(b2,b3);
+		MTools.CROSSPRODUCT(c3,c1,c2); //c3 = cross(c1,c2);
+
+		if (MTools.DOTPRODUCT(c1,c1) * MTools.DOTPRODUCT(c2,c2) < 0.001) {
+		  t = 0.0;
+		  return t;
+		}
+
+		t = Math.acos(MTools.DOTPRODUCT(c1,c2)/Math.sqrt(MTools.DOTPRODUCT(c1,c1)*MTools.DOTPRODUCT(c2,c2)));
+		if (MTools.DOTPRODUCT(b2,c3) > 0.0)    t = -t;
+
+		return (t);
+	}
+
+	public void RotateX(double theta){
+		double cost=Math.cos(theta),sint=Math.sin(theta);
+		double xt,yt,zt;
+		for(int i=0;i<nAtoms;i++){
+			xt=coords[i*3]; yt=coords[i*3+1]; zt=coords[i*3+2];
+			coords[i*3+0]=  xt;
+			coords[i*3+1]=  yt*cost + zt*sint;
+			coords[i*3+2]= -yt*sint + zt*cost;
+		}
+	}
+
+	public void RotateY(double theta){
+		double cost=Math.cos(theta),sint=Math.sin(theta);
+		double xt,yt,zt;
+		for(int i=0;i<nAtoms;i++){
+			xt=coords[i*3]; yt=coords[i*3+1]; zt=coords[i*3+2];
+			coords[i*3+0]=  xt*cost +zt*sint;
+			coords[i*3+1]=  yt;
+			coords[i*3+2]= -xt*sint + zt*cost;
+		}
+	}
+
+	public void RotateZ(double theta){
+		double cost=Math.cos(theta),sint=Math.sin(theta);
+		double xt,yt,zt;
+		for(int i=0;i<nAtoms;i++){
+			xt=coords[i*3]; yt=coords[i*3+1]; zt=coords[i*3+2];
+			coords[i*3+0]=  xt*cost + yt*sint;
+			coords[i*3+1]= -xt*sint + yt*cost;
+			coords[i*3+2]=  zt;
+		}
+	}
+
+	public void RotateAxis(double theta,double[] axis){
+		for(int i=0;i<nAtoms;i++) RotateAxis_atom(i,theta,axis);
+	}
+
+	public void Translate(double[] vec,double direction){
+		for(int i=0;i<nAtoms;i++) Translate_atom(i,vec,direction);
+	}
+
+	public void Transform(double[][] D){
+		for(int i=0;i<nAtoms;i++) Transform_atom(i,D);
+	}
+
+
+	public void RotateX_atom(int i,double theta){
+		double cost=Math.cos(theta),sint=Math.sin(theta);
+		double xt,yt,zt;
+
+		xt=coords[i*3]; yt=coords[i*3+1]; zt=coords[i*3+2];
+		coords[i*3+0]=  xt;
+		coords[i*3+1]=  yt*cost + zt*sint;
+		coords[i*3+2]= -yt*sint + zt*cost;
+	}
+
+	public void RotateY_atom(int i,double theta){
+		double cost=Math.cos(theta),sint=Math.sin(theta);
+		double xt,yt,zt;
+
+		xt=coords[i*3]; yt=coords[i*3+1]; zt=coords[i*3+2];
+		coords[i*3+0]=  xt*cost +zt*sint;
+		coords[i*3+1]=  yt;
+		coords[i*3+2]= -xt*sint + zt*cost;
+	}
+
+	public void RotateZ_atom(int i,double theta){
+		double cost=Math.cos(theta),sint=Math.sin(theta);
+		double xt,yt,zt;
+		xt=coords[i*3]; yt=coords[i*3+1]; zt=coords[i*3+2];
+		coords[i*3+0]=  xt*cost + yt*sint;
+		coords[i*3+1]= -xt*sint + yt*cost;
+		coords[i*3+2]=  zt;
+	}
+
+	public void RotateAxis_atom(int i,double theta,double axis[]){
+		double X,Y,Z,sum;
+		sum=Math.sqrt(MTools.SQR(axis[0])+MTools.SQR(axis[1])+MTools.SQR(axis[2]));
+		X=axis[0]/sum;	Y=axis[1]/sum;	Z=axis[2]/sum;
+		//construct rotation matrix
+		double c,s,t;
+		c=Math.cos(theta);	s=Math.sin(theta);	t=1-c;
+		double[][] R={
+			{t*X*X+c  , t*X*Y+s*Z, t*X*Z-s*Y,	0},
+			{t*X*Y-s*Z, t*Y*Y+c,   t*Y*Z+s*X,	0},
+			{t*X*Z+s*Y, t*Z*Y-s*X, t*Z*Z+c,		0},
+			{0,			0,			0,			1}};
+
+	  int l,m,n;
+	  double[] xt=new double[4],xtp=new double[4];
+
+	  for(l=0;l<3;l++)	xt[l]=coords[i*3+l];	xt[3]=1;
+	  MTools.MAT2_MUL_VEC(xtp,R,xt);
+	  for(l=0;l<3;l++){
+		  coords[i*3+l]=xtp[l];
+	  }
+	}
+
+	public void RotateAxisWithPoint_atom(int i,double theta,double axis[],double point[]){
+		Translate_atom(i,point,-1);
+		RotateAxis_atom(i,theta,axis);
+		Translate_atom(i,point,1);
+	}
+
+	public void Translate_atom(int i,double[] vec,double direction){
+		coords[i*3+0]+=direction*vec[0];
+		coords[i*3+1]+=direction*vec[1];
+		coords[i*3+2]+=direction*vec[2];
+	}
+
+	public void Transform_atom(int i, double[][] D){
+		int l,m; double[] v=new double[3];
+		R(i,v);
+		for(l=0;l<3;l++){
+			coords[i*3+l]=0;
+			for(m=0;m<3;m++) coords[i*3+l]+=D[l][m]*v[m];
+		}
+	}
+
+	public void RotateAxis_mol(int[] mk,double theta,double[] axis){
+		double X,Y,Z,sum;
+		sum=Math.sqrt(MTools.SQR(axis[0])+ MTools.SQR(axis[1]) + MTools.SQR(axis[2]));
+		X=axis[0]/sum;	Y=axis[1]/sum;	Z=axis[2]/sum;
+		//construct rotation matrix
+		double c,s,t;
+		c=Math.cos(theta);	s=Math.sin(theta);	t=1-Math.cos(theta);
+		double[][] R={
+			{t*X*X+c  , t*X*Y+s*Z, t*X*Z-s*Y,	0},
+			{t*X*Y-s*Z, t*Y*Y+c,   t*Y*Z+s*X,	0},
+			{t*X*Z+s*Y, t*Z*Y-s*X, t*Z*Z+c,		0},
+			{0,			0,			0,			1}};
+
+		  int l,m,n;
+		  double[] xt=new double[4],xtp=new double[4];
+		  for(int i=0;i<mk.length;i++){
+			  for(l=0;l<3;l++)	xt[l]=coords[mk[i]*3+l];	xt[3]=1;
+			  MTools.MAT2_MUL_VEC(xtp,R,xt);
+			  for(l=0;l<3;l++)	coords[mk[i]*3+l]=xtp[l];
+		  }
+	}
+
+	public void Translate_mol(int[] mk,double[] vec,double direction){
+		for(int i=0;i<mk.length;i++){
+			coords[mk[i]*3]+=direction*vec[0];
+			coords[mk[i]*3+1]+=direction*vec[1];
+			coords[mk[i]*3+2]+=direction*vec[2];
+		}
+	}
+
+	public void RotateAxisWithPoint_mol(int[] mk,double theta,double[] axis,double[] point){
+		for(int i=0;i<mk.length;i++){
+			RotateAxisWithPoint_atom(mk[i],theta,axis,point);
+		}
+	}
+
+	public void Center(){
+		int i,k;
+		//fix to origin
+		double[] rc=new double[3];
+		getMassCenter(rc);
+		for(i=0;i<nAtoms;i++)
+			for(k=0;k<3;k++)
+				coords[i*3+k]-=rc[k];
+	}
+
+
+	public void getMassCenter(double[] rc){
+		int i,k;
+		for(k=0;k<3;k++) rc[k]=0;
+		double mass=0;
+		for(i=0;i<nAtoms;i++){
+			mass+=cMass[Nz[i]];
+			for(k=0;k<3;k++)
+				rc[k]+=cMass[Nz[i]]*coords[i*3+k];
+		}
+		for(k=0;k<3;k++) rc[k]/=mass;
+	}
+
+
+	public void getInertiaTensor(double[][] I){
+		MTools.MAT2_EQU_NUM(I,0);
+		for(int i=0;i<nAtoms;i++){
+			double mass_i=getMass(i);
+			
+			I[0][0]+= mass_i*(MTools.SQR(coords[i*3+1])+MTools.SQR(coords[i*3+2]));
+			I[1][1]+= mass_i*(MTools.SQR(coords[i*3+0])+MTools.SQR(coords[i*3+2]));
+			I[2][2]+= mass_i*(MTools.SQR(coords[i*3+0])+MTools.SQR(coords[i*3+1]));
+
+			I[0][1]+=-mass_i*coords[i*3+0]*coords[i*3+1];
+			I[0][2]+=-mass_i*coords[i*3+0]*coords[i*3+2];
+			I[1][2]+=-mass_i*coords[i*3+1]*coords[i*3+2];
+
+			System.err.printf(" i12 = %f \n",I[1][2]);
+		}
+		I[1][0]=I[0][1];
+		I[2][1]=I[1][2];
+		I[2][0]=I[0][2];
+
+		System.err.printf(" I \n");
+		MTools.PrintArray(I);
+
+//		int l,m,i;
+//	MAT2_EQU_NUM(I,0,DGR,DGR);
+//	for(i=0;i<nAtom;i++){
+//		I[0][0]+= Mass[Nz[i]]*(SQR(x[i*DGR+1])+SQR(x[i*DGR+2]));
+//		I[1][1]+= Mass[Nz[i]]*(SQR(x[i*DGR+0])+SQR(x[i*DGR+2]));
+//		I[2][2]+= Mass[Nz[i]]*(SQR(x[i*DGR+0])+SQR(x[i*DGR+1]));
+//
+//		I[0][1]+=-Mass[Nz[i]]*x[i*DGR+0]*x[i*DGR+1];
+//		I[0][2]+=-Mass[Nz[i]]*x[i*DGR+0]*x[i*DGR+2];
+//		I[1][2]+=-Mass[Nz[i]]*x[i*DGR+1]*x[i*DGR+2];
+//	}
+//	I[1][0]=I[0][1];
+//	I[2][1]=I[1][2];
+//	I[2][0]=I[0][2];
+	}
+
+
+	//======================== Read/Write Method
 
 	public boolean Read(Scanner scanner,String format){
 		boolean isReadable=false;
@@ -450,7 +784,14 @@ public class Cluster implements Cloneable{
         writer.append(s1);
 		//System.out.printf(" Here %s \n",s1);
 
-        s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad) +"% @IN\n";
+        s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad);
+		if(freqs!=null)
+			if(freqs.length>0){
+				s1+=String.format("@FREQ %d",freqs.length);
+				for(int i=0;i<freqs.length;i++)
+					s1+=String.format(" %1.3f",freqs[i]);
+			}
+		s1+="% @IN\n";
 		writer.append(s1);
 		//System.out.printf(" Here %s \n",s1);
 

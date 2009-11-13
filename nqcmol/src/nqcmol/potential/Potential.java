@@ -10,7 +10,8 @@ import java.io.Writer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.Cluster;
-import nqcmol.xml.XmlWriter;
+import nqcmol.tools.MTools;
+import nqcmol.tools.XmlWriter;
 
 /**
  *
@@ -44,7 +45,7 @@ public class Potential {
    /**
 	* Molecule to be evaluated or minimized
 	*/
-	protected Cluster cluster = new Cluster();
+	protected Cluster cluster;
 
 	/**
 	 * Get the value of cluster
@@ -59,8 +60,8 @@ public class Potential {
 	 * Set cluster to the internal one. Note that, some potential CAN change cluster to suitable format.
 	 * @param cluster new value of cluster
 	 */
-	public void setCluster(Cluster cluster) {
-		this.cluster = (Cluster) cluster.clone();
+	public void setCluster(Cluster cluster_) {
+		this.cluster = cluster_;
 		nCoords=cluster.getNcoords();
 	}
 
@@ -92,6 +93,12 @@ public class Potential {
      * @return True if all analytical gradients are implemented.
      */
     public boolean HasAnalyticalGradients() { return false; }
+
+	/**
+	 * Does this force field have analytical hessian (2nd derivatives).
+     * @return True if all analytical gradients are implemented.
+     */
+    public boolean HasAnalyticalHessian() { return false; }
 
 	protected double[] param=null;
 
@@ -140,24 +147,21 @@ public class Potential {
     /////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * setup mol  and then calculate energy
-	 * @param isMolUpdate if true, new energy will be updated to mol
+	 * setup new cluster  and then calculate energy
 	 * @return calculated energy
 	 */
-	public double getEnergy(Cluster cluster_,boolean isMolUpdate) {
+	public double getEnergy(Cluster cluster_) {
 		setCluster(cluster_);
 		double ener=Energy_(cluster.getCoords());
 		cluster.setEnergy(ener);
-		if(isMolUpdate) cluster_.setEnergy(ener);
 		return ener;
 	}
 
 	/**
-	 * return current energy of internal cluster
-	 * @param isEnergyUpdate: if true, it will call Energy function to update
+	 * return current energy of  cluster
+	 * @param isEnergyUpdate: if true, it will call Energy function to update energy
 	 * @return
 	 */
-
 	public double getEnergy(boolean isEnergyUpdate){
 		if(isEnergyUpdate){
 			double ener=Energy_(cluster.getCoords());
@@ -167,37 +171,69 @@ public class Potential {
 	}
 
 	/**
-	 * return current energy. Do not update the internal cluster.  Require setup mol first.
-	 *
+	 * return energy. Does not update neither coordinates and energy of cluster
 	 * @return energy
 	 */
 	public double getEnergy(final double[] coords_){
 		return Energy_(coords_) ;
 	}
 
-	
-	public double[] getGradient(final double[] coords_){//!< require setup mol first, if update==true, recalculate the gradients
+	public double[][] getGradient(Cluster cluster_){
+		setCluster(cluster_);
+		Gradient_(cluster.getCoords(),cluster.getGradient());
+		return cluster.getHessian();
+	}
+
+	/**
+	 * assume that cluster is set already, update cluster coordinates and calculate gradients
+	 * @param coords_ new coordination
+	 * @return reference of cluster gradient;
+	 */
+	public double[] getGradient(final double[] coords_){
 		cluster.setCoords(coords_);
 		Gradient_(cluster.getCoords(),cluster.getGradient());
 		return cluster.getGradient();
 	}
 
-	public void getGradient(final double[] coords_,double[] gradient_){//!< require setup mol first, if update==true, recalculate the gradients
+	/**
+	 * return gradients. Does not update neither coordinates and gradients of cluster
+	 */
+	public void getGradient(final double[] coords_,double[] gradient_){
 		Gradient_(coords_,gradient_);
 	}
 
-	public double[] getGradient(boolean isGradUpdate){//!< require setup mol first, if update==true, recalculate the gradients
+	/**
+	 * return current energy of  cluster
+	 * @param isGradUpdate: if true, it will call Gradient to update gradient
+	 * @return reference of cluster gradient
+	 */
+	public double[] getGradient(boolean isGradUpdate){
 		if(isGradUpdate){
 			Gradient_(cluster.getCoords(),cluster.getGradient());
 		}
 		return cluster.getGradient();
 	}
 
+	public double[][] getHessian(boolean isHessianUpdate){
+		if(isHessianUpdate) Hessian_(cluster.getCoords(),cluster.getHessian());
+		return cluster.getHessian();
+	}
+
+	public double[][] getHessian(Cluster cluster_){
+		setCluster(cluster_);
+		Hessian_(cluster.getCoords(),cluster.getHessian());
+		return cluster.getHessian();
+	}
+
+	public double[][] getNumericalHessian(Cluster cluster_,double delta){
+		setCluster(cluster_);
+		NumericalHessian_(cluster.getCoords(),cluster.getHessian(),delta);
+		return cluster.getHessian();
+	}
 
 	public double getDeltaEnergy(final double[] coords_,final boolean[] isUpdate){//!< require setup mol first
 		return DeltaEnergy_(coords_,isUpdate) ;
 	}
-
 
 	public boolean Optimize(){//!< require setup mol first
 		//setting the variable
@@ -244,20 +280,15 @@ public class Potential {
 		Double fret=new Double(0);
 		iConverged=DFPmin(cluster.getCoords());
 
-			System.err.printf(" Final fret = %f \n",fret);
+		System.err.printf(" Final fret = %f \n",fret);
 		cluster.setEnergy(optimizedE);
 
 		return (iConverged!=0);
 	}
 
-	public boolean Optimize(Cluster cluster_,boolean isMolUpdate){//!< setup mol  and then optimize mol, if update==true, new energy, structures will be updated to mol
+	public boolean Optimize(Cluster cluster_){
 		this.setCluster(cluster_);
-		Optimize();
-		if(isMolUpdate){
-			cluster_.setCoords(this.cluster.getCoords());
-			cluster_.setEnergy(this.cluster.getEnergy());
-		}
-		return true;
+		return Optimize();
 	}
 
 
@@ -277,6 +308,9 @@ public class Potential {
 			xmlwriter.writeEntity("ValidateGradient");
 			xmlwriter.writeAttribute("Equation",getEquation());
 			xmlwriter.writeAttribute("DeltaX",Double.toString(deltaX));
+			xmlwriter.writeEntity("Note");
+			xmlwriter.writeText(" Relative Error is percentage");
+			xmlwriter.endEntity();
 
 //			if (verbose > 0) {
 //				System.out.printf("\nValidate Gradients of %s\n\n", getEquation());
@@ -376,7 +410,6 @@ public class Potential {
 	   return e*ConvertTable[iFrom][iTo];
 	}
 	
-	
 	/////////////////////////////////////////////////////////////////////////
     // Energy Evaluation : supposed to be overwriten                       //
     /////////////////////////////////////////////////////////////////////////
@@ -384,8 +417,12 @@ public class Potential {
 	protected double Energy_(final double[] x){ return 1.0;};
 	protected double DeltaEnergy_(double[] x,boolean[] isUpdate){ return 1.0;};
 	protected void Gradient_(final double[] x, double[] grad){
-			if(!HasAnalyticalGradients()) NumericalGradient_(x,grad,1e-4);
-		};
+		NumericalGradient_(x,grad,1e-4);
+	};
+
+	protected void Hessian_(final double[] x, double[][] hessian){
+		NumericalHessian_(x,hessian,1e-5);
+	};
 
 	protected void NumericalGradient_(final double[] xt, double[] grad,double delta){
 		double e1,e2;
@@ -400,11 +437,75 @@ public class Potential {
 			//System.out.printf(i<<" = "<<e1<<" "<<e2<<" = "<<(e1-e2)/(2.0*delta)<<endl;
 			
 				grad[i]=(e1-e2)/(2.0*delta);			
-	}
+
+		}
 	}
 
-	protected void NumericalHessian_(final double[] _p, double[][] _hessian,double delta){
+	protected void NumericalHessian_(final double[] _p, double[][] hessian,double delta){
+		assert delta>0;
+		assert _p.length>0;
+
+		double[] xDelta = _p.clone();
+//		double[] xDelta=new double[_p.length];
+//		for(int i=0;i<_p.length;i++) xDelta[i]=_p[i];
 		
+		if(HasAnalyticalGradients()){
+			double[][] d1=new double[_p.length][_p.length];
+			double[][] d2=new double[_p.length][_p.length];
+			for(int i=0;i<_p.length;i++){ //using central finite difference
+				xDelta[i]+=delta;
+				Gradient_(xDelta,d1[i]);
+//					System.err.printf("x : ");			MTools.PrintArray(xDelta);
+//					System.err.printf("D1[%d] : ",i);	MTools.PrintArray(d1[i]);
+				xDelta[i]-=delta;
+				
+				xDelta[i]-=delta;
+				Gradient_(xDelta,d2[i]);
+//					System.err.printf("x : ");			MTools.PrintArray(xDelta);
+//					System.err.printf("D2[%d] : ",i);	MTools.PrintArray(d2[i]);
+				xDelta[i]+=delta;				
+				
+			}
+
+			for(int i=0;i<_p.length;i++)
+				for(int j=i;j<_p.length;j++){
+					//_gg[l][i]=(dfold1[l]-dfold2[l])/(2.0*delta);
+					hessian[i][j]=hessian[j][i]=(d1[i][j]-d2[i][j] + d1[j][i]-d2[j][i] )/(4.0*delta);
+				}
+//				System.err.printf("X \n");
+//				MTools.PrintArray(xDelta);
+//				System.err.printf("Hessian \n");
+//				MTools.PrintArray(hessian);
+
+//			double[] gradientAtXplusDelta = new double[_p.length];
+//			double[] gradientAtXminusDelta = new double[_p.length];
+//			for (int i = 0; i < _p.length; i++) {
+//				xDelta[i]+=delta;	Gradient_(xDelta,gradientAtXplusDelta);		xDelta[i]-=delta;
+//				xDelta[i]-=delta;	Gradient_(xDelta,gradientAtXminusDelta);	xDelta[i]+=delta;
+//				for (int j = 0; j < _p.length; j++) {
+//					hessian[i][j] = (gradientAtXplusDelta[j] - gradientAtXminusDelta[j]) / (2 * delta);
+//				}
+//			}
+		}else{ //using forward finite difference
+			double fx=Energy_(xDelta);
+			double[] f1=new double[_p.length];
+			double[][] d1=new double[_p.length][_p.length];
+			for(int i=0;i<_p.length;i++){
+				xDelta[i]+=delta;
+				f1[i]=Energy_(_p);
+
+				for(int j=i;j<_p.length;j++){
+					xDelta[j]+=delta;
+					d1[i][j]= Energy_(_p);
+					xDelta[j]-=delta;
+				}
+				_p[i]-=delta;
+			}
+			for(int i=0;i<_p.length;i++)
+				for(int j=i;j<_p.length;j++){
+						hessian[i][j]= hessian[j][i]=(d1[i][j]-f1[i]-f1[j] +fx)/(delta*delta);
+				}
+		}
 	}
 
     /////////////////////////////////////////////////////////////////////////
@@ -439,9 +540,7 @@ public class Potential {
 		} 
 		return info;
 	}
-
-    
-    
+        
 	//	String basisset; //!< for Gaussian or other DFT calculations
 
 	/////////////////////////////////////////////////////////////////////////
@@ -475,64 +574,41 @@ public class Potential {
 	int opt_med; //!< optimization method
 
 	int nMaxEvals=100; //!< number of maximum evaluations
-	int getMaxEvals(){ return nMaxEvals;}
-	void setMaxEvals(int a){ nMaxEvals=a;};
+	public int getMaxEvals(){ return nMaxEvals;}
+	public void setMaxEvals(int a){ nMaxEvals=a;};
 
 	double EnergyTol=1e-8;//!< funtional tolerance criteria in optimization
-	double getEnergyTol(){return EnergyTol;}
-	void setEnergyTol(double a){ EnergyTol=a;}
+	public double getEnergyTol(){return EnergyTol;}
+	public void setEnergyTol(double a){ EnergyTol=a;}
 
 	double GradTol=1e-4;//!< gradient tolerance criteria in optimization
-	double getGradientTol(){return GradTol;}
-	void setGradientTol(double a){ GradTol=a;}
+	public double getGradientTol(){return GradTol;}
+	public void setGradientTol(double a){ GradTol=a;}
 
 	double MaxStepSize=0.01;//!< maximum step size
-	double getMaxStepSize(){return MaxStepSize;}
-	void setMaxStepSize(double a){ MaxStepSize=a;}
+	public double getMaxStepSize(){return MaxStepSize;}
+	public void setMaxStepSize(double a){ MaxStepSize=a;}
 
-	int getOptMethod(){ return opt_med;}
-	void setOptMethod(int a){ opt_med=a; }
-
-
+	public int getOptMethod(){ return opt_med;}
+	public void setOptMethod(int a){ opt_med=a; }
 
 	//parameters returned by Optimize
 	int nEvals=0; //!< number of evaluations performed
-	int getNEvals(){ return nEvals;}
-	void setNEvals(int a){ nEvals=a; }
+	public int getNEvals(){ return nEvals;}
+	public void setNEvals(int a){ nEvals=a; }
 
 	protected double optimizedE = 0;
-
-	/**
-	 * Get the value of finalE
-	 *
-	 * @return the value of finalE
-	 */
-	public double getOptimizedEnergy() {
-		return optimizedE;
-	}
-
-	/**
-	 * Get the value of OptimizedCoords
-	 *
-	 * @return the value of OptimizedCoords
-	 */
-	public double[] getOptimizedCoords() {
-		return cluster.getCoords();
-	}
-
-
-
 	
 	int iConverged;//!< check whether converged or not
-	double nSeconds; //!< time(seconds) for optimization
-	double getSeconds(){ return nSeconds;}
+	double nSeconds=0; //!< time(seconds) for optimization
+	public double getSeconds(){ return nSeconds;}
 
 	double MaxGrad,RmsGrad;//!< Maximum gradient component and Root Mean Square of gradient, will be updated in optimization
-	double getRMSGrad(){//!< return RMS of graident
+	public double getRMSGrad(){//!< return RMS of graident
 		return RmsGrad;
 	}
 
-	double getMaxGrad(){return MaxGrad;}
+	public double getMaxGrad(){return MaxGrad;}
 
 	final double EPS=1.0e-12;
 	//Convergence criterion on xfinal values.
