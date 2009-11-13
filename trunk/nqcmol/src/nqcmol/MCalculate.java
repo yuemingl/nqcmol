@@ -15,7 +15,8 @@ import org.kohsuke.args4j.*;
 
 
 import nqcmol.potential.*;
-import nqcmol.xml.XmlWriter;
+import nqcmol.tools.MTools;
+import nqcmol.tools.XmlWriter;
 //import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.AttributesImpl;
 
@@ -58,7 +59,7 @@ public class MCalculate {
 	}
 
 
-	public void ener(String[] args)  {		
+	public void CalculateEnergy(String[] args)  {
 		try {
 			ParseArguments(args);
 			if (isHelp) {
@@ -72,6 +73,9 @@ public class MCalculate {
 			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
 			XmlWriter xmlwriter=new XmlWriter(writer);
 			xmlwriter.writeEntity("BenchmarkEnergy");
+			xmlwriter.writeEntity("Note");
+			xmlwriter.writeText(" Time is measured in milliseconds");
+			xmlwriter.endEntity();
 			xmlwriter.writeNormalText(pot.Info(1));
 
 			
@@ -161,7 +165,7 @@ public class MCalculate {
 		} 
 	}
 
-	public void opt(String[] args){
+	public void Optimize(String[] args){
 		try {
 			ParseArguments(args);
 			if (isHelp) {
@@ -172,8 +176,6 @@ public class MCalculate {
 			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
 			XmlWriter xmlwriter=new XmlWriter(writer);
 			xmlwriter.writeEntity("Optimization");
-
-
 
 			Potential pot = MolExtra.SetupPotential(sPotential);
 
@@ -193,7 +195,7 @@ public class MCalculate {
 
 //				xmlwriter.endEntity();
 				xmlwriter.writeAttribute("nAtom",Integer.toString(12));
-				pot.Optimize(mol,true);
+				pot.Optimize(mol);
 				mol.Write(System.err, "xyz");
 				xmlwriter.endEntity();
 				
@@ -206,7 +208,7 @@ public class MCalculate {
 		} 
 	}
 
-	public void validgrad(String[] args)  {
+	public void ValidateGradients(String[] args)  {
 		try {
 			ParseArguments(args);
 			if (isHelp) {
@@ -216,9 +218,9 @@ public class MCalculate {
 
 			Potential pot = MolExtra.SetupPotential(sPotential);
 
+			//reading cluster  from file
 			Cluster mol = new Cluster();
 			Scanner scanner = new Scanner(new File(sFileIn));
-			//System.out.println("What the fuck!"+sFileIn);
 			int i = 0;
 			while (mol.Read(scanner, "xyz")) {
 				//mol.Write(System.out,"xyz");
@@ -228,6 +230,59 @@ public class MCalculate {
 				i++;
 			}
 		} catch (FileNotFoundException ex) {
+			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
+
+	public void HarmonicVibrationAnalysis(String[] args){
+		try {
+			ParseArguments(args);
+			if (isHelp) {
+				parser.printUsage(System.out);
+				return;
+			}
+
+			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
+			XmlWriter xmlwriter=new XmlWriter(writer);
+			xmlwriter.writeEntity("VibrationAnalysis");
+
+
+			Potential pot = MolExtra.SetupPotential(sPotential);
+
+			xmlwriter.writeNormalText(pot.Info(1));
+
+			Cluster mol = new Cluster();
+			Scanner scanner = new Scanner(new File(sFileIn));
+			int i = 0;
+			while (mol.Read(scanner, "xyz")) {
+				//mol.Write(System.out,"xyz");
+
+				//calculate Hessian
+//				pot.getGradient(mol);
+//				System.err.printf("Gradient \n");
+//				MTools.PrintArray(mol.getGradient());
+				
+				pot.getNumericalHessian(mol,1e-5);
+//				System.err.printf("Hessian \n");
+//				MTools.PrintArray(mol.getHessian());
+				
+				HarmonicVibration vib=new HarmonicVibration(mol);
+				vib.CalcFreq();//calculate frequencies
+				mol.Write(System.err, "xyz");
+			
+
+
+				//write a report
+				xmlwriter.writeEntity("Vib").writeAttribute("Tag",Integer.toString(i));
+//				xmlwriter.writeEntity("XYZ");
+//				xmlwriter.endEntity();
+				xmlwriter.writeAttribute("nAtom",Integer.toString(12));
+				xmlwriter.endEntity();
+				i++;
+			}
+			xmlwriter.endEntity();
+			writer.close();
+		} catch (IOException ex) {
 			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}

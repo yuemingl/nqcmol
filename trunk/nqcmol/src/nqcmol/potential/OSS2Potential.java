@@ -268,11 +268,13 @@ public class OSS2Potential extends Potential{
 				dScd=new double[nAtom][nAtom];
 				dSdd=new double[nAtom][nAtom];
 				//clear gradient vector
-				for(int i=0;i<nAtom;i++)
-					for(int k=0;k<3;k++)
-						grad[i][k]=0;
+				
 			//}
 		}
+
+		for(int i=0;i<nAtom;i++)
+			for(int k=0;k<3;k++)
+					grad[i][k]=0;
 	}
 
 	void CalcDistanceAndCharge(double[] _p,boolean isGrad){
