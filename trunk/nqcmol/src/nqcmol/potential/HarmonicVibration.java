@@ -5,6 +5,7 @@
 
 package nqcmol.potential;
 
+import java.util.Collections;
 import nqcmol.Cluster;
 import nqcmol.tools.MTools;
 
@@ -57,67 +58,73 @@ public class HarmonicVibration {
 		return 0;
 	}
 
-
 	public int CalcFreq(){
 		m.Center();
-		//#ifdef VIBANA_DEBUG
-		System.err.printf("Hessian \n");
-		MTools.PrintArray(Hessian);
-		//#endif
-		System.err.printf("Coordinates \n");
-		MTools.PrintArray(m.getCoords());
+//			//#ifdef VIBANA_DEBUG
+//			System.err.printf("Hessian \n");
+//			MTools.PrintArray(Hessian);
+//			//#endif
+//			System.err.printf("Coordinates \n");
+//			MTools.PrintArray(m.getCoords());
 
 		m.getInertiaTensor(Mom_I);
 
-		System.err.printf("Inertia Tensor \n");
-		MTools.PrintArray(Mom_I);
+			System.err.printf("Inertia Tensor \n");
+			MTools.PrintArray(Mom_I);
 
-		MTools.Eigen(Mom_I,I_vect,I_eig);
+		//MTools.Eigen_apache(Mom_I,I_vect,I_eig);
+		/*
+		MTools.SortEigenvaluesAndEigenVectors(I_eig,I_vect,true);
+		for(int j=0;j<3;j++){
+			I_vect[1][j]=-I_vect[1][j];
+			I_vect[2][j]=-I_vect[2][j];
+		}*/
+		MTools.Eigen_colt(Mom_I,I_vect,I_eig);
 
-		System.err.printf("Inertial Tensor Eigen Values : ");
-		MTools.PrintArray(I_eig);
-		System.err.printf("Inertial Tensor Eigen Vectors : \n");
-		MTools.PrintArray(I_vect);
+			System.err.printf("Inertial Tensor Eigen Values : ");
+			MTools.PrintArray(I_eig);
+			System.err.printf("Inertial Tensor Eigen Vectors : \n");
+			MTools.PrintArray(I_vect);
 
 		MassweightedHessian();
-		//#ifdef VIBANA_DEBUG
-		System.err.printf("Mass weighted Hessian \n");
-		MTools.PrintArray(Hessian);
-		//#endif
+//			//#ifdef VIBANA_DEBUG
+//			System.err.printf("Mass weighted Hessian \n");
+//			MTools.PrintArray(Hessian);
+//			//#endif
 
 		Calc_tr_D(); //calculate transform matrix D
-		System.err.printf("\n TrD \n");
-		MTools.PrintArray(TR_D);
+			System.err.printf("\n TrD \n");
+			MTools.PrintArray(TR_D);
 
 		//#ifdef VIBANA_DEBUG
-		System.err.printf("Normalize..\n");
+			System.err.printf("Normalize..\n");
 		//#endif
-		MTools.NORMALISE(TR_D);//normalize the lines of D
+		//MTools.NORMALIZE(TR_D,n_TrD,n_AtomOR3);//normalize the lines of D
+		MTools.NORMALIZE(TR_D);//normalize the lines of D
 		//#ifdef VIBANA_DEBUG
-		System.err.printf("\n n_TrD=%d \n",n_TrD);
-		MTools.PrintArray(TR_D);
+			System.err.printf("\n n_TrD=%d \n",n_TrD);
+			MTools.PrintArray(TR_D);
 		//#endif
 				
 		//orthogonalization
 		if(n_TrD<5) return -1;
 		else Calc_Sch_Ort();
 
-		//#ifdef VIBANA_DEBUG
-		System.err.printf("\n After n_TrD=%d \n",n_TrD);
+			//#ifdef VIBANA_DEBUG
+			System.err.printf("\n After n_TrD=%d \n",n_TrD);
 			System.err.printf("Tr_D \n");
 			MTools.PrintArray(TR_D);
 
-		System.err.printf("Apply the transformation to the Hessian	\n");
-		//#endif
+			System.err.printf("Apply the transformation to the Hessian	\n");
+			//#endif
 
 		Transform_Hessian();
 
-		//#ifdef VIBANA_DEBUG
-		System.err.printf("\n TransformedHessian \n");
-		MTools.PrintArray(Hessian);
-		//#endif
-		//double Vib_Hessian[SIZE_MAX*3][SIZE_MAX*3];
-
+			//#ifdef VIBANA_DEBUG
+			System.err.printf("\n TransformedHessian \n");
+			MTools.PrintArray(Hessian);
+			//#endif
+			
 		//the submatrix
 		
 		nFreqs=n_AtomOR3-n_TrD;
@@ -129,12 +136,15 @@ public class HarmonicVibration {
 		//#ifdef VIBANA_DEBUG
 		System.err.printf("\n Diagonalize..\n");
 		//#endif
-		//jacobi(Hessian, nFreqs, TR_Hess_eig, TR_Hessian_vect);
 
 
 		TR_Hessian_vect=new double[nFreqs][nFreqs];
 		TR_Hess_eig=new double[nFreqs];
-		MTools.Eigen(subHessian,TR_Hessian_vect, TR_Hess_eig);
+		//MTools.Eigen_apache(subHessian,TR_Hessian_vect, TR_Hess_eig);
+		MTools.Eigen_colt(subHessian,TR_Hessian_vect, TR_Hess_eig);
+
+
+		MTools.SortEigenvaluesAndEigenVectors(TR_Hess_eig,TR_Hessian_vect,true);// need to be changed in the future
 
 		//#ifdef VIBANA_DEBUG
 		System.err.printf("\n\nTransformedHessian \n");
@@ -142,6 +152,8 @@ public class HarmonicVibration {
 		System.err.printf("\n\nEigen values \n");
 		MTools.PrintArray(TR_Hess_eig);
 		//#endif
+
+		//Sort_Freq();
 
 		double[] freqs=new double[nFreqs];
 		for(int i=0;i<nFreqs;i++){
@@ -153,8 +165,6 @@ public class HarmonicVibration {
 
 		System.err.printf("\n\nFreq\n");
 		MTools.PrintArray(freqs);
-
-		//Sort_Freq();
 
 		return 0;
 	}
@@ -242,8 +252,7 @@ public class HarmonicVibration {
 //
 	private void MassweightedHessian(){
 		for(int i=0;i<n_AtomOR3;i++){
-			for(int l=i;l<n_AtomOR3;l++){
-				
+			for(int l=i;l<n_AtomOR3;l++){				
 				double mi=m.getMass(i/3);
 				double ml=m.getMass(l/3);
 
@@ -361,7 +370,7 @@ public class HarmonicVibration {
 	}
 }
 	
-	int Calc_Sch_Ort(){
+	private int Calc_Sch_Ort(){
 
 		//the orthogonalization procedure - Stabilized Gramm-Schmidt
 		//first: 0-5 - they are linearly independent
@@ -422,25 +431,9 @@ public class HarmonicVibration {
 
 		return 0;
 	}
-//
-//
-/////////////////////////////////////////////////////////////////////////////////////////
-////Sort the frequencies -- Bubble sort algorithm
-/////////////////////////////////////////////////////////////////////////////////////////
-//void Sort_Freq(){
-//	double dTmp;
-//	for (int i=0;i<nFreqs;i++)
-//		for (int j=nFreqs-1; j > i; j--)
-//			if(mextra->Freqs[j-1] > mextra->Freqs[j]){
-//				swap(mextra->Freqs[j],mextra->Freqs[j-1]);
-//				swap(mextra->RedMass[j],mextra->RedMass[j-1]);
-//				swap(mextra->kConsts[j],mextra->kConsts[j-1]);
-//				swap(mextra->Intens[j],mextra->Intens[j-1]);
-//				for(int k=0;k<n_AtomOR3;k++){
-//					swap(mextra->lCART[j][k],mextra->lCART[j-1][k]);
-//				}
-//			}
-//}
+
+
+	
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 ////Apply the transformation to the Hessian
@@ -470,6 +463,23 @@ private void Transform_Hessian(){
 	}
 }
 
+	///////////////////////////////////////////////////////////////////////////////////////
+	//Sort the frequencies -- Bubble sort algorithm
+	///////////////////////////////////////////////////////////////////////////////////////
+//	private void Sort_Freq(){
+//		double dTmp;
+//		for (int i=0;i<freqs.length;i++)
+//			for (int j=nFreq-1; j > i; j--)
+//				if(mextra->Freqs[j-1] > mextra->Freqs[j]){
+//					swap(mextra->Freqs[j],mextra->Freqs[j-1]);
+//					swap(mextra->RedMass[j],mextra->RedMass[j-1]);
+//					swap(mextra->kConsts[j],mextra->kConsts[j-1]);
+//					swap(mextra->Intens[j],mextra->Intens[j-1]);
+//					for(int k=0;k<n_AtomOR3;k++){
+//						swap(mextra->lCART[j][k],mextra->lCART[j-1][k]);
+//					}
+//				}
+//	}
 
 //
 ///*
@@ -522,58 +532,6 @@ private void Transform_Hessian(){
 //}
 //*/
 //
-//int eigen(double **A,int ndim_,double *eigVal,double **eigVec){
-//	long i,j,ndim=ndim_;
-//	double *temp,*vr,*eigVal_img,*work;
-//	long info,lwork=(ndim>0)?(ndim*6):1;
-//
-//	temp=new double[ndim*ndim];
-//	vr=new double[ndim*ndim];
-//	eigVal_img=new double[ndim];
-//	work=new double[lwork];
-//	char jobvl='N',jobvr='V';
-//
-//	for(i=0;i<ndim;i++)
-//		for(j=0;j<ndim;j++) temp[i*ndim+j]=A[i][j];
-//
-//		dgeev_(&jobvl, &jobvr,&ndim,temp,&ndim, eigVal, eigVal_img, 0, &ndim, vr, &ndim, work, &lwork, &info);
-//
-//	for(i=0;i<ndim;i++)
-//		for(j=0;j<ndim;j++) eigVec[i][j]=vr[i*ndim+j];
-//
-//		delete[] temp;
-//	delete[] vr;
-//	delete[] eigVal_img;
-//	delete[] work;
-//
-//	return info;
-//}
-//
-//int eigen33(double A[][3],double *eigVal,double eigVec[][3]){
-//	long i,j,ndim=3;
-//	double *temp,*vr,*eigVal_img,*work;
-//	long info,lwork=(ndim>0)?(ndim*6):1;
-//
-//	temp=new double[ndim*ndim];
-//	vr=new double[ndim*ndim];
-//	eigVal_img=new double[ndim];
-//	work=new double[lwork];
-//	char jobvl='N',jobvr='V';
-//
-//	for(i=0;i<ndim;i++)
-//		for(j=0;j<ndim;j++) temp[i*ndim+j]=A[i][j];
-//
-//		dgeev_(&jobvl, &jobvr,&ndim,temp,&ndim, eigVal, eigVal_img, 0, &ndim, vr, &ndim, work, &lwork, &info);
-//
-//	for(i=0;i<ndim;i++)
-//		for(j=0;j<ndim;j++) eigVec[i][j]=vr[i*ndim+j];
-//
-//		delete[] temp;
-//	delete[] vr;
-//	delete[] eigVal_img;
-//	delete[] work;
-//
-//	return info;
-//}
+
 
 }
