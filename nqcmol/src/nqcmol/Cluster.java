@@ -662,26 +662,9 @@ public class Cluster implements Cloneable{
 		I[1][0]=I[0][1];
 		I[2][1]=I[1][2];
 		I[2][0]=I[0][2];
-
-		System.err.printf(" I \n");
-		MTools.PrintArray(I);
-
-//		int l,m,i;
-//	MAT2_EQU_NUM(I,0,DGR,DGR);
-//	for(i=0;i<nAtom;i++){
-//		I[0][0]+= Mass[Nz[i]]*(SQR(x[i*DGR+1])+SQR(x[i*DGR+2]));
-//		I[1][1]+= Mass[Nz[i]]*(SQR(x[i*DGR+0])+SQR(x[i*DGR+2]));
-//		I[2][2]+= Mass[Nz[i]]*(SQR(x[i*DGR+0])+SQR(x[i*DGR+1]));
-//
-//		I[0][1]+=-Mass[Nz[i]]*x[i*DGR+0]*x[i*DGR+1];
-//		I[0][2]+=-Mass[Nz[i]]*x[i*DGR+0]*x[i*DGR+2];
-//		I[1][2]+=-Mass[Nz[i]]*x[i*DGR+1]*x[i*DGR+2];
-//	}
-//	I[1][0]=I[0][1];
-//	I[2][1]=I[1][2];
-//	I[2][0]=I[0][2];
+		//		System.err.printf(" I \n");
+		//		MTools.PrintArray(I);
 	}
-
 
 	//======================== Read/Write Method
 

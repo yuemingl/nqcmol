@@ -11,7 +11,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.Cluster;
-import org.apache.commons.math.linear.*;
+import nqcmol.tools.MTools;
 
 /**
  *
@@ -566,12 +566,9 @@ public class OSS2Potential extends Potential{
 //		for(int i=0; i< 3*nO;i++){ System.out.printf("%f ", mu[i]);}
 //		System.out.println("");
 
-		RealMatrix A =new Array2DRowRealMatrix(Dtmp,false);
-		DecompositionSolver solver = new LUDecompositionImpl(A).getSolver();
-        RealVector b = new ArrayRealVector(Etmp,false);
-		RealVector solution = solver.solve(b);
+		MTools.LinearSolver_apache(Dtmp,Etmp,mu);
 
-		mu=solution.getData();
+		
 
 //		System.out.print(" mu after solving: ");
 //		for(int i=0; i< 3*nO;i++){ System.out.printf("%f ", mu[i]);}
