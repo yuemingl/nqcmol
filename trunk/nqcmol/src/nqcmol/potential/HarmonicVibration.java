@@ -69,22 +69,21 @@ public class HarmonicVibration {
 
 		m.getInertiaTensor(Mom_I);
 
-			System.err.printf("Inertia Tensor \n");
-			MTools.PrintArray(Mom_I);
+//			System.err.printf("Inertia Tensor \n");
+//			MTools.PrintArray(Mom_I);
 
-		//MTools.Eigen_apache(Mom_I,I_vect,I_eig);
-		/*
-		MTools.SortEigenvaluesAndEigenVectors(I_eig,I_vect,true);
+		MTools.Eigen_apache(Mom_I,I_vect,I_eig); MTools.SortEigenvaluesAndEigenVectors(I_eig,I_vect,true);
+		
 		for(int j=0;j<3;j++){
 			I_vect[1][j]=-I_vect[1][j];
 			I_vect[2][j]=-I_vect[2][j];
-		}*/
-		MTools.Eigen_colt(Mom_I,I_vect,I_eig);
+		}
+		//MTools.Eigen_colt(Mom_I,I_vect,I_eig);
 
-			System.err.printf("Inertial Tensor Eigen Values : ");
-			MTools.PrintArray(I_eig);
-			System.err.printf("Inertial Tensor Eigen Vectors : \n");
-			MTools.PrintArray(I_vect);
+//			System.err.printf("Inertial Tensor Eigen Values : ");
+//			MTools.PrintArray(I_eig);
+//			System.err.printf("Inertial Tensor Eigen Vectors : \n");
+//			MTools.PrintArray(I_vect);
 
 		MassweightedHessian();
 //			//#ifdef VIBANA_DEBUG
@@ -93,17 +92,17 @@ public class HarmonicVibration {
 //			//#endif
 
 		Calc_tr_D(); //calculate transform matrix D
-			System.err.printf("\n TrD \n");
-			MTools.PrintArray(TR_D);
+//			System.err.printf("\n TrD \n");
+//			MTools.PrintArray(TR_D);
 
 		//#ifdef VIBANA_DEBUG
-			System.err.printf("Normalize..\n");
+//			System.err.printf("Normalize..\n");
 		//#endif
 		//MTools.NORMALIZE(TR_D,n_TrD,n_AtomOR3);//normalize the lines of D
 		MTools.NORMALIZE(TR_D);//normalize the lines of D
 		//#ifdef VIBANA_DEBUG
-			System.err.printf("\n n_TrD=%d \n",n_TrD);
-			MTools.PrintArray(TR_D);
+//			System.err.printf("\n n_TrD=%d \n",n_TrD);
+//			MTools.PrintArray(TR_D);
 		//#endif
 				
 		//orthogonalization
@@ -111,18 +110,18 @@ public class HarmonicVibration {
 		else Calc_Sch_Ort();
 
 			//#ifdef VIBANA_DEBUG
-			System.err.printf("\n After n_TrD=%d \n",n_TrD);
-			System.err.printf("Tr_D \n");
-			MTools.PrintArray(TR_D);
+//			System.err.printf("\n After n_TrD=%d \n",n_TrD);
+//			System.err.printf("Tr_D \n");
+//			MTools.PrintArray(TR_D);
 
-			System.err.printf("Apply the transformation to the Hessian	\n");
+//			System.err.printf("Apply the transformation to the Hessian	\n");
 			//#endif
 
 		Transform_Hessian();
 
 			//#ifdef VIBANA_DEBUG
-			System.err.printf("\n TransformedHessian \n");
-			MTools.PrintArray(Hessian);
+//			System.err.printf("\n TransformedHessian \n");
+//			MTools.PrintArray(Hessian);
 			//#endif
 			
 		//the submatrix
@@ -134,7 +133,7 @@ public class HarmonicVibration {
 				subHessian[i-n_TrD][j-n_TrD] = Hessian[i][j];
 
 		//#ifdef VIBANA_DEBUG
-		System.err.printf("\n Diagonalize..\n");
+//		System.err.printf("\n Diagonalize..\n");
 		//#endif
 
 
@@ -147,10 +146,10 @@ public class HarmonicVibration {
 		MTools.SortEigenvaluesAndEigenVectors(TR_Hess_eig,TR_Hessian_vect,true);// need to be changed in the future
 
 		//#ifdef VIBANA_DEBUG
-		System.err.printf("\n\nTransformedHessian \n");
-		MTools.PrintArray(TR_Hessian_vect);
-		System.err.printf("\n\nEigen values \n");
-		MTools.PrintArray(TR_Hess_eig);
+//		System.err.printf("\n\nTransformedHessian \n");
+//		MTools.PrintArray(TR_Hessian_vect);
+//		System.err.printf("\n\nEigen values \n");
+//		MTools.PrintArray(TR_Hess_eig);
 		//#endif
 
 		//Sort_Freq();
@@ -163,8 +162,8 @@ public class HarmonicVibration {
 		}
 		m.setFreqs(freqs);
 
-		System.err.printf("\n\nFreq\n");
-		MTools.PrintArray(freqs);
+//		System.err.printf("\n\nFreq\n");
+//		MTools.PrintArray(freqs);
 
 		return 0;
 	}
@@ -371,19 +370,17 @@ public class HarmonicVibration {
 }
 	
 	private int Calc_Sch_Ort(){
-
 		//the orthogonalization procedure - Stabilized Gramm-Schmidt
-		//first: 0-5 - they are linearly independent
-		double V_OR_D, norm;
+		//first: 0-5 - they are linearly independent		
 		for (int i = 0; i<n_TrD; i++){
 			for (int j = 0; j<i; j++){
-				V_OR_D=MTools.DOTPRODUCT(TR_D[j],TR_D[i]);
+				double V_OR_D=MTools.DOTPRODUCT(TR_D[j],TR_D[i]);
 				for (int k = 0; k<n_AtomOR3; k++){
 					TR_D[i][k] -= V_OR_D*TR_D[j][k];
 				}
 			}
 
-			norm=MTools.DOTPRODUCT(TR_D[i],TR_D[i]);
+			double norm=MTools.DOTPRODUCT(TR_D[i],TR_D[i]);
 			norm = Math.sqrt(norm);
 			for (int k = 0; k<n_AtomOR3; k++){
 				TR_D[i][k] = TR_D[i][k]/norm;
@@ -395,7 +392,7 @@ public class HarmonicVibration {
 		//independent vectors and orthogonalize
 		int cik = 0;
 		for (int i = n_TrD; i<n_AtomOR3; i++){
-			norm = 0.0;
+			double norm = 0.0;
 			while (Math.abs(norm) < 1e-9){
 				for (int j = 0; j<n_AtomOR3; j++){
 					//TR_D[i][j] = Unit_M[cik][j];
