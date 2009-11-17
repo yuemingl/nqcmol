@@ -71,8 +71,10 @@ public class NQCMol {
 
 		if(isHelp){
 			parser.printUsage(System.out);
+			return;
 		}
 
+		System.out.print(" You did not choose anything!!\n");
 
 			//BufferedReader buff = new BufferedReader(new FileReader("test/LJlm/lj13.xyz"));
 //			FileReader buff = new FileReader("test/LJlm/lj13.xyz");

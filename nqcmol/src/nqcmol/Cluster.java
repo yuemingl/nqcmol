@@ -630,7 +630,6 @@ public class Cluster implements Cloneable{
 				coords[i*3+k]-=rc[k];
 	}
 
-
 	public void getMassCenter(double[] rc){
 		int i,k;
 		for(k=0;k<3;k++) rc[k]=0;
@@ -642,7 +641,6 @@ public class Cluster implements Cloneable{
 		}
 		for(k=0;k<3;k++) rc[k]/=mass;
 	}
-
 
 	public void getInertiaTensor(double[][] I){
 		MTools.MAT2_EQU_NUM(I,0);
@@ -657,13 +655,74 @@ public class Cluster implements Cloneable{
 			I[0][2]+=-mass_i*coords[i*3+0]*coords[i*3+2];
 			I[1][2]+=-mass_i*coords[i*3+1]*coords[i*3+2];
 
-			System.err.printf(" i12 = %f \n",I[1][2]);
+			//System.err.printf(" i12 = %f \n",I[1][2]);
 		}
 		I[1][0]=I[0][1];
 		I[2][1]=I[1][2];
 		I[2][0]=I[0][2];
 		//		System.err.printf(" I \n");
 		//		MTools.PrintArray(I);
+	}
+
+	public int getHydrogenNum(){
+		return nType[1];
+	}
+
+	public int getNonHydrogenNum(){
+		return nAtoms-nType[1];
+	}
+
+	//======================== Bond
+	public boolean IsConnected(int i,int j){
+		int ni=Math.max(Nz[i], Nz[j]);
+		int nj=Math.min(Nz[i], Nz[j]);
+		String s=cElements[ni]+cElements[nj];
+		double dmin=1000;
+		double dmax=0;
+		if(s.contentEquals("OH")){ dmin=0.3; dmax=1.2;}
+		else
+		if(s.contentEquals("OO")){ dmin=1.0; dmax=3.2;}
+		else
+		if(s.contentEquals("OO")){ dmin=1.0; dmax=3.2;}
+		else
+		if(s.contentEquals("FH")){ dmin=0.2; dmax=1.4;}
+		else
+		if(s.contentEquals("FF")){ dmin=1.0; dmax=3.2;}
+		else
+		if(s.contentEquals("CO")){ dmin=1.0; dmax=1.5;}
+		else
+		if(s.contentEquals("CH")){ dmin=0.2; dmax=1.2;}
+
+		double d=distance(i,j);
+
+		return ((d>=dmin)&&(d<=dmax));
+	}
+	
+	public boolean[][] getConnectivity(){
+		boolean[][] d=new boolean[nAtoms][nAtoms];
+		for(int i=0;i<nAtoms;i++)
+			for(int j=0;j<nAtoms;j++)
+				d[i][j]=IsConnected(i,j);
+		return d;
+	}
+
+	public boolean IsConnected(boolean[][] d){
+		int n=d.length;
+		for(int i=0;i<n;i++){
+			for(int j=0;j<n;j++)
+				if((i!=j)&&(d[i][j])){//if connected,jump to jth row and flip
+					for(int l=0;l<n;l++) if(d[i][l]) d[j][l]=true;
+				}
+		}
+		for(int i=0;i<n;i++)
+			for(int j=0;j<n;j++) if(!d[i][j]) return false;
+
+		return true;
+	}
+
+	public boolean IsConnected(){
+		boolean[][] d=getConnectivity();
+		return IsConnected(d);
 	}
 
 	//======================== Read/Write Method

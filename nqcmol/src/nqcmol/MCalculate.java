@@ -15,7 +15,6 @@ import org.kohsuke.args4j.*;
 
 
 import nqcmol.potential.*;
-import nqcmol.tools.MTools;
 import nqcmol.tools.XmlWriter;
 //import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.AttributesImpl;
@@ -267,16 +266,14 @@ public class MCalculate {
 //				MTools.PrintArray(mol.getHessian());
 				
 				HarmonicVibration vib=new HarmonicVibration(mol);
-				vib.CalcFreq();//calculate frequencies
-				mol.Write(System.err, "xyz");
-			
-
-
+				vib.CalcFreq();//calculate frequencies of molecule
+				//mol.Write(System.err, "xyz");
+				
 				//write a report
 				xmlwriter.writeEntity("Vib").writeAttribute("Tag",Integer.toString(i));
-//				xmlwriter.writeEntity("XYZ");
-//				xmlwriter.endEntity();
 				xmlwriter.writeAttribute("nAtom",Integer.toString(12));
+				xmlwriter.writeAttribute("SmallestFreq", Double.toString(mol.getFreqs(0)));
+				xmlwriter.writeAttribute("LargestFreq", Double.toString(mol.getFreqs(mol.getFreqs().length - 1)));
 				xmlwriter.endEntity();
 				i++;
 			}
