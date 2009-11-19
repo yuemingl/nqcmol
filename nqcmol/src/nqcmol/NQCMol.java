@@ -69,6 +69,12 @@ public class NQCMol {
 			return;
 		}
 
+		if(sTask.contentEquals("class")){
+			MClassify calc=new MClassify();
+			calc.ClassifyClusters(args);
+			return;
+		}
+
 		if(isHelp){
 			parser.printUsage(System.out);
 			return;

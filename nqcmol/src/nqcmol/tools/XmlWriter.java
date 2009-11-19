@@ -49,7 +49,7 @@ public class XmlWriter {
         if (!this.closed) {
             writeAttributes();
             this.closed = true;
-            this.writer.write(">");
+            this.writer.write(">\n");
         }
     }
 
@@ -100,10 +100,12 @@ public class XmlWriter {
                 if (this.empty) {
                     writeAttributes();
                     this.writer.write("/>");
+					this.writer.write("\n");
                 } else {
                     this.writer.write("</");
                     this.writer.write(name);
                     this.writer.write(">");
+					this.writer.write("\n");
                 }
                 this.empty = false;
                 this.closed = true;
