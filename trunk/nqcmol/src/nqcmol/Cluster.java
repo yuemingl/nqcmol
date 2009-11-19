@@ -6,10 +6,12 @@
 package nqcmol;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.logging.*;
 import nqcmol.tools.MTools;
+import nqcmol.tools.XmlWriter;
 
 /**
  *
@@ -47,7 +49,7 @@ public class Cluster implements Cloneable{
 		setAtomicNumber(src.getAtomicNumber());
 		//System.out.println(" Come here");
 		tag=src.getTag();
-		rmsGrad=src.getRmsGrad();		
+		rmsGrad=src.getRmsGrad();	
 	}
 
 	
@@ -55,17 +57,17 @@ public class Cluster implements Cloneable{
 
 	/* Maximum number of atomic number
 	 */
-	static final int cTypeMax=15;
+	protected static final int cTypeMax=15;
 
 	/**
 	 * Symbols of chemical elements
 	 */
-	static final String[] cElements={"$",
+	protected static final String[] cElements={"$",
 	"H","He","Li","Be","B","C","N","O","F","Ne", //1st and 2nd round
 	"Na","Mg","Al","Si","P","S","Cl","Ar", 	//3rd round
 	"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr"};
 
-	static final String[] cAtomicNo={"0",
+	protected static final String[] cAtomicNo={"0",
 	"1","2","3","4","5","6","7","8","9","10",
 	"11","12","13","14","15","16","17","18",
 	"19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"};
@@ -103,7 +105,9 @@ public class Cluster implements Cloneable{
 			coords=new double[ncoords];
 			gradient=new double[ncoords];
 			hessian=new double[ncoords][ncoords];
-			Nz=new int [nAtoms];			
+			Nz=new int [nAtoms];
+
+			pairwise=new PairwiseType[nAtoms][nAtoms];
 		}
 	}
 
@@ -373,7 +377,13 @@ public class Cluster implements Cloneable{
 	//======================== Methods
 
 
-	public void Clear(){
+	public void Clear(){		
+		MTools.VEC_EQU_NUM(coords, 0);
+		MTools.VEC_EQU_NUM(gradient, 0);
+		MTools.VEC_EQU_NUM(nType, 0);
+		MTools.VEC_EQU_NUM(Nz, 0);
+
+		ncoords=0;
 		nAtoms=0;	tag=0;
 		energy=0; rmsGrad=0;
 	}
@@ -428,11 +438,11 @@ public class Cluster implements Cloneable{
 			return Math.acos(MTools.DOTPRODUCT(l1,l2)/Math.sqrt(MTools.DOTPRODUCT(l1,l1)*MTools.DOTPRODUCT(l2,l2)));
 		}
 
-	public double angle_dgr(int ow,int hw1,int hw2){ //!< angle between (hw1,ow,hw2) in degree
+	public double angle_3(int ow,int hw1,int hw2){ //!< angle between (hw1,ow,hw2) in degree
 			return angle(ow,hw1,hw2)*180.0/Math.PI;
 	}
 
-	public double torsion_dgr(int i1,int i2,int i3,int i4){ //!< torsion angle of four atoms i1-i2-i3-i4 in degree
+	public double torsion_3(int i1,int i2,int i3,int i4){ //!< torsion angle of four atoms i1-i2-i3-i4 in degree
 			return torsion(i1,i2,i3,i4)*180.0/Math.PI;
 	}
 
@@ -630,6 +640,7 @@ public class Cluster implements Cloneable{
 				coords[i*3+k]-=rc[k];
 	}
 
+	//========================= extra get method
 	public void getMassCenter(double[] rc){
 		int i,k;
 		for(k=0;k<3;k++) rc[k]=0;
@@ -664,6 +675,11 @@ public class Cluster implements Cloneable{
 		//		MTools.PrintArray(I);
 	}
 
+
+
+	/**
+	 * @return the number of hydrogen atoms
+	 */
 	public int getHydrogenNum(){
 		return nType[1];
 	}
@@ -672,42 +688,101 @@ public class Cluster implements Cloneable{
 		return nAtoms-nType[1];
 	}
 
-	//======================== Bond
-	public boolean IsConnected(int i,int j){
-		int ni=Math.max(Nz[i], Nz[j]);
-		int nj=Math.min(Nz[i], Nz[j]);
+	/**
+	 * @param i index of atom
+	 * @return true if atom is hydrogen
+	 */
+	public boolean IsHydrogen(int i){
+		return Nz[i]==1;
+	}
+
+	public String getFormula(){
+		String answer="";
+		for(int i=nType.length-1;i>=0;i--){
+			if(nType[i]>0){
+				answer+=cElements[i]+Integer.toString(nType[i]);
+			}
+		}
+		return answer;
+	}
+	//======================== Bond 2
+	/**
+	 * Pair-wise bond type
+	 * NONE: no connection
+	 * HYD_NEAR: covalent hydrogen bond
+	 * HYD_FAR: hydrogen bond
+	 * SINGLEBOND: single bond
+	 */
+	public enum PairwiseType { NONE, HYD_NEAR, HYD_FAR, SINGLEBOND };
+
+	protected PairwiseType[][] pairwise;
+
+	/**
+	 * Calculate Bond2 matrix
+	 * @return true if connected, false if disconnected
+	 */
+	public boolean getPairwiseBond(){
+		for(int i=0;i<nAtoms;i++)
+			for(int j=0;j<nAtoms;j++)
+				pairwise[i][j]=getPairWiseBond(i,j);
+
+		return IsConnected();
+	}
+
+	/**
+	 * @return Bond type defined in PairwiseType enum
+	 */
+	public PairwiseType getPairWiseBond(int i,int j){
+		int ni=Nz[i];
+		int nj=Nz[j];
 		String s=cElements[ni]+cElements[nj];
-		double dmin=1000;
-		double dmax=0;
-		if(s.contentEquals("OH")){ dmin=0.3; dmax=1.2;}
-		else
-		if(s.contentEquals("OO")){ dmin=1.0; dmax=3.2;}
-		else
-		if(s.contentEquals("OO")){ dmin=1.0; dmax=3.2;}
-		else
-		if(s.contentEquals("FH")){ dmin=0.2; dmax=1.4;}
-		else
-		if(s.contentEquals("FF")){ dmin=1.0; dmax=3.2;}
-		else
-		if(s.contentEquals("CO")){ dmin=1.0; dmax=1.5;}
-		else
-		if(s.contentEquals("CH")){ dmin=0.2; dmax=1.2;}
+		double dmin=1000;	double dmax=0;
+		PairwiseType type=PairwiseType.NONE;
 
 		double d=distance(i,j);
+		
+		if(s.contentEquals("OH")){ dmin=0.30; dmax=1.20; type=PairwiseType.HYD_NEAR;}
+		else
+		if(s.contentEquals("HO")){ dmin=1.20; dmax=2.25; type=PairwiseType.HYD_FAR;}
+		else
+		if(s.contentEquals("OO")){ dmin=1.00; dmax=3.20; type=PairwiseType.SINGLEBOND;}
+		else
+		if(s.contentEquals("FH")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_NEAR;}
+		else
+		if(s.contentEquals("HF")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_FAR;}
+		else
+		if(s.contentEquals("FF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
+		else
+		if(s.contentEquals("CO")||s.contentEquals("OC")){ dmin=1.0; dmax=1.5; type=PairwiseType.SINGLEBOND;}
+		else
+		if(s.contentEquals("CH")){ dmin=0.2; dmax=1.2; type=PairwiseType.HYD_NEAR;}
 
-		return ((d>=dmin)&&(d<=dmax));
+		if((d>=dmin)&&(d<=dmax)){
+			return type;
+		}else return PairwiseType.NONE;
 	}
-	
-	public boolean[][] getConnectivity(){
+
+	//======================= Structure query
+	/**
+	 * Check whether two atoms i and j are connected
+	 * @return true if connected, false if not
+	 */
+	public boolean IsConnected(int i,int j){
+		PairwiseType type=getPairWiseBond(i,j);
+		return (type!=PairwiseType.NONE);
+	}
+
+	/**
+	 * Check whether any atom of cluster is connected to at least one atom 
+	 * @return true if connected, false if not
+	 */
+	public boolean IsConnected(){
 		boolean[][] d=new boolean[nAtoms][nAtoms];
 		for(int i=0;i<nAtoms;i++)
 			for(int j=0;j<nAtoms;j++)
 				d[i][j]=IsConnected(i,j);
-		return d;
-	}
 
-	public boolean IsConnected(boolean[][] d){
-		int n=d.length;
+		int n=nAtoms;
 		for(int i=0;i<n;i++){
 			for(int j=0;j<n;j++)
 				if((i!=j)&&(d[i][j])){//if connected,jump to jth row and flip
@@ -720,19 +795,245 @@ public class Cluster implements Cloneable{
 		return true;
 	}
 
-	public boolean IsConnected(){
-		boolean[][] d=getConnectivity();
-		return IsConnected(d);
+
+	protected int[] coordNum=new int[8];
+
+	/**
+	 * Get the coordination number of Nonhydrogen atoms based on the pairwise table
+	 * @param bUpdate if true, pairwise table will be updated
+	 * @return the value of coordNum
+	 */
+	public int[] getCoordNum(boolean bUpdate) {
+		if(bUpdate) getPairwiseBond();
+
+		for(int i=0;i<coordNum.length;i++) coordNum[i]=0;
+
+		for(int i=0;i<nAtoms;i++)	if(!IsHydrogen(i)){
+			int count=0;
+			for(int j=0;j<nAtoms;j++)	if(!IsHydrogen(j) && (pairwise[i][j]!=PairwiseType.NONE) )	count++;
+			
+			if(count> coordNum.length){
+				logger.log(Level.SEVERE," A strange structure appears ! Cannot identify ! ");
+			}else coordNum[count]++;
+		}
+
+		return coordNum;
 	}
 
-	//======================== Read/Write Method
+	/**
+	 * Return the number of rings based on Cauchy formula: n(edges) - n(vertices) + 1
+	 * @param bUpdate if true, pairwise table will be updated
+	 * @return the number of rings
+	 */
+	public int getNumberOfSmallestRingByCauchyFormula(boolean bUpdate){
+		getCoordNum(bUpdate);
+		int d=0;
+		for(int i=0;i<coordNum.length;i++){
+			d+=coordNum[i]*i;
+		}
+		return d/2 - getNonHydrogenNum() +1;
+	}
 
+	/**
+	 * Get the value of coordNum at specified index
+	 *
+	 * @param index
+	 * @return the value of coordNum at specified index
+	 */
+	public int getCoordNum(int index) {
+		return this.coordNum[index];
+	}
+
+
+	/**
+	 * Get the value of coordNum
+	 * @param index
+	 * @return String of coordNum, starting from 0 coord until nonzero coord.
+	 */
+	public String getCoordNum() {
+		String answer="";
+		for(int i=0;i<coordNum.length;i++)
+			answer+=Integer.toString(coordNum[i])+" ";
+		return answer;
+	}
+
+	/**
+	 * @param bUpdate if true, pairwise table will be updated
+	 * @return morphology (in string)
+	 */
+	public String getMorphology(boolean bUpdate){
+		if(!IsConnected()) return "Disconnected";
+		else{
+			int nRings=getNumberOfSmallestRingByCauchyFormula(bUpdate);
+
+			//System.err.printf(" nRings = %d , nH = %d\n",nRings,getHydrogenNum() );
+			//MTools.PrintArray(coordNum);
+
+			switch(nRings){
+				case 0:
+					int sum=0;
+					for(int i=3;i<coordNum.length;i++) sum+=coordNum[i];
+					if(sum>0) return "Treelike";
+					else return "Linear";
+				case 1: return "SingleRing";
+				case 2:	return "DoubleRing";
+			}
+
+			if(nRings>=3){
+					if(coordNum[3]==getNonHydrogenNum()) return "Cage";
+					else return "MultiRing";
+			}
+		}
+		return "Undefined";
+	}
+	
+	//======================== Similarity index
+	protected double[] USRsig=new double[12];
+
+	/**
+	 *
+	 * @param p: Cluster will be compared. Supposed that USR signature of p and (this) is both computed already
+	 * @return the similarity between (this) and p.
+	 */
+	public double CalcUSRSimilarity(Cluster p){
+		double S =0;
+			for (int i=0; i<12; i++) {
+				S += Math.abs(USRsig[i] - p.USRsig[i]);
+			}
+			S /= 12.0;
+			S = 1.0/(1.0+S);
+			return S;
+	}
+
+	public void CalcUSRsignature(){
+	
+	
+	//clear USRsig
+	for (int i=0; i<12; i++){	USRsig[i] = 0;}
+
+	if(nAtoms==2){ USRsig[0]=distance(0,1); return ;}
+
+
+	double[] c=new double[3];
+	//compute centroid (C)
+
+	for (int i=0; i<nAtoms; i++) {
+		c[0] += coords[i*3+0]/nAtoms;
+		c[1] += coords[i*3+1]/nAtoms;
+		c[2] += coords[i*3+2]/nAtoms;
+	}
+	//find distances to the centroid
+	double[] distToCentroid=new double[nAtoms];
+	double maxDist = -1;
+	double minDist = 1e14;
+	int minItem = 0;
+	int maxItem = 0;
+	for (int i=0; i<nAtoms; i++) {
+		double d = distance(i,c);
+		if (d < minDist) {
+			minDist = d;
+			minItem = i;
+		}
+		if (d > maxDist) {
+			maxDist = d;
+			maxItem = i;
+		}
+		distToCentroid[i]=d;
+	}
+
+	//find closest to centroid (A)
+	//A is minItem	
+	c[0] = coords[minItem*3+0];
+	c[1] = coords[minItem*3+1];
+	c[2] = coords[minItem*3+2];
+
+	double[] distToA=new double[nAtoms];
+	for (int i=0; i<nAtoms; i++) {
+		double d = distance(i,c);
+		distToA[i]=d;
+	}
+
+	//find furthest from the centroid (B)
+	//B is maxItem and update maxitem for C
+	c[0] = coords[maxItem*3+0];
+	c[1] = coords[maxItem*3+1];
+	c[2] = coords[maxItem*3+2];
+
+	double[] distToB=new double[nAtoms];
+	maxDist = -1;
+	for (int i=0; i<nAtoms; i++) {
+		double d = distance(i,c);
+		if (d > maxDist) {
+			maxDist = d;
+			maxItem = i;
+		}
+	}
+
+	//find oxy furthest from B (C)
+	//C is in maxItem now
+	c[0] = coords[maxItem*3+0];
+	c[1] = coords[maxItem*3+1];
+	c[2] = coords[maxItem*3+2];
+
+	double[] distToC=new double[nAtoms];
+	for (int i=0; i<nAtoms; i++) {
+		double d = distance(i,c);
+		distToC[i]=d;
+	}
+
+	//compute USRsigs from each distribution
+
+
+	//compute means of the distributions
+	for (int i=0; i<nAtoms; i++) {
+		USRsig[0] += distToCentroid[i];
+		USRsig[3] += distToA[i];
+		USRsig[6] += distToB[i];
+		USRsig[9] += distToC[i];
+	}
+	USRsig[0] /= (double) nAtoms;
+	USRsig[3] /= (double) nAtoms;
+	USRsig[6] /= (double) nAtoms;
+	USRsig[9] /= (double) nAtoms;
+
+	//compute variances of the distributions
+	for (int i=0; i<nAtoms; i++) {
+		USRsig[1] += Math.pow(distToCentroid[i] - USRsig[0], 2.0);
+		USRsig[4] += Math.pow(distToA[i] - USRsig[3], 2.0);
+		USRsig[7] += Math.pow(distToB[i] - USRsig[6], 2.0);
+		USRsig[10] += Math.pow(distToC[i] - USRsig[9], 2.0);
+	}
+	USRsig[1] /= (double) (nAtoms-1);
+	USRsig[4] /= (double) (nAtoms-1);
+	USRsig[7] /= (double) (nAtoms-1);
+	USRsig[10] /= (double) (nAtoms-1);
+
+	//compute skewness of the distributions
+	for (int i=0; i<nAtoms; i++) {
+		USRsig[2] += Math.pow(distToCentroid[i] - USRsig[0], 3.0);
+		USRsig[5] += Math.pow(distToA[i] - USRsig[3], 3.0);
+		USRsig[8] += Math.pow(distToB[i] - USRsig[6], 3.0);
+		USRsig[11] += Math.pow(distToC[i] - USRsig[9], 3.0);
+	}
+	USRsig[2] /= (double) (nAtoms-1);
+	USRsig[5] /= (double) (nAtoms-1);
+	USRsig[8] /= (double) (nAtoms-1);
+	USRsig[11] /= (double) (nAtoms-1);
+	USRsig[2] /= (double) Math.pow(Math.sqrt(USRsig[1]),3.0);
+	USRsig[5] /= (double) Math.pow(Math.sqrt(USRsig[4]),3.0);
+	USRsig[8] /= (double) Math.pow(Math.sqrt(USRsig[7]),3.0);
+	USRsig[11] /= (double) Math.pow(Math.sqrt(USRsig[10]),3.0);
+	}
+	//======================== Read/Write Method
+	
 	public boolean Read(Scanner scanner,String format){
 		boolean isReadable=false;
 		if(format.contentEquals("xyz"))		isReadable=ReadXYZ(scanner);
+		if(format.contentEquals("freq"))	isReadable=ReadXYZ(scanner);
 		
 		return isReadable;
 	}
+
 	protected boolean ReadXYZ(Scanner scanner){
 			Clear();
 
@@ -789,7 +1090,7 @@ public class Cluster implements Cloneable{
 							coords[i*3+0] = Double.parseDouble(tokenizer.nextToken());
 							coords[i*3+1] = Double.parseDouble(tokenizer.nextToken());
 							coords[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
-							//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+							//System.err.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
 							if (fields >= 7){
 								gradient[i*3+0] = Double.parseDouble(tokenizer.nextToken());
 								gradient[i*3+1] = Double.parseDouble(tokenizer.nextToken());
@@ -808,6 +1109,9 @@ public class Cluster implements Cloneable{
 			try {
 				if(format.contentEquals("xyz")){
 					WriteXYZ(writer);
+				}else
+				if(format.contentEquals("cml")){
+					WriteCML(writer);
 				}
 				writer.flush();
 			} catch (IOException ex) {
@@ -843,5 +1147,36 @@ public class Cluster implements Cloneable{
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
         }
+	}
+
+	protected void WriteCML(Writer writer) throws IOException{
+		BufferedWriter w=new BufferedWriter(writer);
+		XmlWriter xmlwriter=new XmlWriter(w);
+		xmlwriter.writeEntity("molecule");
+		xmlwriter.writeAttribute("id","m"+Integer.toString(tag));
+		xmlwriter.writeEntity("name");
+		xmlwriter.writeText(getFormula());
+		xmlwriter.endEntity();
+
+		xmlwriter.writeEntity("scalar");
+		xmlwriter.writeAttribute("title", "energy");
+		xmlwriter.writeNormalText(Double.toString(energy));
+		xmlwriter.endEntity();
+		
+		xmlwriter.writeEntity("atomArray");
+		for(int i=0;i<nAtoms;i++){
+			xmlwriter.writeEntity("atom");
+			xmlwriter.writeAttribute("id","a"+Integer.toString(i));
+			xmlwriter.writeAttribute("elementType",cElements[Nz[i]]);
+			xmlwriter.writeAttribute("x3",Double.toString(coords[i*3]));
+			xmlwriter.writeAttribute("y3",Double.toString(coords[i*3+1]));
+			xmlwriter.writeAttribute("z3",Double.toString(coords[i*3+2]));			
+			xmlwriter.endEntity();
+			
+        }
+		xmlwriter.endEntity();
+
+		xmlwriter.endEntity();
+		xmlwriter.flush();
 	}
 }

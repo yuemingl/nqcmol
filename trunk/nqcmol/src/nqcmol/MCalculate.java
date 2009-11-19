@@ -57,7 +57,6 @@ public class MCalculate {
 		}		
 	}
 
-
 	public void CalculateEnergy(String[] args)  {
 		try {
 			ParseArguments(args);
@@ -70,12 +69,12 @@ public class MCalculate {
 
 			//System.out.println(" Come here");
 			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
-			XmlWriter xmlwriter=new XmlWriter(writer);
-			xmlwriter.writeEntity("BenchmarkEnergy");
-			xmlwriter.writeEntity("Note");
-			xmlwriter.writeText(" Time is measured in milliseconds");
-			xmlwriter.endEntity();
-			xmlwriter.writeNormalText(pot.Info(1));
+			XmlWriter xml=new XmlWriter(writer);
+			xml.writeEntity("BenchmarkEnergy");
+			xml.writeEntity("Note");
+			xml.writeText(" Time is measured in milliseconds");
+			xml.endEntity();
+			xml.writeNormalText(pot.Info(1));
 
 			
 			Cluster mol = new Cluster();
@@ -101,13 +100,13 @@ public class MCalculate {
 
 
 				
-				xmlwriter.writeEntity("Bench");
-				xmlwriter.writeAttribute("Tag", Integer.toString(i));
-				xmlwriter.writeAttribute("nAtoms", Integer.toString(pot.getCluster().getNAtoms()));
-				xmlwriter.writeAttribute("nRuns", Integer.toString(myruns));
-				xmlwriter.writeAttribute("Energy", Double.toString(energy));
-				xmlwriter.writeAttribute("EnergyDuration", Long.toString(duration));
-				xmlwriter.writeAttribute("EnergySpeed", Double.toString(EnergySpeed));
+				xml.writeEntity("Bench");
+				xml.writeAttribute("Tag", Integer.toString(i));
+				xml.writeAttribute("nAtoms", Integer.toString(pot.getCluster().getNAtoms()));
+				xml.writeAttribute("nRuns", Integer.toString(myruns));
+				xml.writeAttribute("Energy", Double.toString(energy));
+				xml.writeAttribute("EnergyDuration", Long.toString(duration));
+				xml.writeAttribute("EnergySpeed", Double.toString(EnergySpeed));
 
 
 				if(isGrad){
@@ -119,12 +118,12 @@ public class MCalculate {
 
 					double GradientSpeed=0;
 					if(myruns!=0) GradientSpeed=duration/myruns;
-					xmlwriter.writeAttribute("GradientDuration", Long.toString(duration));
-					xmlwriter.writeAttribute("GradientSpeed", Double.toString(GradientSpeed));
+					xml.writeAttribute("GradientDuration", Long.toString(duration));
+					xml.writeAttribute("GradientSpeed", Double.toString(GradientSpeed));
 				}
 
 
-				xmlwriter.endEntity();
+				xml.endEntity();
 //				JSONObject jsBench = new JSONObject();
 //				jsBench.put("Tag", i);
 //				jsBench.put("nAtoms", pot.getCluster().getNAtoms());
@@ -154,8 +153,8 @@ public class MCalculate {
 //			hd.endElement("", "", "nqc_ener");
 //			hd.endDocument();
 
-			xmlwriter.endEntity();
-			xmlwriter.close();
+			xml.endEntity();
+			xml.close();
 			writer.close();
 			
 			//System.out.print(jsParent);
@@ -173,34 +172,28 @@ public class MCalculate {
 			}
 
 			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
-			XmlWriter xmlwriter=new XmlWriter(writer);
-			xmlwriter.writeEntity("Optimization");
+			XmlWriter xml=new XmlWriter(writer);
+			xml.writeEntity("Optimization");
 
 			Potential pot = MolExtra.SetupPotential(sPotential);
 
-			xmlwriter.writeNormalText(pot.Info(3));
+			xml.writeNormalText(pot.Info(3));
 
 			Cluster mol = new Cluster();
 			Scanner scanner = new Scanner(new File(sFileIn));
-			//System.out.println("What the fuck!"+sFileIn);
 			int i = 0;
 			while (mol.Read(scanner, "xyz")) {
 				//mol.Write(System.out,"xyz");
-
-
-				xmlwriter.writeEntity("Opt").writeAttribute("Tag",Integer.toString(i));
 				
-//				xmlwriter.writeEntity("XYZ");
-
-//				xmlwriter.endEntity();
-				xmlwriter.writeAttribute("nAtom",Integer.toString(12));
+				xml.writeEntity("Opt").writeAttribute("Tag",Integer.toString(i));
+				xml.writeAttribute("nAtom",Integer.toString(12));
 				pot.Optimize(mol);
 				mol.Write(System.err, "xyz");
-				xmlwriter.endEntity();
+				xml.endEntity();
 				
 				i++;
 			}
-			xmlwriter.endEntity();
+			xml.endEntity();
 			writer.close();
 		} catch (IOException ex) {
 			Logger.getLogger(MCalculate.class.getName()).log(Level.SEVERE, null, ex);

@@ -39,64 +39,73 @@ public  class  MTools{
 
 	//normalise for vector[3]
 	public static void NORMALIZE(double[][] A){
-		for (int i = 0; i< A.length; i++){
-			NORMALIZE(A[i]);
+		for (int i11 = 0; i11< A.length; i11++){
+			NORMALIZE(A[i11]);
 		} 
 	}
 
 	//normalise for vector[3]
 	public static void NORMALIZE(double[][] A,int nRows,int nCols){
-		for (int i = 0; i<nRows; i++){
+		for (int i11 = 0; i11<nRows; i11++){
 			double sum = 0;
 			for (int j = 0; j<nCols; j++){
-				sum += A[i][j]*A[i][j];
+				sum += A[i11][j]*A[i11][j];
 			}
 			sum = Math.sqrt(sum);
-			for (int j = 0; j<nCols; j++){
-				A[i][j]/=sum;
+			for (int j11 = 0; j11<nCols; j11++){
+				A[i11][j11]/=sum;
 			}
 		}
 	}
 
-//	public static void VEC_MUL_VEC(a,B,C,alpha,s0) for(int l=0;l<(s0);l++) for(int m=0;m<(s0);m++) (a)[l][m]=(alpha)*(B)[l]*(C)[m];
+//	public static void VEC_MUL_VEC(a,B,C,alpha,s0) for(int i11=0;i11<(s0);i11++) for(int j11=0;j11<(s0);j11++) (a)[i11][j11]=(alpha)*(B)[i11]*(C)[j11];
 //
-//	public static void VEC_MUL_MAT2(a,B,C,alpha) for(l=0;l<DGR;l++) (a)[l]=(alpha)*DOTPRODUCT((B)[l],(C));
+//	public static void VEC_MUL_MAT2(a,B,C,alpha) for(i11=0;i11<DGR;i11++) (a)[i11]=(alpha)*DOTPRODUCT((B)[i11],(C));
 //
-//	public static void VEC_PLUS_VEC(a,B,C,s0,alpha,beta) for(l=0;l<(s0);l++){\
-//	 (a)[l]=(alpha)*(B)[l]+(beta)*(C)[l];}
+//	public static void VEC_PLUS_VEC(a,B,C,s0,alpha,beta) for(i11=0;i11<(s0);i11++){\
+//	 (a)[i11]=(alpha)*(B)[i11]+(beta)*(C)[i11];}
 //
-//	public static void VEC_PLUS_NUM(a,B,s0,num) for(l=0;l<(s0);l++) (a)[l]=(B)[l]+(num);
-//	public static void VEC_MUL_NUM(a,B,s0,num) for(l=0;l<(s0);l++) (a)[l]=(B)[l]*(num);
-//	public static void VEC_EQU_NUM(a,s0,num) for(l=0;l<(s0);l++) (a)[l]=(num);
+//	public static void VEC_PLUS_NUM(a,B,s0,num) for(i11=0;i11<(s0);i11++) (a)[i11]=(B)[i11]+(num);
+//	public static void VEC_MUL_NUM(a,B,s0,num) for(i11=0;i11<(s0);i11++) (a)[i11]=(B)[i11]*(num);
+	public static void VEC_EQU_NUM(int[] a,int num){
+		if(a!=null)
+			for(int i11=0;i11<a.length;i11++) a[i11]=num;
+	}
+//
+	public static void VEC_EQU_NUM(double[] a,double num){
+		if(a!=null)
+			for(int i11=0;i11<a.length;i11++) a[i11]=num;
+	}
 //
 //	/*==================== for 2D matrix */
-//	public static void MAT2_MUL_NUM(a,B,num,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]=(B)[l][m]*(num);
-//	public static void MAT2_EQU_MAT2(a,B,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]=(B)[l][m];
+//	public static void MAT2_MUL_NUM(a,B,num,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]=(B)[i11][j11]*(num);
+//	public static void MAT2_EQU_MAT2(a,B,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]=(B)[i11][j11];
 //
-//	public static void MAT2_PLUS_NUM(a,B,num,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]=(B)[l][m]+(num);
+//	public static void MAT2_PLUS_NUM(a,B,num,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]=(B)[i11][j11]+(num);
 	public static void MAT2_EQU_NUM(double[][] A,double num){
-		for(int l=0;l<A.length;l++)
-			for(int m=0;m<A[l].length;m++) A[l][m]=(num);
+		if(A!=null)
+		for(int i11=0;i11<A.length;i11++)
+			for(int j11=0;j11<A[i11].length;j11++) A[i11][j11]=(num);
 	}
-//	public static void MUL_NUM(a,num,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]*=(num);
-//	public static void PLUS_NUM(a,num,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]+=(num);
-//	public static void MAT2_MUL_MAT2(a,B,C,s0,s1,s2) for(l=0;l<(s0);l++) for(n=0;n<(s2);n++){ (a)[l][n]=0;for(m=0;m<(s1);m++) (a)[l][n]+=(B)[l][m]*(C)[m][n];}
+//	public static void MUL_NUM(a,num,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]*=(num);
+//	public static void PLUS_NUM(a,num,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]+=(num);
+//	public static void MAT2_MUL_MAT2(a,B,C,s0,s1,s2) for(i11=0;i11<(s0);i11++) for(n=0;n<(s2);n++){ (a)[i11][n]=0;for(j11=0;j11<(s1);j11++) (a)[i11][n]+=(B)[i11][j11]*(C)[j11][n];}
 //
 	public static void MAT2_MUL_VEC(double[] A,double B[][],double C[]){
-		for(int l=0;l<A.length;l++){
-			A[l]=0;
-			for(int m=0;m<C.length;m++) A[l]+=B[l][m]*(C)[m];
+		for(int i11=0;i11<A.length;i11++){
+			A[i11]=0;
+			for(int m=0;m<C.length;m++) A[i11]+=B[i11][m]*(C)[m];
 		}
 	}
 
-//	public static void MAT2_PLUS_MAT2(a,B,C,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]=(B)[l][m]+(C)[l][m];
+//	public static void MAT2_PLUS_MAT2(a,B,C,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]=(B)[i11][j11]+(C)[i11][j11];
 //
-//	public static void PLUS_MAT2(a,B,s0,s1) for(l=0;l<(s0);l++)	for(m=0;m<(s1);m++) (a)[l][m]+=(B)[l][m];
+//	public static void PLUS_MAT2(a,B,s0,s1) for(i11=0;i11<(s0);i11++)	for(j11=0;j11<(s1);j11++) (a)[i11][j11]+=(B)[i11][j11];
 //
 //	//for converting
-//	public static void MAT2_TO_VEC(a,B,s0,s1) for(l=0;l<(s0);l++) for(m=0;m<(s1);m++) (B)[l*(s1)+m]=(a)[l][m];
+//	public static void MAT2_TO_VEC(a,B,s0,s1) for(i11=0;i11<(s0);i11++) for(j11=0;j11<(s1);j11++) (B)[i11*(s1)+j11]=(a)[i11][j11];
 //
-//	public static void VEC_TO_MAT2(B,a,s0,s1) for(l=0;l<(s0);l++) for(m=0;m<(s1);m++) (a)[l][m]=(B)[l*(s1)+m];
+//	public static void VEC_TO_MAT2(B,a,s0,s1) for(i11=0;i11<(s0);i11++) for(j11=0;j11<(s1);j11++) (a)[i11][j11]=(B)[i11*(s1)+j11];
 
 
 
@@ -156,7 +165,7 @@ public  class  MTools{
 		double[][] vec=eigen.getV().toArray();
 		for(int i=0;i<vec.length;i++)
 			for(int j=0;j<vec[i].length;j++){
-				//eigenVec[i][j]=vec[i][j];
+				//eigenVec[i11][j11]=vec[i11][j11];
 				System.arraycopy(vec[i],0,eigenVec[i],0,vec[i].length);
 			}
 	}
@@ -172,14 +181,23 @@ public  class  MTools{
 		System.arraycopy(value,0,eigenValue,0,value.length);
 
 		double[][] vec=eigen.getV().toArray();
-		for(int i=0;i<vec.length;i++)
-			for(int j=0;j<vec[i].length;j++){
-				eigenVec[i][j]=vec[i][j];
-				//System.arraycopy(vec[i],0,eigenVec[i],0,vec[i].length);
+		for(int i11=0;i11<vec.length;i11++)
+			for(int j11=0;j11<vec[i11].length;j11++){
+				eigenVec[i11][j11]=vec[i11][j11];
+				//System.arraycopy(vec[i11],0,eigenVec[i11],0,vec[i11].length);
 			}
 		 * */
 	}
 
+
+
+	public static void PrintArray(int[][] A){
+		for(int i=0;i<A.length;i++){
+			for(int j=0;j<A[i].length;j++)
+				System.err.printf("%d ",A[i][j]);
+			System.err.printf("\n");
+		}
+	}
 
 	public static void PrintArray(double[][] A){
 		for(int i=0;i<A.length;i++){
@@ -189,11 +207,32 @@ public  class  MTools{
 		}
 	}
 
-	public static void PrintArray(double[] a){
+	public static void PrintArray(int[] a){
+			for(int j=0;j<a.length;j++)
+				System.err.printf("%d ",a[j]);
+			System.err.printf("\n");
+	}
+
+		public static void PrintArray(double[] a){
 			for(int j=0;j<a.length;j++)
 				System.err.printf("%1.9f ",a[j]);
 			System.err.printf("\n");
 	}
 
 
+		public static String getExtension(String fullPath) {
+			int dot = fullPath.lastIndexOf(".");
+			return fullPath.substring(dot + 1);
+	  }
+
+	  public static String getFilename(String fullPath) { // gets filename without extension
+		int dot = fullPath.lastIndexOf(".");
+		int sep = fullPath.lastIndexOf("/");
+		return fullPath.substring(sep + 1, dot);
+	  }
+
+	  public static String getPath(String fullPath) {
+		int sep = fullPath.lastIndexOf("/");
+		return fullPath.substring(0, sep);
+	  }
 }
