@@ -75,6 +75,7 @@ public class NQCMol {
 			return;
 		}
 
+
 		if(isHelp){
 			parser.printUsage(System.out);
 			return;

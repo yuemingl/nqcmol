@@ -568,8 +568,6 @@ public class OSS2Potential extends Potential{
 
 		MTools.LinearSolver_apache(Dtmp,Etmp,mu);
 
-		
-
 //		System.out.print(" mu after solving: ");
 //		for(int i=0; i< 3*nO;i++){ System.out.printf("%f ", mu[i]);}
 //		System.out.println("");

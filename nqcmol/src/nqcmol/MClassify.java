@@ -26,6 +26,9 @@ public class MClassify {
 
 	@Option(name="-pattern",usage="pattern of morphology to filter",metaVar="String")
     String sPattern="";
+
+	@Option(name="-bWater",usage="classify according to coordination number (for protonated/deprotoanted water cluster")
+    boolean bWaterCoordNum=false;
 	
 	@Option(name="-h",usage="Print out the help")
     boolean isHelp= false;
@@ -57,13 +60,15 @@ public class MClassify {
 
 			BufferedWriter writer=new BufferedWriter(new OutputStreamWriter(System.out));
 			XmlWriter xml=new XmlWriter(writer);
-			xml.writeEntity("Classification");
+			xml.writeEntity("Classify");
 			xml.writeAttribute("Pattern",sPattern);
 			xml.writeEntity("Note");
-			xml.writeText("Classify input structures based on morphology. It will output the classification results to screen and output the structures mathching to the pattern if applicant");
+			xml.writeText("Classify input clusters based on morphology. It will output the classification results to screen and output the structures mathching to the pattern if applicant.\n");
+			if(bWaterCoordNum)
+				xml.writeText("Classify input water clusters based on coordination number of protonated or deprotonated oxygen atom.");
 			xml.endEntity();
 
-			Cluster mol = new Cluster();
+			WaterCluster mol = new WaterCluster();
 			Scanner scanner = new Scanner(new File(sFileIn));
 
 			HashMap<String, Integer> map=new HashMap<String, Integer>();
@@ -79,17 +84,36 @@ public class MClassify {
 				}
 
 				if(map.containsKey(morph)){
-					int  newVal= ((Integer)map.get(morph)).intValue();
 					map.put(morph, map.get(morph) + 1);
 				}else map.put(morph, 1);
 
+
+				int iChargedOxygen=mol.getChargedOxygen(false);
+				int nCoord=-1;
+				if(bWaterCoordNum){
+					if(iChargedOxygen!=-1){						
+						nCoord=mol.getCoordNum(iChargedOxygen);
+						String key="Coord_"+Integer.toString(nCoord);
+
+						if(map.containsKey(key)){
+							map.put(key, map.get(key) + 1);
+						}else map.put(key, 1);
+					}
+				}
+
+
 				map.put("Total",  map.get("Total") + 1);
 				
-				xml.writeEntity("Class");
+				xml.writeEntity("Cluster");
 				xml.writeAttribute("id", Integer.toString(i));
 				xml.writeAttribute("Morphology", morph);
 				xml.writeAttribute("Nulity",Integer.toString(mol.getNumberOfSmallestRingByCauchyFormula(false)));
-				xml.writeAttribute("CoordNum",mol.getCoordNum());
+				xml.writeAttribute("CoordNumCount",mol.getCoordNumCount());
+
+				if(bWaterCoordNum){
+					xml.writeAttribute("ChargedOxygen", Integer.toString(iChargedOxygen));
+					xml.writeAttribute("CoordNum",Integer.toString(nCoord));
+				}
 				xml.endEntity();
 				i++;
 				//break;
@@ -109,5 +133,4 @@ public class MClassify {
 		
 	}
 	
-
 }
