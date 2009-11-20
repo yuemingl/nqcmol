@@ -796,28 +796,27 @@ public class Cluster implements Cloneable{
 	}
 
 
-	protected int[] coordNum=new int[8];
+	protected int[] coordNumCount=new int[8];
 
 	/**
 	 * Get the coordination number of Nonhydrogen atoms based on the pairwise table
 	 * @param bUpdate if true, pairwise table will be updated
-	 * @return the value of coordNum
+	 * @return the value of coordNumCount
 	 */
-	public int[] getCoordNum(boolean bUpdate) {
+	public int[] getCoordNumCount(boolean bUpdate) {
 		if(bUpdate) getPairwiseBond();
 
-		for(int i=0;i<coordNum.length;i++) coordNum[i]=0;
+		for(int i=0;i<coordNumCount.length;i++) coordNumCount[i]=0;
 
 		for(int i=0;i<nAtoms;i++)	if(!IsHydrogen(i)){
-			int count=0;
-			for(int j=0;j<nAtoms;j++)	if(!IsHydrogen(j) && (pairwise[i][j]!=PairwiseType.NONE) )	count++;
+			int count=getCoordNum(i);
 			
-			if(count> coordNum.length){
+			if(count> coordNumCount.length){
 				logger.log(Level.SEVERE," A strange structure appears ! Cannot identify ! ");
-			}else coordNum[count]++;
+			}else coordNumCount[count]++;
 		}
 
-		return coordNum;
+		return coordNumCount;
 	}
 
 	/**
@@ -826,35 +825,46 @@ public class Cluster implements Cloneable{
 	 * @return the number of rings
 	 */
 	public int getNumberOfSmallestRingByCauchyFormula(boolean bUpdate){
-		getCoordNum(bUpdate);
+		getCoordNumCount(bUpdate);
 		int d=0;
-		for(int i=0;i<coordNum.length;i++){
-			d+=coordNum[i]*i;
+		for(int i=0;i<coordNumCount.length;i++){
+			d+=coordNumCount[i]*i;
 		}
 		return d/2 - getNonHydrogenNum() +1;
 	}
 
 	/**
-	 * Get the value of coordNum at specified index
+	 * Get the value of coordNumCount at specified index
 	 *
 	 * @param index
-	 * @return the value of coordNum at specified index
+	 * @return the value of coordNumCount at specified index
 	 */
-	public int getCoordNum(int index) {
-		return this.coordNum[index];
+	public int getCoordNumCount(int index) {
+		return this.coordNumCount[index];
 	}
 
 
 	/**
-	 * Get the value of coordNum
+	 * Get the value of coordNumCount
 	 * @param index
-	 * @return String of coordNum, starting from 0 coord until nonzero coord.
+	 * @return String of coordNumCount, starting from 0 coord until nonzero coord.
 	 */
-	public String getCoordNum() {
+	public String getCoordNumCount() {
 		String answer="";
-		for(int i=0;i<coordNum.length;i++)
-			answer+=Integer.toString(coordNum[i])+" ";
+		for(int i=0;i<coordNumCount.length;i++)
+			answer+=Integer.toString(coordNumCount[i])+" ";
 		return answer;
+	}
+
+	/**
+	 * Get coordination number of nonhydgen atoms
+	 * @param index of atom
+	 * @return the value of coordNumCount at specified index
+	 */
+	public int getCoordNum(int index) {
+		int count=0;
+		for(int j=0;j<nAtoms;j++)	if(!IsHydrogen(j) && (pairwise[index][j]!=PairwiseType.NONE) )	count++;
+		return count;
 	}
 
 	/**
@@ -867,12 +877,12 @@ public class Cluster implements Cloneable{
 			int nRings=getNumberOfSmallestRingByCauchyFormula(bUpdate);
 
 			//System.err.printf(" nRings = %d , nH = %d\n",nRings,getHydrogenNum() );
-			//MTools.PrintArray(coordNum);
+			//MTools.PrintArray(coordNumCount);
 
 			switch(nRings){
 				case 0:
 					int sum=0;
-					for(int i=3;i<coordNum.length;i++) sum+=coordNum[i];
+					for(int i=3;i<coordNumCount.length;i++) sum+=coordNumCount[i];
 					if(sum>0) return "Treelike";
 					else return "Linear";
 				case 1: return "SingleRing";
@@ -880,7 +890,7 @@ public class Cluster implements Cloneable{
 			}
 
 			if(nRings>=3){
-					if(coordNum[3]==getNonHydrogenNum()) return "Cage";
+					if(coordNumCount[3]==getNonHydrogenNum()) return "Cage";
 					else return "MultiRing";
 			}
 		}
@@ -1028,9 +1038,9 @@ public class Cluster implements Cloneable{
 	
 	public boolean Read(Scanner scanner,String format){
 		boolean isReadable=false;
-		if(format.contentEquals("xyz"))		isReadable=ReadXYZ(scanner);
-		if(format.contentEquals("freq"))	isReadable=ReadXYZ(scanner);
-		
+		//if(format.contentEquals("xyz"))		isReadable=ReadXYZ(scanner);
+		//if(format.contentEquals("freq"))	isReadable=ReadXYZ(scanner);
+		isReadable=ReadXYZ(scanner);
 		return isReadable;
 	}
 
