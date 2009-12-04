@@ -72,8 +72,6 @@ public class XmlWriter {
      * @param String value of attribute.
      */
     public XmlWriter writeAttribute(String attr, String value)  {
-
-
         if (this.attrs == null) {
             this.attrs = new StringBuffer();
         }

@@ -14,8 +14,8 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class NQCMol {
-	@Option(name="-t",usage="Please choose a task",metaVar="task")
-    String sTask="ener";
+	@Option(name="-t",usage="Please choose one of those operations: opt ener sim validgrad ",metaVar="OPER")
+    String sTask="";
 
     @Option(name="-h",usage="Print out the help")
     boolean isHelp= false;
@@ -32,7 +32,6 @@ public class NQCMol {
 		try {
 			// parse the arguments.
 			parser.parseArgument(args);
-			//parser.parseArgument("more","args");
 		} catch (CmdLineException e) {
 			// if there's a problem in the command line, you'll get this exception. this will report an error message.
             System.err.println(e.getMessage());            
@@ -42,37 +41,47 @@ public class NQCMol {
 
             return;
 		}
-			//parser.parseArgument("more","args");
+		//parser.parseArgument("more","args");
 	
 		if(sTask.contentEquals("ener")){
-			MCalculate calc=new MCalculate();
-			calc.CalculateEnergy(args);
-			return;
+			Task calc=new TaskCalculateEnergy();
+			calc.Execute(args);			return;
 		}
 
 
-		if(sTask.contentEquals("validgrad")){
-			MCalculate calc=new MCalculate();
-			calc.ValidateGradients(args);
-			return;
+		else if(sTask.contentEquals("validgrad")){
+			Task calc=new TaskValidateGradient();
+			calc.Execute(args);			return;
 		}
 
-		if(sTask.contentEquals("opt")){
-			MCalculate calc=new MCalculate();
-			calc.Optimize(args);
-			return;
+		else if(sTask.contentEquals("opt")){
+			Task calc=new TaskOptimize();
+			calc.Execute(args);			return;
 		}
 
-		if(sTask.contentEquals("vib")){
-			MCalculate calc=new MCalculate();
-			calc.HarmonicVibrationAnalysis(args);
-			return;
+		else if(sTask.contentEquals("vib")){
+			Task calc=new TaskHarmonicVibrationAnalysis();
+			calc.Execute(args);			return;
 		}
 
-		if(sTask.contentEquals("class")){
-			MClassify calc=new MClassify();
-			calc.ClassifyClusters(args);
-			return;
+		else if(sTask.contentEquals("be")){
+			Task calc=new TaskValidateGradient();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("test")){
+			Task calc=new TaskTest();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("class")){
+			Task calc=new TaskClassifyCluster();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("sim")){
+			Task calc=new TaskRemoveDuplicateCluster();
+			calc.Execute(args);			return;
 		}
 
 
