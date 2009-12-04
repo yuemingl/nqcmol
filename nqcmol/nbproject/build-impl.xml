@@ -417,6 +417,9 @@ is divided into following sections:
     <target name="-pre-jar">
         <!-- Empty placeholder for easier customization. -->
         <!-- You can override this target in the ../build.xml file. -->
+		<unjar dest="${build.classes.dir}" src="${file.reference.args4j.jar-1}"/>
+		<unjar dest="${build.classes.dir}" src="${file.reference.colt.jar}"/>
+		<unjar dest="${build.classes.dir}" src="${file.reference.commons-math-2.0.jar-1}"/>
     </target>
     <target depends="init,compile,-pre-pre-jar,-pre-jar" name="-do-jar-without-manifest" unless="manifest.available">
         <j2seproject1:jar/>

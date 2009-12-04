@@ -6,9 +6,9 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.HashMap;
 import java.util.Scanner;
 import java.util.StringTokenizer;
+import java.util.Vector;
 import java.util.logging.*;
 import nqcmol.tools.MTools;
 import nqcmol.tools.XmlWriter;
@@ -71,12 +71,15 @@ public class Cluster implements Cloneable{
 	"1","2","3","4","5","6","7","8","9","10",
 	"11","12","13","14","15","16","17","18",
 	"19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"};
-	
-	static final double[] cMass={0,
+
+
+	protected static final double[] cMass={0,
 	1.00783,4,6,8,10,12,14,15.99491,18,20,
 	22.989,24.305,27,28,31,32,35.453,40,
 	39,49,44,47.867,51,52,55,55.845,59,58.693,63.546,65.38,69.723,72.64,75,79,80,83.798};
 
+
+	public final static String[] format={"xyz","g03","g03c"};
 
 	//================== properties of Clusters
 	/**
@@ -106,7 +109,6 @@ public class Cluster implements Cloneable{
 			gradient=new double[ncoords];
 			hessian=new double[ncoords][ncoords];
 			Nz=new int [nAtoms];
-
 			pairwise=new PairwiseType[nAtoms][nAtoms];
 		}
 	}
@@ -253,7 +255,8 @@ public class Cluster implements Cloneable{
 	 * @param freqs new value of freqs
 	 */
 	public void setFreqs(double[] freqs) {
-		this.freqs = freqs.clone();
+		if(freqs!=null)
+			this.freqs = freqs.clone();
 	}
 
 	/**
@@ -377,7 +380,7 @@ public class Cluster implements Cloneable{
 	//======================== Methods
 
 
-	public void Clear(){		
+	public void Clear(){
 		MTools.VEC_EQU_NUM(coords, 0);
 		MTools.VEC_EQU_NUM(gradient, 0);
 		MTools.VEC_EQU_NUM(nType, 0);
@@ -438,12 +441,12 @@ public class Cluster implements Cloneable{
 			return Math.acos(MTools.DOTPRODUCT(l1,l2)/Math.sqrt(MTools.DOTPRODUCT(l1,l1)*MTools.DOTPRODUCT(l2,l2)));
 		}
 
-	public double angle_3(int ow,int hw1,int hw2){ //!< angle between (hw1,ow,hw2) in degree
-			return angle(ow,hw1,hw2)*180.0/Math.PI;
+	public double angle_dgr(int ow,int hw1,int hw2){ //!< angle between (hw1,ow,hw2) in degree
+			return Math.toDegrees(angle(ow,hw1,hw2));
 	}
 
-	public double torsion_3(int i1,int i2,int i3,int i4){ //!< torsion angle of four atoms i1-i2-i3-i4 in degree
-			return torsion(i1,i2,i3,i4)*180.0/Math.PI;
+	public double torsion_dgr(int i1,int i2,int i3,int i4){ //!< torsion angle of four atoms i1-i2-i3-i4 in degree
+			return Math.toDegrees(torsion(i1,i2,i3,i4));
 	}
 
 
@@ -640,6 +643,30 @@ public class Cluster implements Cloneable{
 				coords[i*3+k]-=rc[k];
 	}
 
+	public void CorrectOrder(){
+		for(int i=0;i<nAtoms-1;i++)
+			for(int j=nAtoms-1;j>i;j--)
+				if(Nz[j]>Nz[j-1]){
+					SwapAtom(j,j-1);
+				}
+	}
+
+	public void SwapAtom(int i,int j){ //!< swapping i and j atom including force
+			int tempI,l;
+			double tempD;
+			tempI=Nz[i];	Nz[i]=Nz[j];	Nz[j]=tempI;
+
+			for(l=0;l<3;l++){
+				tempD=coords[i*3+l];
+				coords[i*3+l]=coords[j*3+l];
+				coords[j*3+l]=tempD;
+
+				tempD=gradient[i*3+l];
+				gradient[i*3+l]=gradient[j*3+l];
+				gradient[j*3+l]=tempD;
+			}
+	}
+
 	//========================= extra get method
 	public void getMassCenter(double[] rc){
 		int i,k;
@@ -675,8 +702,6 @@ public class Cluster implements Cloneable{
 		//		MTools.PrintArray(I);
 	}
 
-
-
 	/**
 	 * @return the number of hydrogen atoms
 	 */
@@ -694,6 +719,14 @@ public class Cluster implements Cloneable{
 	 */
 	public boolean IsHydrogen(int i){
 		return Nz[i]==1;
+	}
+
+	/**
+	 * @param i index of atom
+	 * @return true if atom is not hydrogen
+	 */
+	public boolean IsNonHydrogen(int i){
+		return Nz[i]!=1;
 	}
 
 	public String getFormula(){
@@ -722,9 +755,20 @@ public class Cluster implements Cloneable{
 	 * @return true if connected, false if disconnected
 	 */
 	public boolean getPairwiseBond(){
-		for(int i=0;i<nAtoms;i++)
+		for(int i=0;i<nAtoms;i++){
 			for(int j=0;j<nAtoms;j++)
-				pairwise[i][j]=getPairWiseBond(i,j);
+				pairwise[i][j]=pairwise[j][i]=getPairwiseBond(i,j);
+			pairwise[i][i]=PairwiseType.NONE;
+		}
+
+
+//		System.err.println(" We are here");
+//		for(int i=0;i<nAtoms;i++){
+//			for(int j=0;j<nAtoms;j++)
+//				System.err.printf("%d",pairwise[i][j].ordinal());
+//			//pairwise[i][i]=PairwiseType.NONE;
+//			System.err.println("");
+//		}
 
 		return IsConnected();
 	}
@@ -732,7 +776,7 @@ public class Cluster implements Cloneable{
 	/**
 	 * @return Bond type defined in PairwiseType enum
 	 */
-	public PairwiseType getPairWiseBond(int i,int j){
+	public PairwiseType getPairwiseBond(int i,int j){
 		int ni=Nz[i];
 		int nj=Nz[j];
 		String s=cElements[ni]+cElements[nj];
@@ -740,17 +784,22 @@ public class Cluster implements Cloneable{
 		PairwiseType type=PairwiseType.NONE;
 
 		double d=distance(i,j);
-		
+
+		if(s.contentEquals("HO")){
+				dmin=1.20; dmax=2.25; type=PairwiseType.HYD_FAR;	if((d>=dmin)&&(d<=dmax))	return type;
+				dmin=0.30; dmax=1.20; type=PairwiseType.HYD_NEAR;	if((d>=dmin)&&(d<=dmax))	return type;
+		}
+		if(s.contentEquals("HF")){
+				dmin=1.40; dmax=2.25; type=PairwiseType.HYD_FAR;	if((d>=dmin)&&(d<=dmax))	return type;
+				dmin=0.30; dmax=1.40; type=PairwiseType.HYD_NEAR;	if((d>=dmin)&&(d<=dmax))	return type;
+		}
+		else
 		if(s.contentEquals("OH")){ dmin=0.30; dmax=1.20; type=PairwiseType.HYD_NEAR;}
-		else
-		if(s.contentEquals("HO")){ dmin=1.20; dmax=2.25; type=PairwiseType.HYD_FAR;}
-		else
+		else		
 		if(s.contentEquals("OO")){ dmin=1.00; dmax=3.20; type=PairwiseType.SINGLEBOND;}
 		else
 		if(s.contentEquals("FH")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_NEAR;}
-		else
-		if(s.contentEquals("HF")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_FAR;}
-		else
+		else		
 		if(s.contentEquals("FF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
 		else
 		if(s.contentEquals("CO")||s.contentEquals("OC")){ dmin=1.0; dmax=1.5; type=PairwiseType.SINGLEBOND;}
@@ -768,7 +817,7 @@ public class Cluster implements Cloneable{
 	 * @return true if connected, false if not
 	 */
 	public boolean IsConnected(int i,int j){
-		PairwiseType type=getPairWiseBond(i,j);
+		PairwiseType type=getPairwiseBond(i,j);
 		return (type!=PairwiseType.NONE);
 	}
 
@@ -778,9 +827,12 @@ public class Cluster implements Cloneable{
 	 */
 	public boolean IsConnected(){
 		boolean[][] d=new boolean[nAtoms][nAtoms];
-		for(int i=0;i<nAtoms;i++)
+		for(int i=0;i<nAtoms;i++){
 			for(int j=0;j<nAtoms;j++)
-				d[i][j]=IsConnected(i,j);
+				d[j][i]=IsConnected(i,j);
+			
+			d[i][i]=true;
+		}
 
 		int n=nAtoms;
 		for(int i=0;i<n;i++){
@@ -796,7 +848,8 @@ public class Cluster implements Cloneable{
 	}
 
 
-	protected int[] coordNumCount=new int[8];
+	public static final int cNumCountMax=7;
+	protected int[] coordNumCount=new int[cNumCountMax];
 
 	/**
 	 * Get the coordination number of Nonhydrogen atoms based on the pairwise table
@@ -812,7 +865,7 @@ public class Cluster implements Cloneable{
 			int count=getCoordNum(i);
 			
 			if(count> coordNumCount.length){
-				logger.log(Level.SEVERE," A strange structure appears ! Cannot identify ! ");
+				//logger.log(Level.SEVERE,String.format(" A strange structure appears ! Coordination number %d is too large! ",count));
 			}else coordNumCount[count]++;
 		}
 
@@ -849,11 +902,8 @@ public class Cluster implements Cloneable{
 	 * @param index
 	 * @return String of coordNumCount, starting from 0 coord until nonzero coord.
 	 */
-	public String getCoordNumCount() {
-		String answer="";
-		for(int i=0;i<coordNumCount.length;i++)
-			answer+=Integer.toString(coordNumCount[i])+" ";
-		return answer;
+	public int[] getCoordNumCount() {
+		return coordNumCount;
 	}
 
 	/**
@@ -872,6 +922,7 @@ public class Cluster implements Cloneable{
 	 * @return morphology (in string)
 	 */
 	public String getMorphology(boolean bUpdate){
+		if(bUpdate) getPairwiseBond();
 		if(!IsConnected()) return "Disconnected";
 		else{
 			int nRings=getNumberOfSmallestRingByCauchyFormula(bUpdate);
@@ -890,11 +941,36 @@ public class Cluster implements Cloneable{
 			}
 
 			if(nRings>=3){
-					if(coordNumCount[3]==getNonHydrogenNum()) return "Cage";
+					if(coordNumCount[3]+coordNumCount[4]==getNonHydrogenNum()) return "Cage";
 					else return "MultiRing";
 			}
 		}
 		return "Undefined";
+	}
+
+	/**
+	 * @return  Compactness measured by deviation of distance
+	 */
+	public double getCompactness(){
+		int k=0;
+		double[] dev={0,0,0};
+		double[] center=new double[3];
+		getMassCenter(center);
+
+		for(int i=0;i<nAtoms;i++) if(IsNonHydrogen(i)){
+			double[] dr=new double[3];
+			dr[0]=Math.pow(coords[i*3+0]-center[0],2);
+			dr[1]=Math.pow(coords[i*3+1]-center[1],2);
+			dr[2]=Math.pow(coords[i*3+2]-center[2],2);
+			
+			MTools.VEC_PLUS_VEC(dev,dev,dr,1.0,1.0);
+			k++;
+		}
+
+		if(k!=0)
+			MTools.VEC_MUL_NUM(dev, dev, 1.0/k);
+		double P=Math.sqrt(dev[0]+dev[1]+dev[2]);
+		return P;
 	}
 	
 	//======================== Similarity index
@@ -915,16 +991,13 @@ public class Cluster implements Cloneable{
 			return S;
 	}
 
-	public void CalcUSRsignature(){
-	
-	
+	public void CalcUSRsignature(){	
 	//clear USRsig
 	for (int i=0; i<12; i++){	USRsig[i] = 0;}
 
 	if(nAtoms==2){ USRsig[0]=distance(0,1); return ;}
 
-
-	double[] c=new double[3];
+	double[] c={0,0,0};
 	//compute centroid (C)
 
 	for (int i=0; i<nAtoms; i++) {
@@ -941,12 +1014,10 @@ public class Cluster implements Cloneable{
 	for (int i=0; i<nAtoms; i++) {
 		double d = distance(i,c);
 		if (d < minDist) {
-			minDist = d;
-			minItem = i;
+			minDist = d;		minItem = i;
 		}
 		if (d > maxDist) {
-			maxDist = d;
-			maxItem = i;
+			maxDist = d;		maxItem = i;
 		}
 		distToCentroid[i]=d;
 	}
@@ -974,9 +1045,9 @@ public class Cluster implements Cloneable{
 	for (int i=0; i<nAtoms; i++) {
 		double d = distance(i,c);
 		if (d > maxDist) {
-			maxDist = d;
-			maxItem = i;
+			maxDist = d;	maxItem = i;
 		}
+		distToB[i]=d;
 	}
 
 	//find oxy furthest from B (C)
@@ -1033,18 +1104,96 @@ public class Cluster implements Cloneable{
 	USRsig[5] /= (double) Math.pow(Math.sqrt(USRsig[4]),3.0);
 	USRsig[8] /= (double) Math.pow(Math.sqrt(USRsig[7]),3.0);
 	USRsig[11] /= (double) Math.pow(Math.sqrt(USRsig[10]),3.0);
+
+	//MTools.PrintArray(USRsig);
 	}
 	//======================== Read/Write Method
 	
 	public boolean Read(Scanner scanner,String format){
 		boolean isReadable=false;
 		//if(format.contentEquals("xyz"))		isReadable=ReadXYZ(scanner);
-		//if(format.contentEquals("freq"))	isReadable=ReadXYZ(scanner);
-		isReadable=ReadXYZ(scanner);
+		if(format.contentEquals("int"))	isReadable=ReadInt(scanner);
+		else if(format.contentEquals("g03"))	isReadable=ReadGauOut(scanner);
+		else if(format.contentEquals("g03c"))	isReadable=ReadGauOut_C(scanner);
+		else
+			isReadable=ReadXYZ(scanner);
+		
 		return isReadable;
 	}
 
 	protected boolean ReadXYZ(Scanner scanner){
+		//System.out.printf(" Here nAtoms = %d \n",nAtoms);
+		Clear();
+
+		if(!scanner.hasNextInt()) return false;
+		int nAtoms_=scanner.nextInt();
+		//System.out.printf(" Here nAtoms = %d \n",nAtoms_);
+		if (nAtoms_ <= 0) {	return false; }
+		setNAtoms(nAtoms_);
+
+		scanner.nextLine();
+
+		String line=scanner.nextLine(); line=line.trim();
+
+		StringTokenizer tokenizer;
+		tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
+
+		String info="";
+			if (line.contains("@IN")) {
+				tag=(int) energy;
+				//for my format
+				info = tokenizer.nextToken();		tag = (int)Double.parseDouble(info);
+				info = tokenizer.nextToken();		energy = Double.parseDouble(info);
+				info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
+			}else if(!line.isEmpty()){
+				info= tokenizer.nextToken();     	energy = Double.parseDouble(info);
+			}
+			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
+
+
+			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
+
+			//gradient=new double[nAtoms*3];
+			for (int i = 0; i < nAtoms; i++) {
+				line = scanner.nextLine();
+				//System.out.printf(" Here %s nAtoms = %d \n",line,nAtoms_);
+				if (line == null) return false;
+
+				if (line.startsWith("#") && line.length() > 1) {
+					i--; // a comment line does not count as an atom
+				} else {
+					tokenizer = new StringTokenizer(line, "\t ,;");
+					int fields = tokenizer.countTokens();
+					if (fields < 4) {
+						return false;
+					} else {
+						String atomtype = tokenizer.nextToken();
+						Nz[i] =  getAtomicNumberFromSymbol(atomtype);
+						//System.out.printf(" %s %d \n",atomtype,i);
+
+						if(Nz[i]<=0) return false;
+
+						//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						nType[Nz[i]]++;
+						//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						coords[i*3+0] = Double.parseDouble(tokenizer.nextToken());
+						coords[i*3+1] = Double.parseDouble(tokenizer.nextToken());
+						coords[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
+						//System.err.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						if (fields >= 7){
+							gradient[i*3+0] = Double.parseDouble(tokenizer.nextToken());
+							gradient[i*3+1] = Double.parseDouble(tokenizer.nextToken());
+							gradient[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
+						}
+					}
+				}
+			}
+			
+		//System.out.printf(" Here \n");
+		return true;
+	}
+
+	protected boolean ReadInt(Scanner scanner){
 			Clear();
 
 			if(!scanner.hasNextInt()) return false;
@@ -1061,67 +1210,275 @@ public class Cluster implements Cloneable{
 			tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
 
 			String info="";
-				if (line.contains("@IN")) {
-					tag=(int) energy;
-					//for my format
-					info = tokenizer.nextToken();		energy = Double.parseDouble(info);
-					info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
-				}else{
-					info= tokenizer.nextToken();     	energy = Double.parseDouble(info);
-				}
-				//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
+			if (line.contains("@IN")) {
+				tag=(int) energy;
+				//for my format
+				info = tokenizer.nextToken();		energy = Double.parseDouble(info);
+				info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
+			}else{
+				info= tokenizer.nextToken();     	energy = Double.parseDouble(info);
+			}
+			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
 
 
-				//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
+			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
 
-				//gradient=new double[nAtoms*3];
-				for (int i = 0; i < nAtoms; i++) {
-					line = scanner.nextLine();
-					//System.out.printf(" Here %s nAtoms = %d \n",line,nAtoms_);
-					if (line == null) return false;
+			//gradient=new double[nAtoms*3];
 
-					if (line.startsWith("#") && line.length() > 1) {
-						i--; // a comment line does not count as an atom
+			for (int i = 0; i < nAtoms; i++) {
+				line = scanner.nextLine();
+				//System.out.printf(" Here %s nAtoms = %d \n",line,nAtoms_);
+				if (line == null) return false;
+
+				if (line.startsWith("#") && line.length() > 1) {
+					i--; // a comment line does not count as an atom
+				} else {
+					tokenizer = new StringTokenizer(line, "\t ,;");
+					int fields = tokenizer.countTokens();
+					if (fields < 4) {
+						return false;
 					} else {
-						tokenizer = new StringTokenizer(line, "\t ,;");
-						int fields = tokenizer.countTokens();
-						if (fields < 4) {
-							return false;
-						} else {
-							String atomtype = tokenizer.nextToken();
-							Nz[i] =  getAtomicNumberFromSymbol(atomtype);
-							//System.out.printf(" %s %d \n",atomtype,i);
+						String atomtype = tokenizer.nextToken();
+						Nz[i] =  getAtomicNumberFromSymbol(atomtype);
+						//System.out.printf(" %s %d \n",atomtype,i);
 
-							if(Nz[i]<=0) return false;
+						if(Nz[i]<=0) return false;
 
-							//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
-							nType[Nz[i]]++;
-							//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
-							coords[i*3+0] = Double.parseDouble(tokenizer.nextToken());
-							coords[i*3+1] = Double.parseDouble(tokenizer.nextToken());
-							coords[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
-							//System.err.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
-							if (fields >= 7){
-								gradient[i*3+0] = Double.parseDouble(tokenizer.nextToken());
-								gradient[i*3+1] = Double.parseDouble(tokenizer.nextToken());
-								gradient[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
+						//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						nType[Nz[i]]++;
+						if(Nz[i]>0){
+							double dst,ang,tor;
+							int i1,i2,i3;
+							double[] v1=new double[3];
+							double[] v2=new double[3];
+							double[] v3=new double[3];
+							double[] n=new double[3];
+							double[] nn=new double[3];
+
+							switch(i){
+							  case	0: coords[0]=coords[1]=coords[2]=0;
+							  break;
+							  case	1:
+									i1=Integer.parseInt(tokenizer.nextToken());
+									dst=Double.parseDouble(tokenizer.nextToken());
+									coords[i*3+0]=dst;coords[i*3+1]=coords[i*3+2]=0;
+							  break;
+							  case 2:
+								i1=Integer.parseInt(tokenizer.nextToken());
+								dst=Double.parseDouble(tokenizer.nextToken());
+								i2=Integer.parseInt(tokenizer.nextToken());
+								ang=Double.parseDouble(tokenizer.nextToken());
+								i1--;i2--;
+								//cout<<i1<<" "<<dst<<" "<<i2<<" "<<ang<<" "<<i3<<" "<<tor<<endl;
+								ang=Math.toRadians(ang);
+								//cout<<dst*cos(ang)<<" "<<dst*sin(ang)<<endl;
+								coords[i*3+0]=coords[i1*3+0]+dst*Math.cos(ang);
+								coords[i*3+1]=0;
+								coords[i*3+2]=coords[i1*3+2]+dst*Math.sin(ang);
+							  break;
+							  default:
+								i1=Integer.parseInt(tokenizer.nextToken());
+								dst=Double.parseDouble(tokenizer.nextToken());
+								i2=Integer.parseInt(tokenizer.nextToken());
+								ang=Double.parseDouble(tokenizer.nextToken());
+								i3=Integer.parseInt(tokenizer.nextToken());
+								tor=Double.parseDouble(tokenizer.nextToken());
+								i1--;i2--;i3--;
+								ang=Math.toRadians(ang);
+								tor=Math.toRadians(ang);
+								//cout<<i1<<" "<<dst<<" "<<i2<<" "<<ang<<" "<<i3<<" "<<tor<<endl;
+
+								dR(i2,i1,v1);
+								dR(i3,i1,v2);
+								MTools.CROSSPRODUCT(n,v1,v2);
+								MTools.CROSSPRODUCT(nn,v1,n);
+								MTools.NORMALIZE(n);
+								MTools.NORMALIZE(nn);
+								//VEC_MUL_NUM(n,n,3,-sin(tor));
+								//VEC_MUL_NUM(nn,nn,3,cos(tor));
+								MTools.VEC_PLUS_VEC(v3,n,nn,-Math.sin(tor),Math.cos(tor));
+								MTools.NORMALIZE(v3);
+								MTools.VEC_MUL_NUM(v3,v3,dst * Math.sin(ang));
+								MTools.NORMALIZE(v1);
+								MTools.VEC_MUL_NUM(v1,v1,dst * Math.cos(ang));
+
+								for(int j=0;j<3;j++) coords[i*3+j]=coords[i1*3+j]+v3[j]-v1[j];
+							  break;
 							}
-						}
+						}else{ nAtoms=0;	return false;}
 					}
 				}
-			
+			}
+
 		//System.out.printf(" Here \n");
 		return true;
 	}
 
+	protected boolean ReadGauOut(Scanner scanner){
+		Clear();
+		int flag=0;
+
+		Vector freqs_tmp=new Vector();
+		while(scanner.hasNext()){
+			String s=scanner.nextLine();
+			//cout<<s<<endl;
+			//read atomic number and coordinates
+
+			if( (s.contains("Input orientation")|| s.contains("Standard orientation") && (flag==0) )
+					   ){
+				scanner.nextLine();scanner.nextLine();scanner.nextLine();scanner.nextLine();
+				int i=0;
+				Vector coords_tmp=new Vector();
+				Vector Nz_tmp=new Vector();
+				while(scanner.hasNext()){
+					s=scanner.nextLine();
+					//System.err.println(s);
+					if(s.charAt(1)=='-') break;
+
+					StringTokenizer tokenizer = new StringTokenizer(s, "\t ,;"); //read no of atoms
+					tokenizer.nextToken();
+					Nz_tmp.add(Integer.parseInt(tokenizer.nextToken()));
+					tokenizer.nextToken();
+					coords_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+					coords_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+					coords_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+					i++;
+				}
+				setNAtoms(i);
+				for(i=0;i<nAtoms;i++){
+					Nz[i]=(Integer)Nz_tmp.get(i);
+					nType[Nz[i]]++;
+					coords[i*3+0]=(Double)coords_tmp.get(i*3+0);
+					coords[i*3+1]=(Double)coords_tmp.get(i*3+1);
+					coords[i*3+2]=(Double)coords_tmp.get(i*3+2);
+				}
+				//Write(System.err,"xyz");
+
+				flag|=1;//indicate coordinates have been collected
+			}
+
+			//read the energy
+			if(s.contains("E(")){
+				int pos1=s.indexOf("=")+1;
+				int pos2=s.indexOf("A.U.");
+				String substr=s.substring(pos1,pos2);
+				energy=Double.parseDouble(substr);
+				flag|=2; //indicate energy has been collected
+			}
+
+
+			if ( s.contains("EUMP2")  ){	// wow, energy
+				String substr=s.substring(s.indexOf("EUMP2 =")+6);
+				substr.replace('D','E');
+				energy=Double.parseDouble(substr);
+				flag|=2; //indicate energy has been collected
+			}
+
+			//read the RMS
+			if(s.contains("RMS     Force")){
+				String substr=s.substring(25,37);
+				rmsGrad=Double.parseDouble(substr);
+			}
+
+			if(flag==3){ 	flag=0;	}
+
+			if(s.contains("Frequencies --")){
+				String substr=s.substring(16);
+
+				StringTokenizer tokenizer = new StringTokenizer(substr, "\t ,;"); //read no of atoms
+				freqs_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+				freqs_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+				freqs_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+			}
+		}
+		if(freqs_tmp.size()>0){
+			freqs=new double[freqs_tmp.size()];
+			for(int i=0;i<freqs_tmp.size();i++)
+				freqs[i]=(Double)freqs_tmp.get(i);
+		}
+		return (nAtoms!=0);
+	}
+
+	protected boolean ReadGauOut_C(Scanner scanner){
+		Clear();
+		int flag=0;
+
+		while(scanner.hasNext()){
+			String s=scanner.nextLine();
+			//cout<<s<<endl;
+			//read atomic number and coordinates
+
+			if( (s.contains("Input orientation")|| s.contains("Standard orientation") && (flag==0) )
+					   ){
+				scanner.nextLine();scanner.nextLine();scanner.nextLine();scanner.nextLine();
+				int i=0;
+				Vector coords_tmp=new Vector();
+				Vector Nz_tmp=new Vector();
+				while(scanner.hasNext()){
+					s=scanner.nextLine();
+					//System.err.println(s);
+					if(s.charAt(1)=='-') break;
+
+					StringTokenizer tokenizer = new StringTokenizer(s, "\t ,;"); //read no of atoms
+					tokenizer.nextToken();
+					Nz_tmp.add(Integer.parseInt(tokenizer.nextToken()));
+					tokenizer.nextToken();
+					coords_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+					coords_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+					coords_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+					i++;
+				}
+				setNAtoms(i);
+				for(i=0;i<nAtoms;i++){
+					Nz[i]=(Integer)Nz_tmp.get(i);
+					nType[Nz[i]]++;
+					coords[i*3+0]=(Double)coords_tmp.get(i*3+0);
+					coords[i*3+1]=(Double)coords_tmp.get(i*3+1);
+					coords[i*3+2]=(Double)coords_tmp.get(i*3+2);
+				}
+				//Write(System.err,"xyz");
+
+				flag|=1;//indicate coordinates have been collected
+			}
+
+			//read the energy
+			if(s.contains("E(")){
+				int pos1=s.indexOf("=")+1;
+				int pos2=s.indexOf("A.U.");
+				String substr=s.substring(pos1,pos2);
+				energy=Double.parseDouble(substr);
+				//System.err.printf("%f\n",energy);
+				flag|=2; //indicate energy has been collected
+			}
+
+
+			if ( s.contains("EUMP2")  ){	// wow, energy
+				String substr=s.substring(s.indexOf("EUMP2 =")+6);
+				substr.replace('D','E');
+				energy=Double.parseDouble(substr);
+				flag|=2; //indicate energy has been collected
+			}
+
+			//read the RMS
+			if(s.contains("RMS     Force")){
+				String substr=s.substring(25,37);
+				rmsGrad=Double.parseDouble(substr);
+			}
+			if(flag==3){ 	flag=0; return true;}
+		}
+		return false;
+	}
+
 	public void Write(Writer writer,String format) {
 		if(nAtoms>0){
-			try {
-				if(format.contentEquals("xyz")){
-					WriteXYZ(writer);
-				}else
+			try {				
 				if(format.contentEquals("cml")){
 					WriteCML(writer);
+				}else
+				if(format.contentEquals("int")){
+					WriteInt(writer);
+				}else{
+					WriteXYZ(writer);
 				}
 				writer.flush();
 			} catch (IOException ex) {
@@ -1136,27 +1493,29 @@ public class Cluster implements Cloneable{
 	}
 
 	protected void WriteXYZ(Writer writer) throws  IOException{
-        String s1 = "" + nAtoms + "\n";		
-        writer.append(s1);
-		//System.out.printf(" Here %s \n",s1);
-
-        s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad);
-		if(freqs!=null)
-			if(freqs.length>0){
-				s1+=String.format("@FREQ %d",freqs.length);
-				for(int i=0;i<freqs.length;i++)
-					s1+=String.format(" %1.3f",freqs[i]);
-			}
-		s1+="% @IN\n";
-		writer.append(s1);
-		//System.out.printf(" Here %s \n",s1);
-
-        // Loop through the atoms and write them out:
-        for(int i=0;i<nAtoms;i++){
-			s1=cElements[Nz[i]]+String.format(" %1.6f %1.6f %1.6f\n",coords[i*3],coords[i*3+1],coords[i*3+2]);
+		if(nAtoms>0){
+			String s1 = "" + nAtoms + "\n";
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
-        }
+
+			s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad);
+			if(freqs!=null)
+				if(freqs.length>0){
+					s1+=String.format("@FREQ %d",freqs.length);
+					for(int i=0;i<freqs.length;i++)
+						s1+=String.format(" %1.3f",freqs[i]);
+				}
+			s1+="% @IN\n";
+			writer.append(s1);
+			//System.out.printf(" Here %s \n",s1);
+
+			// Loop through the atoms and write them out:
+			for(int i=0;i<nAtoms;i++){
+				s1=cElements[Nz[i]]+String.format(" %1.6f %1.6f %1.6f\n",coords[i*3],coords[i*3+1],coords[i*3+2]);
+				writer.append(s1);
+				//System.out.printf(" Here %s \n",s1);
+			}
+		}
 	}
 
 	protected void WriteCML(Writer writer) throws IOException{
@@ -1188,5 +1547,54 @@ public class Cluster implements Cloneable{
 
 		xmlwriter.endEntity();
 		xmlwriter.flush();
+	}
+
+	protected void WriteInt(Writer writer) throws IOException{
+		if(nAtoms>=1){
+			String s1 = "" + nAtoms + "\n";
+			writer.append(s1);
+			//System.out.printf(" Here %s \n",s1);
+
+			s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad);
+			if(freqs!=null)
+				if(freqs.length>0){
+					s1+=String.format("@FREQ %d",freqs.length);
+					for(int i=0;i<freqs.length;i++)
+						s1+=String.format(" %1.3f",freqs[i]);
+				}
+			s1+="% @IN\n";
+			writer.append(s1);
+			//System.out.printf(" Here %s \n",s1);
+
+			// Loop through the atoms and write them out:
+						//if(nAtom>=2) os<<Elements[Nz[1]]<<" 1 "<<distance(1,0)<<endl;
+			//if(nAtom>=3) os<<Elements[Nz[2]]<<" "<<distance(2,1)<<" "<<angle_dgr(2,1,0)<<endl;
+			for(int i=0;i<nAtoms;i++){
+				double dist,distmin;
+
+				int j1min=-1; distmin=1e9;
+				for(int j=i-1;j>=0;j--){
+					dist=distance(j,i);		if(dist<distmin){ distmin=dist; j1min=j;}
+				}
+
+				int j2min=-1;	distmin=1e9;
+				for(int j=i-1;j>=0;j--) if(j!=j1min){
+					dist=distance(j,j1min);		if(dist<distmin){ distmin=dist; j2min=j;}
+				}
+
+				int j3min=-1;	distmin=1e9;
+				for(int j=i-1;j>=0;j--) if((j!=j1min)&&(j!=j2min)){
+					dist=distance(j,j2min);		if(dist<distmin){ distmin=dist; j3min=j;}
+				}
+
+				s1=cElements[Nz[i]];
+
+				if(j1min!=-1) s1+=String.format(" %3d %8.3lf ",(j1min+1),distance(i,j1min));
+				if(j2min!=-1) s1+=String.format(" %3d %8.3lf ",(j2min+1),angle_dgr(j1min,i,j2min));
+				if(j3min!=-1) s1+=String.format(" %3d %8.3lf ",(j3min+1),torsion_dgr(i,j1min,j2min,j3min));
+				s1+="\n";
+				writer.append(s1);
+			}
+		}
 	}
 }

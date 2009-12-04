@@ -17,16 +17,16 @@ import nqcmol.tools.MTools;
  *
  * @author nqc
  */
-public class OSS2Potential extends Potential{
-	public OSS2Potential(){
-		nativeUnit="kcal/mol";
+public class HF2Potential extends Potential{
+	public HF2Potential(){
+		nativeUnit="Hartree";
 		unit=nativeUnit;
 		ParseParameters();
 	};
 
 	@Override
 	public String getEquation(){
-		String equation="OSS2";
+		String equation="HF_2";
 		return equation;
 	}
 	
@@ -34,6 +34,7 @@ public class OSS2Potential extends Potential{
 	public boolean HasAnalyticalGradients() {
 		return true;
 	}
+
 
 	@Override
 	public boolean isValidSetup() {
@@ -57,7 +58,7 @@ public class OSS2Potential extends Potential{
 				scanner.nextLine();
 			}
 		} catch (FileNotFoundException ex) {
-			Logger.getLogger(OSS2Potential.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(HF2Potential.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		}
 		ParseParameters();
@@ -73,8 +74,9 @@ public class OSS2Potential extends Potential{
 	@Override
 	protected double Energy_(double[] _p){
 		double energy=0;
-		if(_p.length<=3) return 0;
 		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
+		if(_p.length<=3) return 0;
+		
 		AllocatePrivateVariables(_p.length/3);
 
 		CalcDistanceAndCharge(_p,false);
@@ -112,9 +114,8 @@ public class OSS2Potential extends Potential{
 //		System.out.printf( "Vel: %f \n",Vel);
 //		System.out.printf( "Energy: %f \n",energy);
 
-
 		energy=ConvertUnit(energy,nativeUnit,unit);
-
+		
 		nEvals++;
 		return energy;
 	}
@@ -122,9 +123,10 @@ public class OSS2Potential extends Potential{
 	@Override
 	protected void Gradient_(double[] _p, double[] gradient) {
 		double energy=0;
-		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
+
 		if(_p.length<=3) return ;
-		
+		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
+
 		AllocatePrivateVariables(_p.length/3);
 
 		CalcDistanceAndCharge(_p,true);
@@ -152,7 +154,7 @@ public class OSS2Potential extends Potential{
 
 		for(int i=0;i<nAtom;i++)
 			for(int k=0;k<3;k++)
-				gradient[i*3+k]=ConvertUnit(this.grad[i][k],nativeUnit,unit);;
+				gradient[i*3+k]=ConvertUnit(this.grad[i][k],nativeUnit,unit);
 
 
 //		System.err.print("E : ");
@@ -255,7 +257,7 @@ public class OSS2Potential extends Potential{
 	private void AllocatePrivateVariables(int nAtoms_){
 		if(nAtom!=nAtoms_){
 			nAtom=nAtoms_;
-			nO=(nAtom%3 == 2)?(nAtom/3+1):(nAtom/3);
+			nO=(nAtom/2);
 			x=new double[nAtom][3];
 			q=new double[nAtom];
 			r=new double[nAtom][nAtom];
@@ -311,7 +313,7 @@ public class OSS2Potential extends Potential{
 		}
 
 		for(int i=0; i<nAtom; i++ ){
-				q[i] = ((i<nO)? -2 : 1);
+				q[i] = ((i<nO)? -1 : 1);
 		}
 	}
 
@@ -319,19 +321,13 @@ public class OSS2Potential extends Potential{
 		double VOO=0;
 		for(int i=0; i<nO; i++ )
 			for(int j=i+1; j< nO;j++){				
-					double pt1 = p_o[1]*Math.exp(-p_o[2] * r[i][j]);
-					double pt2 = p_o[3]*Math.exp(-p_o[4] * r[i][j]);
-					double pt3 = p_o[5]*Math.exp(-p_o[6] * SQR(r[i][j] - p_o[7]));
 
-					VOO += pt1 + pt2 + pt3;
-
-					double pt4 =  Math.exp(-30.0*(r[i][j]-1.8));
-					VOO += pt4;
+					double t=p_o[2]/r[i][j];
+					VOO+=4*p_o[1]*(Math.pow(t,12)-Math.pow(t,6));
 
 					if(isGrad){ /// for gradient
 						// dp = pt1' + pt2' + pt3'
-						double dp = (-p_o[2]*pt1 - p_o[4]*pt2 - p_o[6]*2.0*(r[i][j] - p_o[7])*pt3);
-						dp+=-30.0*pt4; //prevent unphysically short O-O
+						double dp  = 24*p_o[1]*(-2*Math.pow(t,12) + Math.pow(t,6))/r[i][j];
 
 						for(int k=0;k<3;k++){
 							double dpk = dp * dr[i][j][k];

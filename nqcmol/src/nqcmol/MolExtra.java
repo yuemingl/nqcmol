@@ -21,16 +21,27 @@ import nqcmol.potential.*;
  * @author nqc
  */
 public class MolExtra {
-	static public Potential SetupPotential(String sPotential){
+	static public Potential SetupPotential(String sPotential,String sParam,String sUnit){
 		Potential pot=null;
 		if(sPotential.contentEquals("LJ")){
 			pot=new LennardJonesPotential();
 		}
 
-		if(sPotential.contentEquals("OSS2")){
+		else if(sPotential.contentEquals("OSS2")){
 			pot=new OSS2Potential();
 		}
+
+		else if(sPotential.contentEquals("HF_2")){
+			pot=new HF2Potential();
+		}
+
+		else if(sPotential.contentEquals("TTM21F")){
+			pot=new TTM21FPotential();
+		}
+
 		assert pot==null;
+		pot.setParam(sParam);
+		pot.setUnit(sUnit);
 		return pot;
 	}
 

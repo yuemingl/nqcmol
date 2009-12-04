@@ -5,6 +5,8 @@
 
 package nqcmol.potential;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.logging.Level;
@@ -72,7 +74,18 @@ public class Potential {
 		return cluster.getNcoords();
 	}
     // minimization variables
-	
+
+	protected String nativeUnit = "au";
+
+	/**
+	 * Get the value of nativeUnit
+	 *
+	 * @return the value of nativeUnit
+	 */
+	public String getNativeUnit() {
+		return nativeUnit;
+	}
+
 
     /**
 	 * The unit (kcal/mol, kJ/mol, ...) in which the energy is expressed
@@ -86,6 +99,15 @@ public class Potential {
 	 */
 	public String getUnit() {
 		return unit;
+	}
+
+	/**
+	 * Set unit
+	 *
+	 * @return the value of unit
+	 */
+	public void setUnit(String s) {
+		if(!s.isEmpty())	unit=s;
 	}
 
     /**
@@ -175,7 +197,7 @@ public class Potential {
 	 * @return energy
 	 */
 	public double getEnergy(final double[] coords_){
-		return Energy_(coords_) ;
+		return Energy_(coords_);
 	}
 
 	public double[][] getGradient(Cluster cluster_){
@@ -277,10 +299,9 @@ public class Potential {
 //
 //
 //		}
-		Double fret=new Double(0);
 		iConverged=DFPmin(cluster.getCoords());
 
-		System.err.printf(" Final fret = %f \n",fret);
+		//System.err.printf(" Final fret = %f \n",optimizedE);
 		cluster.setEnergy(optimizedE);
 
 		return (iConverged!=0);
@@ -382,6 +403,7 @@ public class Potential {
 	protected static String[] UnitTable={"Hartree","kcal/mol","kJ/mol","eV","au"};
 
 	public static double ConvertUnit(double e,String from,  String to){//!< convert e from (from_) unit to (to_)
+		if(from.contentEquals(to))	return e;
 		int iFrom=0;
 		int iTo=0;
 		for(int i=0;i<UnitTable.length;i++){
@@ -573,7 +595,7 @@ public class Potential {
 
 	int opt_med; //!< optimization method
 
-	int nMaxEvals=100; //!< number of maximum evaluations
+	int nMaxEvals=10000; //!< number of maximum evaluations
 	public int getMaxEvals(){ return nMaxEvals;}
 	public void setMaxEvals(int a){ nMaxEvals=a;};
 
@@ -581,7 +603,7 @@ public class Potential {
 	public double getEnergyTol(){return EnergyTol;}
 	public void setEnergyTol(double a){ EnergyTol=a;}
 
-	double GradTol=1e-4;//!< gradient tolerance criteria in optimization
+	double GradTol=1e-6;//!< gradient tolerance criteria in optimization
 	public double getGradientTol(){return GradTol;}
 	public void setGradientTol(double a){ GradTol=a;}
 
@@ -721,11 +743,14 @@ public class Potential {
 			direction[i] = -g[i]; //Initial line direction.
 			sum += p[i]*p[i];
 		}
+//		try {
+//			FileWriter fileOut = new FileWriter(new File("opt.xyz"));
 
-
+			int step=0;
 		while ( nEvals < nMaxEvals ){ //Main loop over the iterations.
 			optimizedE=LineSearch(p,fp,g,direction,pnew);
-
+			
+			
 			//System.err.printf(" fret = %f \n",optimizedE);
 
 			//The new function evaluation occurs in lnsrch; save the function value in fp for the
@@ -755,8 +780,14 @@ public class Potential {
 			}
 			RmsGrad=Math.sqrt(RmsGrad/nCoords);
 
-			if (test < EnergyTol)  return 1;
-			if ((RmsGrad < GradTol) && (MaxGrad < GradTol*4.0)) return 2;
+//			cluster.setCoords(pnew);
+//			cluster.setTag(step);
+//			cluster.setEnergy(fp);
+//			cluster.setRmsGrad(RmsGrad);
+//			cluster.Write(fileOut,"xyz");
+
+			//if (test < EnergyTol){ System.out.print(" Die because of energy tol\n");  return 1;}
+			if ((RmsGrad < GradTol) && (MaxGrad < GradTol*4.0)){  return 2;}
 
 			for (i=0;i<nCoords;i++) dg[i]=g[i]-dg[i]; //Compute difference of gradients,
 			for (i=0;i<nCoords;i++) { //and difference times current matrix.
@@ -786,9 +817,15 @@ public class Potential {
 				direction[i]=0.0;
 				for (j=0;j<nCoords;j++) direction[i] -= hessin[i][j]*g[j];
 			}
+			step++;
 		}// and go back for another iteration.
+
+//			} catch (IOException ex) {
+//			Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);
+//		}
 
 		return 0;//if overrun
 	}
+
 
 }
