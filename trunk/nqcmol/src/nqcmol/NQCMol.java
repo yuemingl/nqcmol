@@ -14,10 +14,15 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class NQCMol {
-	@Option(name="-t",usage="Please choose one of those operations: opt ener sim validgrad ",metaVar="OPER")
+	@Option(name="-t",usage="Please choose one of those operations\n" +
+		"\t opt \t - optimize clusters\n" +
+		"\t ener \t - calculate energy\n" +
+		"\t grad \t - validate gradients. Perform both analytical (if applicant) and numerical gradients and calculate the residual\n" +
+		"\t vib \t - calculate harmonic frequencies\n" +
+		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
 
-    @Option(name="-h",usage="Print out the help")
+    @Option(name="-h",usage="Print out the help. Run nqcmol -t [oper] -h for the details of operation.")
     boolean isHelp= false;
 
     /**
@@ -28,7 +33,7 @@ public class NQCMol {
 	}
 
 	public void doMain(String[] args) throws IOException {
-		CmdLineParser parser = new CmdLineParser(this);		 parser.setUsageWidth(80);
+		CmdLineParser parser = new CmdLineParser(this);		 parser.setUsageWidth(100);
 		try {
 			// parse the arguments.
 			parser.parseArgument(args);
@@ -49,13 +54,13 @@ public class NQCMol {
 		}
 
 
-		else if(sTask.contentEquals("validgrad")){
+		else if(sTask.contentEquals("grad")){
 			Task calc=new TaskValidateGradient();
 			calc.Execute(args);			return;
 		}
 
 		else if(sTask.contentEquals("opt")){
-			Task calc=new TaskOptimize();
+			Task calc=new TaskOptimizeCLuster();
 			calc.Execute(args);			return;
 		}
 
@@ -65,12 +70,22 @@ public class NQCMol {
 		}
 
 		else if(sTask.contentEquals("be")){
-			Task calc=new TaskValidateGradient();
+			Task calc=new TaskCalculateBindingEnergy();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("sym")){
+			Task calc=new TaskCalculateSymmetryPointGroup();
 			calc.Execute(args);			return;
 		}
 
 		else if(sTask.contentEquals("test")){
 			Task calc=new TaskTest();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("gen")){
+			Task calc=new TaskRandomGenerateCluster();
 			calc.Execute(args);			return;
 		}
 
@@ -84,8 +99,16 @@ public class NQCMol {
 			calc.Execute(args);			return;
 		}
 
+		else if(sTask.contentEquals("fit")){
+			TaskFitPotential calc=new TaskFitPotential();
+			calc.Execute(args);			return;
+		}
 
-		if(isHelp){
+
+		else if(isHelp){
+			System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");
+			//System.out.println(" USAGE\n\t\t nqcmol [OPTION]\n");
+			System.out.println(" OPTION\n");
 			parser.printUsage(System.out);
 			return;
 		}
@@ -112,7 +135,7 @@ public class NQCMol {
 //			xyzWriter.close();
 //			writer.close();
 //
-//			System.out.println("\n Now evaluate the energy \n");
+//			System.out.println("\n Now Evaluate the energy \n");
 //			LennardJonesFunction pot = new LennardJonesFunction();
 //			double energy = pot.energyFunctionOfAMolecule(mol);
 //

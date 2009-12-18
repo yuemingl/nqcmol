@@ -57,7 +57,7 @@ public class Cluster implements Cloneable{
 
 	/* Maximum number of atomic number
 	 */
-	protected static final int cTypeMax=15;
+	
 
 	/**
 	 * Symbols of chemical elements
@@ -78,6 +78,7 @@ public class Cluster implements Cloneable{
 	22.989,24.305,27,28,31,32,35.453,40,
 	39,49,44,47.867,51,52,55,55.845,59,58.693,63.546,65.38,69.723,72.64,75,79,80,83.798};
 
+	protected static final int cTypeMax=cElements.length;
 
 	public final static String[] format={"xyz","g03","g03c"};
 
@@ -290,14 +291,14 @@ public class Cluster implements Cloneable{
 	}
 
 
-	protected int tag;
+	String tag;
 
 	/**
 	 * Get the value of tag
 	 *
 	 * @return the value of tag
 	 */
-	public int getTag() {
+	public String getTag() {
 		return tag;
 	}
 
@@ -306,7 +307,7 @@ public class Cluster implements Cloneable{
 	 *
 	 * @param tag new value of tag
 	 */
-	public void setTag(int tag) {
+	public void setTag(String tag) {
 		this.tag = tag;
 	}
 
@@ -353,6 +354,18 @@ public class Cluster implements Cloneable{
 	}
 
 
+	/**
+	 * Set the value of Nz
+	 * @param index index of atom
+	 * @param x new coordinates of atom
+	 */
+	public void setAtomicCoords(int index,double x,double y,double z) {
+		coords[index*3+0] = x;
+		coords[index*3+1] = y;
+		coords[index*3+2] = z;
+	}
+
+
 	//double[] a,alpha; //lattice parameters
 	//double USRsig[12];	//for USR
 	//int iCorType; //direct or fractional coordinates	
@@ -370,7 +383,7 @@ public class Cluster implements Cloneable{
 	}
 
 	/**
-	 * @param i index of atom
+	 * @param index index of atom
 	 * @return getMass of an atom
 	 */
 	public double getMass(int i){
@@ -387,7 +400,7 @@ public class Cluster implements Cloneable{
 		MTools.VEC_EQU_NUM(Nz, 0);
 
 		ncoords=0;
-		nAtoms=0;	tag=0;
+		nAtoms=0;	tag="0";
 		energy=0; rmsGrad=0;
 	}
 
@@ -398,10 +411,14 @@ public class Cluster implements Cloneable{
 	public int getAtomicNumberFromSymbol(String atomsymbol){
 		int k=0;
 		for(int i=0;i< cElements.length ;i++){
-			//System.out.print(cElements[i]+" \n");
+			//System.out.print(cElements[index]+" \n");
 			if(cElements[i].contentEquals(atomsymbol)){
 				k=i; break;
 			}
+		}
+
+		if(k==0){
+			k=Math.min(Integer.parseInt(atomsymbol),cTypeMax-1);
 		}
 		//System.out.printf(" %s %d \n",cElements[k],k);
 		return k;
@@ -416,18 +433,18 @@ public class Cluster implements Cloneable{
 			for(int l=0;l<3;l++)	dr[l]=coords[j*3+l]-coords[i*3+l];
 	};
 
-	public void dnR(int i,int j,double[] dr){ //!< normalised dR(i,j)
+	public void dnR(int i,int j,double[] dr){ //!< normalised dR(index,j)
 			dR(i,j,dr);	double d=distance(i,j);
 			//cout<<" l= "<<d<<" "<<dr[0]<<" "<<dr[1]<<" "<<dr[2]<<endl;
 			for(int l=0;l<3;l++)	dr[l]/=d;
 		};
 
-	public double distance(int i,int j){//!< distance between i and j atoms
+	public double distance(int i,int j){//!< distance between index and j atoms
 			double[] vec=new double[3];	dR(i,j,vec);
 			return  Math.sqrt(MTools.DOTPRODUCT(vec,vec));
 	}
 
-	public double distance(int i,double[] d){//!< distance between i and a given point
+	public double distance(int i,double[] d){//!< distance between index and a given point
 			double[] vec={coords[i*3],coords[i*3+1],coords[i*3+2]};
 			if(d!=null){ vec[0]-=d[0];vec[1]-=d[1];vec[2]-=d[2];}
 			return  Math.sqrt(MTools.DOTPRODUCT(vec,vec));
@@ -651,7 +668,7 @@ public class Cluster implements Cloneable{
 				}
 	}
 
-	public void SwapAtom(int i,int j){ //!< swapping i and j atom including force
+	public void SwapAtom(int i,int j){ //!< swapping index and j atom including force
 			int tempI,l;
 			double tempD;
 			tempI=Nz[i];	Nz[i]=Nz[j];	Nz[j]=tempI;
@@ -714,7 +731,7 @@ public class Cluster implements Cloneable{
 	}
 
 	/**
-	 * @param i index of atom
+	 * @param index index of atom
 	 * @return true if atom is hydrogen
 	 */
 	public boolean IsHydrogen(int i){
@@ -722,7 +739,7 @@ public class Cluster implements Cloneable{
 	}
 
 	/**
-	 * @param i index of atom
+	 * @param index index of atom
 	 * @return true if atom is not hydrogen
 	 */
 	public boolean IsNonHydrogen(int i){
@@ -738,6 +755,18 @@ public class Cluster implements Cloneable{
 		}
 		return answer;
 	}
+
+	public void replaceMolecule(int index,Cluster mol){
+		for(int j=0;j<mol.getNAtoms();j++){
+			coords[(index+j)*3+0]=mol.getCoords(j*3+0);
+			coords[(index+j)*3+1]=mol.getCoords(j*3+1);
+			coords[(index+j)*3+2]=mol.getCoords(j*3+2);
+			Nz[index+j]=mol.getAtomicNumber(j);
+		}
+		for(int i=0;i<cTypeMax;i++) nType[i]=0;
+		for(int i=0;i<nAtoms;i++) nType[Nz[i]]++;
+	}
+
 	//======================== Bond 2
 	/**
 	 * Pair-wise bond type
@@ -763,10 +792,10 @@ public class Cluster implements Cloneable{
 
 
 //		System.err.println(" We are here");
-//		for(int i=0;i<nAtoms;i++){
+//		for(int index=0;index<nAtoms;index++){
 //			for(int j=0;j<nAtoms;j++)
-//				System.err.printf("%d",pairwise[i][j].ordinal());
-//			//pairwise[i][i]=PairwiseType.NONE;
+//				System.err.printf("%d",pairwise[index][j].ordinal());
+//			//pairwise[index][index]=PairwiseType.NONE;
 //			System.err.println("");
 //		}
 
@@ -813,7 +842,7 @@ public class Cluster implements Cloneable{
 
 	//======================= Structure query
 	/**
-	 * Check whether two atoms i and j are connected
+	 * Check whether two atoms index and j are connected
 	 * @return true if connected, false if not
 	 */
 	public boolean IsConnected(int i,int j){
@@ -1005,6 +1034,8 @@ public class Cluster implements Cloneable{
 		c[1] += coords[i*3+1]/nAtoms;
 		c[2] += coords[i*3+2]/nAtoms;
 	}
+	getMassCenter(c);
+	
 	//find distances to the centroid
 	double[] distToCentroid=new double[nAtoms];
 	double maxDist = -1;
@@ -1127,7 +1158,7 @@ public class Cluster implements Cloneable{
 
 		if(!scanner.hasNextInt()) return false;
 		int nAtoms_=scanner.nextInt();
-		//System.out.printf(" Here nAtoms = %d \n",nAtoms_);
+		//System.err.printf(" Here nAtoms = %d \n",nAtoms_);
 		if (nAtoms_ <= 0) {	return false; }
 		setNAtoms(nAtoms_);
 
@@ -1140,15 +1171,14 @@ public class Cluster implements Cloneable{
 
 		String info="";
 			if (line.contains("@IN")) {
-				tag=(int) energy;
 				//for my format
-				info = tokenizer.nextToken();		tag = (int)Double.parseDouble(info);
+				info = tokenizer.nextToken();		tag = info;
 				info = tokenizer.nextToken();		energy = Double.parseDouble(info);
 				info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
 			}else if(!line.isEmpty()){
 				info= tokenizer.nextToken();     	energy = Double.parseDouble(info);
 			}
-			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
+			//System.err.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
 
 
 			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
@@ -1169,17 +1199,17 @@ public class Cluster implements Cloneable{
 					} else {
 						String atomtype = tokenizer.nextToken();
 						Nz[i] =  getAtomicNumberFromSymbol(atomtype);
-						//System.out.printf(" %s %d \n",atomtype,i);
+						//System.err.printf(" AtomType=%s Nz=%d index=%d \n",atomtype,Nz[index],index);
 
 						if(Nz[i]<=0) return false;
 
-						//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						//System.out.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						nType[Nz[i]]++;
-						//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						//System.out.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						coords[i*3+0] = Double.parseDouble(tokenizer.nextToken());
 						coords[i*3+1] = Double.parseDouble(tokenizer.nextToken());
 						coords[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
-						//System.err.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						//System.err.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						if (fields >= 7){
 							gradient[i*3+0] = Double.parseDouble(tokenizer.nextToken());
 							gradient[i*3+1] = Double.parseDouble(tokenizer.nextToken());
@@ -1211,7 +1241,7 @@ public class Cluster implements Cloneable{
 
 			String info="";
 			if (line.contains("@IN")) {
-				tag=(int) energy;
+				info = tokenizer.nextToken();		tag = info;
 				//for my format
 				info = tokenizer.nextToken();		energy = Double.parseDouble(info);
 				info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
@@ -1240,11 +1270,11 @@ public class Cluster implements Cloneable{
 					} else {
 						String atomtype = tokenizer.nextToken();
 						Nz[i] =  getAtomicNumberFromSymbol(atomtype);
-						//System.out.printf(" %s %d \n",atomtype,i);
+						//System.out.printf(" %s %d \n",atomtype,index);
 
 						if(Nz[i]<=0) return false;
 
-						//System.out.printf(" Here i=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]);
+						//System.out.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						nType[Nz[i]]++;
 						if(Nz[i]>0){
 							double dst,ang,tor;
@@ -1498,7 +1528,7 @@ public class Cluster implements Cloneable{
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
 
-			s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad);
+			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad);
 			if(freqs!=null)
 				if(freqs.length>0){
 					s1+=String.format("@FREQ %d",freqs.length);
@@ -1522,7 +1552,7 @@ public class Cluster implements Cloneable{
 		BufferedWriter w=new BufferedWriter(writer);
 		XmlWriter xmlwriter=new XmlWriter(w);
 		xmlwriter.writeEntity("molecule");
-		xmlwriter.writeAttribute("id","m"+Integer.toString(tag));
+		xmlwriter.writeAttribute("id","m"+tag);
 		xmlwriter.writeEntity("name");
 		xmlwriter.writeText(getFormula());
 		xmlwriter.endEntity();
@@ -1555,7 +1585,7 @@ public class Cluster implements Cloneable{
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
 
-			s1=String.format("%d %1.10f %f ",tag,energy,rmsGrad);
+			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad);
 			if(freqs!=null)
 				if(freqs.length>0){
 					s1+=String.format("@FREQ %d",freqs.length);

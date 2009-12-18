@@ -11,59 +11,61 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.*;
+import nqcmol.symmetry.PointGroup;
+import nqcmol.symmetry.Symmetry;
 import nqcmol.tools.MTools;
 import nqcmol.tools.XmlWriter;
 import org.kohsuke.args4j.*;
 
 
 
-/*
+
 class PartFunc  extends Cluster {
-	//enum REGIME_FUNC{M_CLASSICAL=0, M_QUANTUM=1, M_CLASS_NOFREQ=2};
+	enum REGIME{CLASSICAL, QUANTUM, CLASS_NOFREQ};
+
 	//enum UNIT{U_HARTREE=0,U_KCAL=1,U_KJ=2};
 
-
+	
 
 	@Override
-	public void Clear(){ super.Clear(); group=0; mi=1;lnz=0;};
+	public void Clear(){ super.Clear(); group=0; mi=1;lnz=0; regime=REGIME.CLASSICAL;};
 
-	double calclnZ(double T){
-		int i,j;
-
+	double calclnZ(double T){		
 		lnz=-1;
 
 		double Na=Math.log(2.0)-Math.log(mi);
-		for(i=0;i<cTypeMax;i++)	for(j=1;j<nType[i];j++)	Na+=Math.log(j);
+		for(int i=0;i<cTypeMax;i++)
+			for(int j=1;j<nType[i];j++)	Na+=Math.log(j);
 
 		double E_part=0,Freq_part=0;
 		calcZeroE();
 
 		switch(regime){
-			case M_CLASSICAL:
-				Freq_part+=-Math.log(cBetaPlanck/T)*nFreq;
-				for(i=0;i<nFreq;i++){
-					if(freq[i]>0){
-						Freq_part+=-Math.log(freq[i]); //cout<<inv->freq[i]/T<<endl;
+			case CLASSICAL:
+				Freq_part+=-Math.log(cBetaPlanck/T)*freqs.length;
+				for(int i=0;i<freqs.length;i++){
+					if(freqs[i]>0){
+						Freq_part+=- Math.log(freqs[i]);
 					}else{
-						cerr<<" PartFuncPop "<<i<<"th has a negative frequency ="<<freq[i]<<". I will stop here."<<endl;
+						//cerr<<" PartFuncPop "<<i<<"th has a negative frequency ="<<freq[i]<<". I will stop here."<<endl;
 						return -1;
 					}
 				}
 			break;
 
-			case M_QUANTUM:
-				for(i=0;i<nFreq;i++)
-					if(freq[i]>0){
-						Freq_part+= -Math.log(1.0-exp(-cBetaPlanck*freq[i]/T));
+			case QUANTUM:
+				for(int i=0;i<freqs.length;i++){
+					if(freqs[i]>0){
+						Freq_part+= -Math.log(1.0-Math.exp(-cBetaPlanck*freqs[i]/T));
 						//cout<<inv->freq[i]/T<<endl;
 					}else{
-						cerr<<" PartFuncPop "<<i<<"th has a negative frequency ="<<freq[i]<<". I will stop here."<<endl;
+						//cerr<<" PartFuncPop "<<i<<"th has a negative frequency ="<<freq[i]<<". I will stop here."<<endl;
 						return -1;
 					}
-
+				}
 			break;
 
-			case M_CLASS_NOFREQ:
+			case CLASS_NOFREQ:
 			break;
 		}
 		Ea=energy -ref + ZeroE;
@@ -71,26 +73,43 @@ class PartFunc  extends Cluster {
 		E_part=-beta*Ea/T;
 
 		lnz=Na + E_part + Freq_part;
-	#if DEBUG
-			cout<<"Energy("<<Eunit<<") = "<<energy<<" ref = "<<ref<<" at "<<T<<"K ";
-			cout<<"Ea= "<<Ea<<" Na= "<<Na<<" ZP= "<<ZeroE<<" Epart= "<<E_part<<" Freq_part= "<<Freq_part<<" lnZ(T)= "<<lnz<<endl;
-	#endif
+//	#if DEBUG
+//			cout<<"Energy("<<Eunit<<") = "<<energy<<" ref = "<<ref<<" at "<<T<<"K ";
+//			cout<<"Ea= "<<Ea<<" Na= "<<Na<<" ZP= "<<ZeroE<<" Epart= "<<E_part<<" Freq_part= "<<Freq_part<<" lnZ(T)= "<<lnz<<endl;
+//	#endif
 
 		return lnz;
 
 	}
 
-	double calcZeroE();
+	double calcZeroE(){
+		ZeroE=0;
+		if(regime==REGIME.QUANTUM){
+			for(int i=0;i<freqs.length;i++)	
+				ZeroE+=freqs[i];
+			ZeroE*=planck/2.0;
+		}
+		Ea=energy+ZeroE;
+		return ZeroE;
+	}
 
-	CString calcPointGroup(){
-		Genes_str p;
-		string SymCode,GroupName;
-		Migrate(p);
-		SymCalc( p,mi, GroupName,SymCode);
+	String calcPointGroup(){
+		Symmetry sym=new Symmetry();
+		Symmetry.CalculateSymmetry(sym, this,0);
+
+
+		PointGroup pg=sym.identifyPointGroup();
+
+//		Genes_str p;
+		String SymCode=sym.getSymmetryCode();
+		String GroupName=pg.getGroupName();
+		mi=sym.getPointGroupOrder();
+//		Migrate(p);
+//		SymCalc( p,mi, GroupName,SymCode);
 		return GroupName;
 	}
 	
-	//static double InitConst(double ref_=0,int Eunit_=U_HARTREE,int regime_=M_CLASSICAL);
+	//static double InitConst(double ref_=0,int Eunit_=U_HARTREE,int regime_=CLASSICAL);
 
 	int group;
 	int mi;
@@ -101,7 +120,7 @@ class PartFunc  extends Cluster {
 
 	static double ref=0;
 	static int Eunit;
-	static int regime;
+	static REGIME regime;
 	static double beta=315774.659661423;
 	static double planck=4.55633500389233e-06;
 
@@ -214,7 +233,7 @@ public class TaskHSA extends Task{
 				xmllog.writeAttribute("AvgCompactness", Double.toString(avgCompactness / i));
 				MTools.VEC_MUL_NUM(avgCoordNum, avgCoordNum, 1 / totalCoordNum);
 				for (int j = 0; j < avgCoordNum.length; j++) {
-					xmllog.writeAttribute("AvgCoordNum_" + Integer.toString(j), Double.toString(avgCoordNum[j]));
+					xmllog.writeAttribute("AvgCoordNu" + Integer.toString(j), Double.toString(avgCoordNum[j]));
 				}
 			xmllog.endEntity();
 		} catch (IOException ex) {

@@ -7,12 +7,9 @@ package nqcmol;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
-import java.util.Vector;
 import java.util.logging.*;
 import nqcmol.tools.MTools;
-import nqcmol.tools.XmlWriter;
 import org.kohsuke.args4j.*;
 
 /**
@@ -35,7 +32,6 @@ public class TaskClassifyCluster extends Task{
 	protected void Initialize() {
 		super.Initialize();
 		try {
-
 			xmllog.writeAttribute("Pattern", sPattern);
 			xmllog.writeEntity("Note");
 			xmllog.writeText("Classify input clusters based on morphology. It will output the classification results to screen and output the structures mathching to the pattern if applicant.\n");
@@ -50,8 +46,7 @@ public class TaskClassifyCluster extends Task{
 
 	@Override
 	protected void Process() {
-		try {
-			FileWriter fileOut = null;
+		try {			
 			if (!sFileOut.isEmpty()) {
 				fileOut = new FileWriter(new File(sFileOut));
 			}

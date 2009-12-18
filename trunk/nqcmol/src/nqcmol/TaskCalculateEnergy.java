@@ -60,7 +60,7 @@ public class TaskCalculateEnergy extends TaskCalculate {
 				if (myruns != 0) {
 					EnergySpeed = duration / myruns;
 				}
-				xmllog.writeEntity("Bench");
+				xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("Tag", Integer.toString(i));
 				xmllog.writeAttribute("nAtoms", Integer.toString(pot.getCluster().getNAtoms()));
 				xmllog.writeAttribute("nRuns", Integer.toString(myruns));

@@ -102,7 +102,8 @@ public class TaskRemoveDuplicateCluster extends Task{
 			for(i=0;i<pop.size();i++)
 					if(bb[i]) {
 						if(!sFileOut.isEmpty()){
-							pop.get(i).setTag(count);
+							//if(Integer.parseInt(pop.get(i).getTag())==0)
+							//	pop.get(i).setTag(Integer.toString(count));
 							//System.err.print(pop.get(i).getNAtoms());
 							pop.get(i).Write(fileOut,MTools.getExtension(sFileOut));
 						}
