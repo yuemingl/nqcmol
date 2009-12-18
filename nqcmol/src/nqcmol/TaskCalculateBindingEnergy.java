@@ -7,6 +7,7 @@ package nqcmol;
 
 import java.io.*;
 import java.util.Scanner;
+import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,36 +34,42 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 			xmllog.writeAttribute("RefFile",sFileRef);
 			xmllog.writeEntity("Note");
 			xmllog.writeText("Calculate binding energies of water clusters");
-			xmllog.endEntity();
-			xmllog.writeNormalText(pot.Info(1));
+			xmllog.endEntity();			
 
 			Scanner scanRef=new Scanner(new File(sFileRef));
-			Cluster[] molRef= new Cluster[3];
-			double[] oldEnergyRef=new double[3];
-			double[] newEnergyRef=new double[3];
+			Vector<Cluster> molRef= new Vector<Cluster>();
+			while (scanRef.hasNext()) {
+					Cluster tmpMol = new Cluster();
+					if(!tmpMol.Read(scanRef, sFormatIn)){
+						Logger.getLogger(TaskCalculate.class.getName()).log(Level.SEVERE, "Error in reading ref file");
+						break;
+					}
+
+					tmpMol.CorrectOrder();
+					if(tmpMol.getNAtoms()==0) break;
+					molRef.add(tmpMol);
+			}
+
+			double[] oldEnergyRef=new double[molRef.size()];
+			double[] newEnergyRef=new double[molRef.size()];
 
 			xmllog.writeEntity("ReadReference");
 
-			for(int i=0;i<3;i++){
-				molRef[i]=new Cluster();
-				xmllog.flush();
-				if(!molRef[i].Read(scanRef, sFormatIn)){
-					Logger.getLogger(TaskCalculate.class.getName()).log(Level.SEVERE, "Error in reading ref file");
-					return;
-				}
 
-				oldEnergyRef[i]=molRef[i].getEnergy();
-				pot.Optimize(molRef[i]);
+			for(int i=0;i<molRef.size();i++){
+				Cluster m=molRef.get(i);
+				
+				oldEnergyRef[i]=m.getEnergy();
+				pot.Optimize(m);
 				newEnergyRef[i]=pot.getEnergy(true);
-				xmllog.writeEntity("Reference");
+				xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("id", Integer.toString(i));
-				xmllog.writeAttribute("nAtoms", Integer.toString(molRef[i].getNAtoms()));
+				xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
 				xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergyRef[i]));
 				xmllog.writeAttribute("NewEnergy", Double.toString(newEnergyRef[i]));
 				xmllog.endEntity();
 			}
-			xmllog.endEntity();
-			xmllog.flush();
+			xmllog.endEntity().flush();
 
 			scanRef.close();
 
@@ -75,20 +82,7 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 				pot.setCluster(mol);
 				double newEnergy=pot.getEnergy(true);
 
-				/*
-				int iCharged=mol.getNAtoms()%3;
-				int index=0;
-				switch(iCharged){
-					case 0: index=2;break;
-					case 1: index=1;break;
-					case 2: index=0;break;
-				}
-
-				double oldBE= oldEnergy - (mol.getNonHydrogenNum()-1)*oldEnergyRef[2] - oldEnergyRef[index];
-				double newBE= newEnergy - (mol.getNonHydrogenNum()-1)*newEnergyRef[2] - newEnergyRef[index];
-				*/
-				int iCharged=mol.getNAtoms()%2;
-				int index=iCharged;
+				int index=MolExtra.indexForBE(mol,molRef);
 
 				double oldBE= oldEnergy - (mol.getNonHydrogenNum()-1)*oldEnergyRef[0] - oldEnergyRef[index];
 				double newBE= newEnergy - (mol.getNonHydrogenNum()-1)*newEnergyRef[0] - newEnergyRef[index];

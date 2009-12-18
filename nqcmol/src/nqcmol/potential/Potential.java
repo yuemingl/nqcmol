@@ -5,8 +5,6 @@
 
 package nqcmol.potential;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.logging.Level;
@@ -14,6 +12,10 @@ import java.util.logging.Logger;
 import nqcmol.Cluster;
 import nqcmol.tools.MTools;
 import nqcmol.tools.XmlWriter;
+import org.apache.commons.math.FunctionEvaluationException;
+import org.apache.commons.math.analysis.*;
+import org.apache.commons.math.optimization.*;
+import org.apache.commons.math.optimization.general.*;
 
 /**
  *
@@ -263,45 +265,41 @@ public class Potential {
 
 //		if(debug>=2){
 //			cout<<"Dimension = "<<Dim_();
-//			cout<<" Energy="<<evaluate_(x)<<" Method="<<opt_med<<endl;
+//			cout<<" Energy="<<evaluate_(x)<<" Method="<<optMethod<<endl;
 //		}
 
-//	if(opt_med==DFPMIN){
-//		double *xb=new double[dim];
-//		for(int i=0;i<dim;i++)	xb[i]=x[i];
-//		iConverged=dfpmin(xb,dim,nMaxEval, &final_eval);
-//		for(int i=0;i<dim;i++)	final_x[i]=xb[i];
-//		delete[] xb;
-//		return neval;
-//	}
-	//cout<<(h.checkConvg()?"Converged":"Not Yet")<<endl;
-	//cout<<"Time = "<<h.getSeconds()<<endl;
-	//cout<<"nEval = "<<h.getNEvals()<<endl;
+		double[] x=cluster.getCoords();
+		optimizedE=cluster.getEnergy();
 
-	//start optmization
+		if(optMethod.contentEquals("DFPMIN")){//quasi newton
+			iConverged=DFPmin(x);
+			
+		}else if(optMethod.contentEquals("CG")){//conjugate gradient
+			DifferentiableMultivariateRealOptimizer opt=new NonLinearConjugateGradientOptimizer(ConjugateGradientFormula.FLETCHER_REEVES);
+			DiffFunc func=new DiffFunc();
+			opt.setMaxEvaluations(nMaxEvals);
+			opt.setConvergenceChecker(new Convergence());
 
-//
-//		switch(opt_med){
-//			default:
-//				//iConverged=optimize_QNewton(nlp);
-//				iConverged=optimize_nlf1<OptQNewton>(nlp);
-//			break;
-//			case CONJUGATEGRAD :
-//				//iConverged=optimize_CG(nlp);
-//				iConverged=optimize_nlf1<OptCG>(nlp);
-//			break;
-//			case LBFGS:
-//				iConverged=optimize_nlf1<OptLBFGS>(nlp);
-//			break;
-//			case FDNEWTON:
-//				iConverged=optimize_nlf1<OptFDNewton>(nlp);
-//			break;
-//
-//
-//		}
-		iConverged=DFPmin(cluster.getCoords());
+			RealPointValuePair r = null;
+			try {
 
-		//System.err.printf(" Final fret = %f \n",optimizedE);
+				r=opt.optimize(func, GoalType.MINIMIZE, x);
+			} catch (FunctionEvaluationException ex) {
+				//Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);
+			} catch (OptimizationException ex) {
+				//Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);
+			} catch (IllegalArgumentException ex) {
+				Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);
+			}
+
+			optimizedE=r.getValue();
+
+			x=r.getPoint();
+		}else if(optMethod.contentEquals("NETMEAD")){//conjugate gradient
+
+		}
+	
+		cluster.setCoords(x);
 		cluster.setEnergy(optimizedE);
 
 		return (iConverged!=0);
@@ -593,7 +591,7 @@ public class Potential {
       return linesearch;
     }
 
-	int opt_med; //!< optimization method
+	
 
 	int nMaxEvals=10000; //!< number of maximum evaluations
 	public int getMaxEvals(){ return nMaxEvals;}
@@ -611,8 +609,10 @@ public class Potential {
 	public double getMaxStepSize(){return MaxStepSize;}
 	public void setMaxStepSize(double a){ MaxStepSize=a;}
 
-	public int getOptMethod(){ return opt_med;}
-	public void setOptMethod(int a){ opt_med=a; }
+	String optMethod="DFPMIN"; //!< optimization method
+
+	public String getOptMethod(){ return optMethod;}
+	public void setOptMethod(String a){ optMethod=a.toUpperCase(); }
 
 	//parameters returned by Optimize
 	int nEvals=0; //!< number of evaluations performed
@@ -626,7 +626,15 @@ public class Potential {
 	public double getSeconds(){ return nSeconds;}
 
 	double MaxGrad,RmsGrad;//!< Maximum gradient component and Root Mean Square of gradient, will be updated in optimization
-	public double getRMSGrad(){//!< return RMS of graident
+
+	public double getRMSGrad(double[] x){//!< return RMS of gradient of x
+		if(x.length==0) return 1;
+		double[] gradient=new double[x.length];
+		getGradient(x,gradient);		
+		return MTools.CalculateRMS(gradient);
+	}
+
+	public double getRMSGrad(){//!< return RMS of gradient
 		return RmsGrad;
 	}
 
@@ -827,5 +835,45 @@ public class Potential {
 		return 0;//if overrun
 	}
 
+	//============================== Functions which are integrated with apache common opt
+	class Convergence implements RealConvergenceChecker{
 
+		@Override
+		public boolean converged(int arg0, RealPointValuePair arg1, RealPointValuePair arg2) {
+			if(arg2.getValue() - arg1.getValue() < EnergyTol ) return true;
+
+			double rms=getRMSGrad(arg2.getPoint());
+			if(rms < GradTol) return true;
+			return false;
+		}
+
+	}
+
+	class DiffFunc implements DifferentiableMultivariateRealFunction  {
+		class Gradient implements MultivariateVectorialFunction{
+			@Override
+			public double[] value(double[] arg0) throws FunctionEvaluationException, IllegalArgumentException {
+				return getGradient(arg0);
+			}
+		}
+
+		Gradient gradient=new Gradient();
+
+		@Override
+		public MultivariateRealFunction partialDerivative(int arg0) {
+			throw new UnsupportedOperationException("Not supported yet.");
+		}
+
+		@Override
+		public MultivariateVectorialFunction gradient() {
+			return  gradient;
+		}
+
+		@Override
+		public double value(double[] arg0) throws FunctionEvaluationException, IllegalArgumentException {
+			return getEnergy(arg0);
+		}
+
+
+	}
 }

@@ -14,6 +14,7 @@ package nqcmol;
 //import javax.xml.transform.TransformerFactory;
 //import javax.xml.transform.stream.StreamResult;
 //import javax.xml.transform.stream.StreamSource;
+import java.util.Vector;
 import nqcmol.potential.*;
 
 /**
@@ -21,7 +22,7 @@ import nqcmol.potential.*;
  * @author nqc
  */
 public class MolExtra {
-	static public Potential SetupPotential(String sPotential,String sParam,String sUnit){
+	static public Potential SetupPotential(String sPotential,String sParam,String sUnit,String sMethod){
 		Potential pot=null;
 		if(sPotential.contentEquals("LJ")){
 			pot=new LennardJonesPotential();
@@ -31,7 +32,7 @@ public class MolExtra {
 			pot=new OSS2Potential();
 		}
 
-		else if(sPotential.contentEquals("HF_2")){
+		else if(sPotential.contentEquals("HF2")){
 			pot=new HF2Potential();
 		}
 
@@ -42,7 +43,21 @@ public class MolExtra {
 		assert pot==null;
 		pot.setParam(sParam);
 		pot.setUnit(sUnit);
+		pot.setOptMethod(sMethod);
 		return pot;
+	}
+
+	static public int indexForBE(Cluster m,Vector<Cluster> ref){
+		int nO=m.getNonHydrogenNum();
+		int nH=m.getHydrogenNum();
+
+		int remain=nH-ref.get(0).getHydrogenNum()*(nO-1);		//cout<<" Charge =" <<data[i].GetTotalCharge()<<" Mass = "<<data[i].GetMolWt()<<" numNonH= "<<nF<<endl;
+
+		for(int k=0;k<ref.size();k++)
+			if(remain==ref.get(k).getHydrogenNum()){
+				 return k;
+			}
+		return 0;
 	}
 
 //	public static String prettyFormat(String input, int indent) {

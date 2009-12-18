@@ -34,27 +34,36 @@ public class TaskCalculate extends Task{
 	@Option(name="-u",usage="unit of energy if applicant",metaVar="FILE")
     String sUnit="";
 
+	@Option(name="-med",usage="optimization methods if applicant. METHOD must be one of DFPMIN(quasi-newton), CG (conjugate gradient)",metaVar="METHOD")
+	String sMethod="DFPMIN";
+
+	@Option(name="-nOpts",usage="maximum number of evaluations",metaVar="INTEGER")
+	int nOpts=0;
 
 	protected Potential pot;
 
 	Cluster mol = new Cluster();
-	Scanner fileIn=null;
-	FileWriter fileOut=null;
+
+//	@Override
+//	public void ParseArguments(String[] args){
+//		super.ParseArguments(args);
+//	}
+
+	@Override
+	public String getName() {
+		return "FitPotential";
+	}
 
 	@Override
 	protected void Initialize() {
 		super.Initialize();
-		try {
-			fileIn = new Scanner(new File(sFileIn));
-			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
-			
-			pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit);
+		try {			
+			pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
 			xmllog.writeNormalText(pot.Info(1));
 
 		} catch (IOException ex) {
 			Logger.getLogger(TaskCalculateEnergy.class.getName()).log(Level.SEVERE, null, ex);
 		}
-
 	}
 	
 }
