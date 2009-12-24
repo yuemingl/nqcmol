@@ -47,6 +47,12 @@ public class MolExtra {
 		return pot;
 	}
 
+	/**
+	 *
+	 * @param m input cluster
+	 * @param ref
+	 * @return
+	 */
 	static public int indexForBE(Cluster m,Vector<Cluster> ref){
 		int nO=m.getNonHydrogenNum();
 		int nH=m.getHydrogenNum();
@@ -58,6 +64,14 @@ public class MolExtra {
 				 return k;
 			}
 		return 0;
+	}
+
+	static public int getIndexOfArguments(String arg0,String[] args){
+		for (int i = 0; i < args.length; i++) {
+				if (args[i].contentEquals(arg0))
+					return i;
+			}
+		return -1;
 	}
 
 //	public static String prettyFormat(String input, int indent) {

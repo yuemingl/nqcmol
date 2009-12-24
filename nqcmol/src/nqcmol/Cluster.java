@@ -1166,18 +1166,30 @@ public class Cluster implements Cloneable{
 
 		String line=scanner.nextLine(); line=line.trim();
 
-		StringTokenizer tokenizer;
-		tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
+		StringTokenizer token;
+		token = new StringTokenizer(line, "\t ,;"); //read no of atoms
 
 		String info="";
 			if (line.contains("@IN")) {
 				//for my format
-				info = tokenizer.nextToken();		tag = info;
-				info = tokenizer.nextToken();		energy = Double.parseDouble(info);
-				info = tokenizer.nextToken();		rmsGrad = Double.parseDouble(info);
+				info = token.nextToken();		tag = info;
+				info = token.nextToken();		energy = Double.parseDouble(info);
+				info = token.nextToken();		rmsGrad = Double.parseDouble(info);
+				while(token.hasMoreTokens()){
+					if(token.nextToken().contentEquals("@FREQ")){
+						info = token.nextToken();
+						freqs= new double[Integer.parseInt(info)];
+						for(int i=0;i<freqs.length;i++){
+							info = token.nextToken();		freqs[i] = Double.parseDouble(info);
+						}
+					}
+				}
 			}else if(!line.isEmpty()){
-				info= tokenizer.nextToken();     	energy = Double.parseDouble(info);
+				info= token.nextToken();     	energy = Double.parseDouble(info);
 			}
+
+
+
 			//System.err.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
 
 
@@ -1192,12 +1204,12 @@ public class Cluster implements Cloneable{
 				if (line.startsWith("#") && line.length() > 1) {
 					i--; // a comment line does not count as an atom
 				} else {
-					tokenizer = new StringTokenizer(line, "\t ,;");
-					int fields = tokenizer.countTokens();
+					token = new StringTokenizer(line, "\t ,;");
+					int fields = token.countTokens();
 					if (fields < 4) {
 						return false;
 					} else {
-						String atomtype = tokenizer.nextToken();
+						String atomtype = token.nextToken();
 						Nz[i] =  getAtomicNumberFromSymbol(atomtype);
 						//System.err.printf(" AtomType=%s Nz=%d index=%d \n",atomtype,Nz[index],index);
 
@@ -1206,14 +1218,14 @@ public class Cluster implements Cloneable{
 						//System.out.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						nType[Nz[i]]++;
 						//System.out.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
-						coords[i*3+0] = Double.parseDouble(tokenizer.nextToken());
-						coords[i*3+1] = Double.parseDouble(tokenizer.nextToken());
-						coords[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
+						coords[i*3+0] = Double.parseDouble(token.nextToken());
+						coords[i*3+1] = Double.parseDouble(token.nextToken());
+						coords[i*3+2] =  Double.parseDouble(token.nextToken());
 						//System.err.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						if (fields >= 7){
-							gradient[i*3+0] = Double.parseDouble(tokenizer.nextToken());
-							gradient[i*3+1] = Double.parseDouble(tokenizer.nextToken());
-							gradient[i*3+2] =  Double.parseDouble(tokenizer.nextToken());
+							gradient[i*3+0] = Double.parseDouble(token.nextToken());
+							gradient[i*3+1] = Double.parseDouble(token.nextToken());
+							gradient[i*3+2] =  Double.parseDouble(token.nextToken());
 						}
 					}
 				}
@@ -1528,14 +1540,14 @@ public class Cluster implements Cloneable{
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
 
-			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad);
+			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad)+"% ";
 			if(freqs!=null)
 				if(freqs.length>0){
 					s1+=String.format("@FREQ %d",freqs.length);
 					for(int i=0;i<freqs.length;i++)
 						s1+=String.format(" %1.3f",freqs[i]);
 				}
-			s1+="% @IN\n";
+			s1+=" @IN\n";
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
 

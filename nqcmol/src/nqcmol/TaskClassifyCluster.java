@@ -17,7 +17,7 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class TaskClassifyCluster extends Task{
-	@Option(name="-pattern",usage="pattern of morphology to filter",metaVar="String")
+	@Option(name="-pattern",usage="pattern of morphology to filter: Cage, MultiRing, DoubleRing, SingleRing, TreeLike, Liner",metaVar="String")
     String sPattern="";
 
 	@Option(name="-bWater",usage="classify according to coordination number (for protonated/deprotonated water cluster")
@@ -99,6 +99,7 @@ public class TaskClassifyCluster extends Task{
 				statCount.put("Total", statCount.get("Total") + 1);
 				xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("id", Integer.toString(i));
+				xmllog.writeAttribute("Tag", mol.getTag());
 				xmllog.writeAttribute("Compactness", Double.toString(compactness));
 				xmllog.writeAttribute("Morphology", morph);
 				xmllog.writeAttribute("Nulity", Integer.toString(mol.getNumberOfSmallestRingByCauchyFormula(false)));
@@ -127,6 +128,5 @@ public class TaskClassifyCluster extends Task{
 		
 		
 	}
-
 
 }

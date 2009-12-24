@@ -164,8 +164,6 @@ public class Potential {
 		return equation;
 	}
 
-
-
     /////////////////////////////////////////////////////////////////////////
     // Public methods for evaluation, gradients and optimize              //
     /////////////////////////////////////////////////////////////////////////
@@ -305,6 +303,11 @@ public class Potential {
 		return (iConverged!=0);
 	}
 
+	/**
+	 * Perform optimization
+	 * @param cluster_ : input cluster, will be optimized
+	 * @return true if succesfully converged
+	 */
 	public boolean Optimize(Cluster cluster_){
 		this.setCluster(cluster_);
 		return Optimize();
@@ -397,17 +400,31 @@ public class Potential {
 		return sVerbose;
 	}
 
+	/**
+	 * @param arg0: unit name (see UnitTable)
+	 * @return index (integer value) of unit in UnitTable
+	 */
+
+	public static int getIndexOfUnit(String arg0){
+		for(int i=0;i<UnitTable.length;i++){
+				if(arg0.contentEquals(UnitTable[i])) return i;
+			}
+		return 0;
+	}
 
 	protected static String[] UnitTable={"Hartree","kcal/mol","kJ/mol","eV","au"};
 
-	public static double ConvertUnit(double e,String from,  String to){//!< convert e from (from_) unit to (to_)
+	/**
+	 * convert energy value from (from_) unit to (to_)
+	 * @param e input energy
+	 * @param from original unit
+	 * @param to target unit
+	 * @return new value of energy in (to_) unit
+	 */
+	public static double ConvertUnit(double e,String from,  String to){
 		if(from.contentEquals(to))	return e;
-		int iFrom=0;
-		int iTo=0;
-		for(int i=0;i<UnitTable.length;i++){
-			if(from.contentEquals(UnitTable[i])) iFrom=i;
-			if(to.contentEquals(UnitTable[i])) iTo=i;
-		}
+		int iFrom=getIndexOfUnit(from);
+		int iTo=getIndexOfUnit(to);
 
 		final double HART_2_KCAL=627.509391;
 		double HART_2_KJ=2625.5;

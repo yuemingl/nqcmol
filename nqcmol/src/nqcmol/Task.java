@@ -36,8 +36,10 @@ public class Task {
 	Scanner fileIn=null;
 	FileWriter fileOut=null;
 
+	String[] args=null;
 
 	public void ParseArguments(String[] args) {
+		this.args=args;
 		parser = new CmdLineParser(this);
 		try {
 			parser.parseArgument(args);
