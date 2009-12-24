@@ -1178,11 +1178,12 @@ public class Symmetry {
 		}
 		
 		PointGroup pointGroup = symmetry.identifyPointGroup();
-		
-		if (pointGroup != null) {
-			System.err.println("It seems to be the " +	pointGroup.getGroupName() + " point group");
-		} else {
-			System.err.println("These symmetry elements match more than one group I know of.");
+		if(verbose>=1){
+			if (pointGroup != null) {
+				System.err.println("It seems to be the " +	pointGroup.getGroupName() + " point group");
+			} else {
+				System.err.println("These symmetry elements match more than one group I know of.");
+			}
 		}
 
 	}

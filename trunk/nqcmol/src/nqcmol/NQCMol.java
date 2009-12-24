@@ -19,6 +19,10 @@ public class NQCMol {
 		"\t ener \t - calculate energy\n" +
 		"\t grad \t - validate gradients. Perform both analytical (if applicant) and numerical gradients and calculate the residual\n" +
 		"\t vib \t - calculate harmonic frequencies\n" +
+		"\t be \t - calculate binding energies\n" +
+		"\t sort \t - sort clusters according to energies\n" +
+		"\t class \t - classify clusters according to topologies\n" +
+		"\t hsa \t - harmonic superposition approximation\n" +
 		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
 
@@ -33,7 +37,7 @@ public class NQCMol {
 	}
 
 	public void doMain(String[] args) throws IOException {
-		CmdLineParser parser = new CmdLineParser(this);		 parser.setUsageWidth(100);
+		CmdLineParser parser = new CmdLineParser(this);		 parser.setUsageWidth(120);
 		try {
 			// parse the arguments.
 			parser.parseArgument(args);
@@ -94,6 +98,11 @@ public class NQCMol {
 			calc.Execute(args);			return;
 		}
 
+		else if(sTask.contentEquals("sort")){
+			Task calc=new TaskSortCluster();
+			calc.Execute(args);			return;
+		}
+
 		else if(sTask.contentEquals("sim")){
 			Task calc=new TaskRemoveDuplicateCluster();
 			calc.Execute(args);			return;
@@ -101,6 +110,11 @@ public class NQCMol {
 
 		else if(sTask.contentEquals("fit")){
 			TaskFitPotential calc=new TaskFitPotential();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("hsa")){
+			Task calc=new TaskHarmonicSuperpositionApproximation();
 			calc.Execute(args);			return;
 		}
 

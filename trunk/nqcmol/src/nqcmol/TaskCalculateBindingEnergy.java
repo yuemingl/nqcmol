@@ -64,6 +64,7 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 				newEnergyRef[i]=pot.getEnergy(true);
 				xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("id", Integer.toString(i));
+				xmllog.writeAttribute("Tag", mol.getTag());
 				xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
 				xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergyRef[i]));
 				xmllog.writeAttribute("NewEnergy", Double.toString(newEnergyRef[i]));
