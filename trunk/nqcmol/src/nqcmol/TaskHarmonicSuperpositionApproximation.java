@@ -7,7 +7,6 @@ package nqcmol;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.*;
@@ -15,7 +14,6 @@ import nqcmol.potential.Potential;
 import nqcmol.symmetry.PointGroup;
 import nqcmol.symmetry.Symmetry;
 import nqcmol.tools.MTools;
-import nqcmol.tools.XmlWriter;
 import org.kohsuke.args4j.*;
 
 

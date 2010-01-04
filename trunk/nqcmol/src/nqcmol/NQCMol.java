@@ -64,12 +64,17 @@ public class NQCMol {
 		}
 
 		else if(sTask.contentEquals("opt")){
-			Task calc=new TaskOptimizeCLuster();
+			Task calc=new TaskOptimizeCluster();
 			calc.Execute(args);			return;
 		}
 
 		else if(sTask.contentEquals("vib")){
 			Task calc=new TaskHarmonicVibrationAnalysis();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("anvib")){
+			Task calc=new TaskAnharmonicVibrationAnalysis();
 			calc.Execute(args);			return;
 		}
 

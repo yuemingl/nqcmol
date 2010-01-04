@@ -257,6 +257,10 @@ public class Potential {
 		return DeltaEnergy_(coords_,isUpdate) ;
 	}
 
+	/**
+	 * Perform optimization on the cluster set previouly by setCluster
+	 * @return true if succesfully converged
+	 */
 	public boolean Optimize(){//!< require setup mol first
 		//setting the variable
 		nEvals=0;
@@ -280,7 +284,6 @@ public class Potential {
 
 			RealPointValuePair r = null;
 			try {
-
 				r=opt.optimize(func, GoalType.MINIMIZE, x);
 			} catch (FunctionEvaluationException ex) {
 				//Logger.getLogger(Potential.class.getName()).log(Level.SEVERE, null, ex);

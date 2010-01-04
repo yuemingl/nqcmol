@@ -5,17 +5,18 @@
 
 package nqcmol;
 
-import jaolho.data.lma.LMA;
-import jaolho.data.lma.LMAFunction;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import nqcmol.tools.MTools;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.DifferentiableMultivariateVectorialFunction;
 import org.apache.commons.math.analysis.MultivariateMatrixFunction;
+import org.apache.commons.math.optimization.MultivariateRealOptimizer;
 import org.apache.commons.math.optimization.OptimizationException;
+import org.apache.commons.math.optimization.RealPointValuePair;
+import org.apache.commons.math.optimization.VectorialPointValuePair;
+import org.apache.commons.math.optimization.direct.NelderMead;
 import org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -27,66 +28,39 @@ import org.kohsuke.args4j.Option;
  *
  * @author nqc
  */
-public class TaskFitPotential extends TaskCalculate {	
-	public class LMAObjectiveFunction extends LMAFunction {
-		@Override
-		public double getY(double x, double[] a) {
-			double[] alpha=new double[nparam_inp];
-			ConvertParam(a,alpha);
-			pot.setParam(alpha);
-
-			//calculate
-			double[] ener_shift=new double[molRef.size()];
-			
-			for(int i=0; i<molRef.size(); i++){
-				Cluster m=molRef.get(i);
-				pot.setCluster(m);
-				ener_shift[i] = pot.getEnergy(m.getCoords());
-			}
-
-			int i=(int)x;
-			Cluster m=data.get(i);
-			//calculate binding energy
-			double ener = pot.getEnergy(m.getCoords());
-
-			int index=MolExtra.indexForBE(m, molRef);
-			double y = ener - ener_shift[0]*(m.getNonHydrogenNum()-1) - ener_shift[index];
-			return y;
-		}
-
-		@Override
-		public double getPartialDerivate(double x, double[] a, int parameterIndex) {
-			double[] t=a.clone();
-			double delta=1e-5;
-			t[parameterIndex]-=delta;
-			double y1=getY(x,t);
-			t[parameterIndex]+=2*delta;
-			double y2=getY(x,t);
-
-			return (y2-y1)/(2*delta);
-		}
-	}
-
-
-
+public class TaskFitPotential extends TaskCalculate {		
 	public class APACHEObjectiveFunction implements DifferentiableMultivariateVectorialFunction {//used with apache commom optimization
 		public class Jacobian implements MultivariateMatrixFunction {
 				@Override
 				public double[][] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
+					double[][] result=new double[data.size()][a.length];
+					double ratio=1e-3;
 
-					double[][] result=new double[a.length][a.length];
-					//double[] y0=null;		Evaluate(a,y0,0);
-
+					//one point jacobian
+					double[] y0=APACHEObjectiveFunction.this.value(a);
 					for(int i=0;i<a.length;i++){
-						double delta=Math.abs(a[i])*1e-3;
-						a[i]-=delta;
-						double[] y1=null;  Evaluate(a,y1,0);
-						a[i]+=2*delta;
-						double[] y2=null;  Evaluate(a,y2,0);
-						a[i]-=delta;
+						//double delta=Math.abs(a[i])*ratio;
+						double delta=ratio;
+						double tmp=a[i];
+						a[i]+=delta;
+						double[] y2=APACHEObjectiveFunction.this.value(a);
+						a[i]=tmp;
 						for(int j=0;j<result[i].length;j++)
-							result[i][j]=(y2[j]-y1[j])/(2*delta);
+							result[i][j]=(y2[j]-y0[j])/(delta);
 					}
+
+					//two points jacobian
+//					for(int i=0;i<a.length;i++){
+//						double delta=Math.abs(a[i])*ratio;
+//						a[i]-=delta;
+//						double[] y1=APACHEObjectiveFunction.this.value(a);
+//						a[i]+=2*delta;
+//						double[] y2=APACHEObjectiveFunction.this.value(a);
+//						a[i]-=delta;
+//						for(int j=0;j<result[i].length;j++)
+//							result[i][j]=(y2[j]-y1[j])/(2*delta);
+//					}
+
 
 					return result;
 				}
@@ -101,8 +75,9 @@ public class TaskFitPotential extends TaskCalculate {
 
 		@Override
 		public double[] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
-			double[] y=null;
-			Evaluate(a,0);
+			double[] y=new double[data.size()];
+			Evaluate(a,y,0);
+			//System.err.printf(" valuesize=%d\n", y.length);
 			return y;
 		}
 
@@ -131,23 +106,23 @@ public class TaskFitPotential extends TaskCalculate {
 	Vector<Cluster> data=new Vector<Cluster>();
 	Vector<Double> weight=new Vector<Double>();
 
-	double[][] observation; //!< consist of observation data, in that case is binding energy +rms
+	double[] target; //!< consist of target data, in that case is binding energy +rms
 
 	Vector<String> datafile=new Vector<String>();
 	Vector<Double> dataWeight=new Vector<Double>();
 	
 	void ProcessData(){
-		observation=new double[2][data.size()];
+		target=new double[data.size()];
 		for (int i=0; i< data.size(); i++){
 			Cluster m=data.get(i);
 			int index=MolExtra.indexForBE(m,molRef);
-			observation[0][i]=i;
-			observation[1][i]= m.getEnergy() - (m.getNonHydrogenNum()-1)*molRef.get(0).getEnergy() - molRef.get(index).getEnergy();
+			target[i]= m.getEnergy() - (m.getNonHydrogenNum()-1)*molRef.get(0).getEnergy() - molRef.get(index).getEnergy();
+			//target[i]*=1000;
 		}
 	}
 
 	double Evaluate(double[] p,int debug){
-		double[] y=null;
+		double[] y=new double[data.size()];
 		return Evaluate(p,y,debug);
 	}
 
@@ -155,7 +130,6 @@ public class TaskFitPotential extends TaskCalculate {
 			double[] alpha=new double[nparam_inp];
 			ConvertParam(p,alpha);
 			pot.setParam(alpha);
-
 
 			if(debug>=1){
 				try {
@@ -198,7 +172,6 @@ public class TaskFitPotential extends TaskCalculate {
 				}
 			}
 
-			y=new double[data.size()];
 			//cout <<"\n\n@$    inputs# nAtoms Weight     Obsr.Data        Calc.Data    deltaE" << endl;
 			for (int i=0; i<data.size(); i++){
 				Cluster m=data.get(i);
@@ -208,8 +181,9 @@ public class TaskFitPotential extends TaskCalculate {
 
 				int index=MolExtra.indexForBE(m, molRef);
 				y[i] = ener - ener_shift[0]*(m.getNonHydrogenNum()-1) - ener_shift[index];
+				//y[i]*=1000;
 
-				double dE = Math.abs(y[i] - observation[1][i])* Math.sqrt(weight.get(i));
+				double dE = Math.abs(y[i] - target[i])* Math.sqrt(weight.get(i));
 				rms+=dE*dE;
 
 				if(debug>=3){
@@ -218,7 +192,7 @@ public class TaskFitPotential extends TaskCalculate {
 						xmllog.writeAttribute("id", Integer.toString(i));
 						xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
 						xmllog.writeAttribute("Weight", Double.toString(weight.get(i)));
-						xmllog.writeAttribute("ObserveBE", Double.toString(observation[1][i]));
+						xmllog.writeAttribute("ObservedBE", Double.toString(target[i]));
 						xmllog.writeAttribute("CalcEnergy", Double.toString(ener));
 						xmllog.writeAttribute("CalcBE", Double.toString(y[i]));
 						xmllog.writeAttribute("DeltaE", Double.toString(dE));
@@ -441,49 +415,49 @@ public class TaskFitPotential extends TaskCalculate {
 			xmllog.endEntity().flush();
 
 			xmllog.writeEntity("Optimization");
-				double finalRMS=0;
-				int nIterations=0;
 				long duration=System.currentTimeMillis();
 
 				APACHEObjectiveFunction obj=new APACHEObjectiveFunction();
-				double[] y=obj.value(param);
 				
 				LevenbergMarquardtOptimizer fit=new LevenbergMarquardtOptimizer();
 				double[] newweight=new double[weight.size()];
 				for(int i=0;i<newweight.length;i++) newweight[i]=weight.get(i);
+				
+				//System.err.printf("targetsize=%d \n",target.length);
+				fit.setCostRelativeTolerance(1e-14);
+				fit.setOrthoTolerance(1e-14);
+				fit.setParRelativeTolerance(1e-14);
+				
+				VectorialPointValuePair r=fit.optimize(obj, target, newweight, param);
+				param=r.getPoint();
+//
 
-				fit.optimize(obj, observation[1], newweight, param);
-				finalRMS=Math.sqrt(fit.getChiSquare());
-				nIterations=fit.getIterations();
+				//MTools.PrintArray(y);			
+//				MultivariateRealOptimizer fit = new NelderMead();
+//				RealPointValuePair r = null; //=new RealPointValuePair();
+//
 
-				//MTools.PrintArray(y);
 
-					
-				//MultivariateRealOptimizer opt = new NelderMead();
-				//RealPointValuePair r = null; //=new RealPointValuePair();
+				//double finalRMS=Math.sqrt(fit.getChiSquare());
 
-				//using lma
-				//for(int i=0;i<10;i++)
-					//System.out.printf("%d %f\n",i,fit.getY(i,param));
-//				LMAObjectiveFunction fit=new LMAObjectiveFunction();
-//				LMA lma = new LMA(fit,param,observation);
-//				lma.fit();
-//				finalRMS=Math.sqrt(lma.getRelativeChi2());
-				//opt.setMaxIterations(nOpts);
-				//r = opt.optimize(this, GoalType.MINIMIZE,param);
+				int nIterations=fit.getIterations();
+				double finalRMS=fit.getRMS();
 
 				duration=(System.currentTimeMillis()-duration);
 				
 				xmllog.writeAttribute("TotalRMS", Double.toString(finalRMS));
-				xmllog.writeAttribute("NInterations", Integer.toString(nIterations));
+				xmllog.writeAttribute("MaxInterations", Integer.toString(fit.getMaxIterations()));
+				xmllog.writeAttribute("MaxEvaluations", Integer.toString(fit.getMaxEvaluations()));
+				xmllog.writeAttribute("Interations", Integer.toString(fit.getIterations()));
+				xmllog.writeAttribute("Evaluations", Integer.toString(fit.getEvaluations()));
 				xmllog.writeAttribute("Duration", Double.toString(duration/1000.0));
 			xmllog.endEntity().flush();
 
 			xmllog.writeEntity("FinalEvaluation");
-				//Evaluate(param, 4);
+				Evaluate(param, 4);
 			xmllog.endEntity().flush();
 			
-			xmllog.writeEntity("FinalParameters");				
+			xmllog.writeEntity("FinalParameters");	
 				if(!sFileOut.isEmpty()){
 					fileOut=new FileWriter(new File(sFileOut));
 				}
