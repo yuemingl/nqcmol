@@ -21,7 +21,7 @@ import nqcmol.tools.XmlWriter;
  *
  * @author nqc
  */
-public class TaskOptimizeCLuster extends TaskCalculate {
+public class TaskOptimizeCluster extends TaskCalculate {
 
 	@Override
 	public String getName(){
@@ -70,7 +70,7 @@ public class TaskOptimizeCLuster extends TaskCalculate {
 			}
 			fileIn.close();
 		} catch (IOException ex) {
-			Logger.getLogger(TaskOptimizeCLuster.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(TaskOptimizeCluster.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		
 	}

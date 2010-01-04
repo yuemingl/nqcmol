@@ -25,12 +25,8 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 	@Override
 	protected void Process() {
 		try {
-//			xmllog.writeEntity("Note");
-//			xmllog.writeText(" Time is measured in seconds");
-//			xmllog.endEntity();
-			
 			int i = 0;
-			while (mol.Read(fileIn, "xyz")) {
+			while (mol.Read(fileIn, sFormatIn)) {
 				//mol.Write(System.err, "xyz");
 				//calculate Hessian
 //				pot.getGradient(mol);
@@ -44,7 +40,7 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 				//mol.Write(System.err, "xyz");
 				//write a report
 				xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
-				xmllog.writeAttribute("nAtom", Integer.toString(12));
+				xmllog.writeAttribute("nAtom", Integer.toString(mol.getNAtoms()));
 				xmllog.writeAttribute("SmallestFreq", Double.toString(mol.getFreqs(0)));
 				xmllog.writeAttribute("LargestFreq", Double.toString(mol.getFreqs(mol.getFreqs().length - 1)));
 				xmllog.endEntity();

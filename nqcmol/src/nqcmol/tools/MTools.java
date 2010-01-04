@@ -127,6 +127,7 @@ public  class  MTools{
 //
 //	public static void VEC_TO_MAT2(B,a,s0,s1) for(i=0;i<(s0);i++) for(j=0;j<(s1);j++) (a)[i][j]=(B)[i*(s1)+j];
 
+
 	public static double CalculateRMS(double[] x){
 		double rms=0;
 		for(int i=0;i<x.length;i++){

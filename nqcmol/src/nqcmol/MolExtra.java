@@ -40,12 +40,35 @@ public class MolExtra {
 			pot=new TTM21FPotential();
 		}
 
+		else if(sPotential.contentEquals("g03")){
+			pot=new GaussianInterfacePotential();
+			GaussianInterfacePotential gauss=(GaussianInterfacePotential)pot;
+			if(!sParam.isEmpty()){
+				String[] tmp=sParam.split("@");
+				if(tmp.length>=1)
+					gauss.setBasisSet(tmp[0]);
+				if(tmp.length>=3)	gauss.setChargeAndMultiplicity(tmp[1]+" "+tmp[2]);
+			}
+		}
+
 		assert pot==null;
 		pot.setParam(sParam);
 		pot.setUnit(sUnit);
 		pot.setOptMethod(sMethod);
 		return pot;
 	}
+
+
+	public static double[] ConvertToDoubleArray(Vector<Double> vec){
+		double[] answer=null;
+		if(vec.size()>0){
+			answer=new double[vec.size()];
+			for(int i=0;i<vec.size();i++)
+				answer[i]=vec.get(i);
+		}
+		return answer;
+	}
+
 
 	/**
 	 *

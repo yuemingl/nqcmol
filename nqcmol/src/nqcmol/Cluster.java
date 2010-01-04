@@ -270,6 +270,88 @@ public class Cluster implements Cloneable{
 		return this.freqs[index];
 	}
 
+	protected double[] reducedMass = null;
+
+	/**
+	 * Get the value of reducedMass
+	 *
+	 * @return the value of reducedMass
+	 */
+	public double[] getReducedMass() {
+		return reducedMass;
+	}
+
+	/**
+	 * Set the value of reducedMass
+	 *
+	 * @param reducedMass new value of reducedMass
+	 */
+	public void setReducedMass(double[] reducedMass) {
+		this.reducedMass = reducedMass;
+	}
+
+	/**
+	 * Get the value of reducedMass at specified index
+	 *
+	 * @param index
+	 * @return the value of reducedMass at specified index
+	 */
+	public double getReducedMass(int index) {
+		return this.reducedMass[index];
+	}
+
+	/**
+	 * Set the value of reducedMass at specified index.
+	 *
+	 * @param index
+	 * @param newReducedMass new value of reducedMass at specified index
+	 */
+	public void setReducedMass(int index, double newReducedMass) {
+		this.reducedMass[index] = newReducedMass;
+	}
+
+
+	protected double[][] normalModeVectors=null;
+
+	/**
+	 * Get the value of normalModeVectors
+	 *
+	 * @return the value of normalModeVectors
+	 */
+	public double[][] getNormalModeVectors() {
+		return normalModeVectors;
+	}
+
+	/**
+	 * Set the value of normalModeVectors
+	 *
+	 * @param normalModeVectors new value of normalModeVectors
+	 */
+	public void setNormalModeVectors(double[][] normalModeVector) {
+		this.normalModeVectors = normalModeVector.clone();
+	}
+
+	/**
+	 * Get the value of normalModeVectors at specified index
+	 *
+	 * @param index
+	 * @return the value of normalModeVectors at specified index
+	 */
+	public double[] getNormalModeVectors(int index) {
+		return this.normalModeVectors[index];
+	}
+
+	/**
+	 * Set the value of normalModeVectors at specified index.
+	 *
+	 * @param index
+	 * @param newNormalModeVector new value of normalModeVectors at specified index
+	 */
+	public void setNormalModeVectors(int index, double[] newNormalModeVector) {
+		this.normalModeVectors[index] = newNormalModeVector.clone();
+	}
+
+
 	protected double rmsGrad=0;
 
 	/**
@@ -315,6 +397,14 @@ public class Cluster implements Cloneable{
 	 * Array holds  atomic numbers. Access by atom's index
 	 */
 	protected int[] Nz;
+
+	/**
+	 * @param index: index of ato,
+	 * @return Atomic Symbol of atom
+	 */
+	public String getAtomicSymbol(int index) {
+		return cElements[Nz[index]];
+	}
 
 	/**
 	 * Get the value of Nz
@@ -775,7 +865,7 @@ public class Cluster implements Cloneable{
 	 * HYD_FAR: hydrogen bond
 	 * SINGLEBOND: single bond
 	 */
-	public enum PairwiseType { NONE, HYD_NEAR, HYD_FAR, SINGLEBOND };
+	public enum PairwiseType { NONE, HYD_NEAR, HYD_FAR, SINGLEBOND, DOUBLEBOND };
 
 	protected PairwiseType[][] pairwise;
 
@@ -822,18 +912,13 @@ public class Cluster implements Cloneable{
 				dmin=1.40; dmax=2.25; type=PairwiseType.HYD_FAR;	if((d>=dmin)&&(d<=dmax))	return type;
 				dmin=0.30; dmax=1.40; type=PairwiseType.HYD_NEAR;	if((d>=dmin)&&(d<=dmax))	return type;
 		}
-		else
-		if(s.contentEquals("OH")){ dmin=0.30; dmax=1.20; type=PairwiseType.HYD_NEAR;}
-		else		
-		if(s.contentEquals("OO")){ dmin=1.00; dmax=3.20; type=PairwiseType.SINGLEBOND;}
-		else
-		if(s.contentEquals("FH")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_NEAR;}
-		else		
-		if(s.contentEquals("FF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
-		else
-		if(s.contentEquals("CO")||s.contentEquals("OC")){ dmin=1.0; dmax=1.5; type=PairwiseType.SINGLEBOND;}
-		else
-		if(s.contentEquals("CH")){ dmin=0.2; dmax=1.2; type=PairwiseType.HYD_NEAR;}
+		else if(s.contentEquals("OH")){ dmin=0.30; dmax=1.20; type=PairwiseType.HYD_NEAR;}
+		else if(s.contentEquals("OO")){ dmin=1.00; dmax=3.20; type=PairwiseType.SINGLEBOND;}
+		else if(s.contentEquals("FH")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_NEAR;}
+		else if(s.contentEquals("FF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
+		else if(s.contentEquals("FO")||s.contentEquals("OF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
+		else if(s.contentEquals("CO")||s.contentEquals("OC")){ dmin=1.0; dmax=1.5; type=PairwiseType.DOUBLEBOND;}
+		else if(s.contentEquals("CH")){ dmin=0.2; dmax=1.2; type=PairwiseType.HYD_NEAR;}
 
 		if((d>=dmin)&&(d<=dmax)){
 			return type;
@@ -912,7 +997,8 @@ public class Cluster implements Cloneable{
 		for(int i=0;i<coordNumCount.length;i++){
 			d+=coordNumCount[i]*i;
 		}
-		return d/2 - getNonHydrogenNum() +1;
+		//return d/2 - getNonHydrogenNum() +1;
+		return d/2 - nType[8]-nType[9] +1;
 	}
 
 	/**
@@ -942,7 +1028,9 @@ public class Cluster implements Cloneable{
 	 */
 	public int getCoordNum(int index) {
 		int count=0;
-		for(int j=0;j<nAtoms;j++)	if(!IsHydrogen(j) && (pairwise[index][j]!=PairwiseType.NONE) )	count++;
+		for(int j=0;j<nAtoms;j++)	
+			//if(!IsHydrogen(j) && (pairwise[index][j]!=PairwiseType.NONE) )	count++;
+			if( ( (Nz[j]==8)||(Nz[j]==9)) && (pairwise[index][j]==PairwiseType.SINGLEBOND) )	count++;
 		return count;
 	}
 
@@ -1360,7 +1448,10 @@ public class Cluster implements Cloneable{
 		Clear();
 		int flag=0;
 
-		Vector freqs_tmp=new Vector();
+		Vector<Double> freqs_tmp=new Vector<Double>();
+		Vector<Double> reducedMass_tmp=new Vector<Double>();
+		Vector<double[]> normalmode_tmp=new Vector<double[]>();
+
 		while(scanner.hasNext()){
 			String s=scanner.nextLine();
 			//cout<<s<<endl;
@@ -1427,17 +1518,55 @@ public class Cluster implements Cloneable{
 			if(s.contains("Frequencies --")){
 				String substr=s.substring(16);
 
-				StringTokenizer tokenizer = new StringTokenizer(substr, "\t ,;"); //read no of atoms
-				freqs_tmp.add(Double.parseDouble(tokenizer.nextToken()));
-				freqs_tmp.add(Double.parseDouble(tokenizer.nextToken()));
-				freqs_tmp.add(Double.parseDouble(tokenizer.nextToken()));
+				StringTokenizer token = new StringTokenizer(substr, "\t ,;"); 
+				freqs_tmp.add(Double.parseDouble(token.nextToken()));
+				freqs_tmp.add(Double.parseDouble(token.nextToken()));
+				freqs_tmp.add(Double.parseDouble(token.nextToken()));
+
+				substr=scanner.nextLine().substring(16);//getline(is,s);	sscanf(s.c_str(), "Red. masses  --  %lf ",&(dtmp[0]));
+				token = new StringTokenizer(substr, "\t ,;");
+				reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+				reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+				reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+
+				while(scanner.hasNext()){
+					substr=scanner.nextLine();//getline(is,s);	sscanf(s.c_str(), "Frc consts  --  %lf ",&(dtmp[0]));
+					if(substr.contains("Atom AN")) break;
+				}
+
+				//while(s.find("Atom")!=0) getline(fin,s);
+				double[] v1=new double[ncoords];
+				double[] v2=new double[ncoords];
+				double[] v3=new double[ncoords];
+				for(int k=0;k<nAtoms;k++){
+					substr=scanner.nextLine();
+					token = new StringTokenizer(substr, "\t ,;");
+					token.nextToken();
+					token.nextToken();
+					for(int j=0;j<3;j++){
+						v1[k*3+j]=Double.parseDouble(token.nextToken());
+						//System.err.printf("%f\n", v1[k*3+j]);
+					}
+					for(int j=0;j<3;j++)
+						v2[k*3+j]=Double.parseDouble(token.nextToken());
+					for(int j=0;j<3;j++)
+						v3[k*3+j]=Double.parseDouble(token.nextToken());
+				}
+
+				normalmode_tmp.add(v1);
+				normalmode_tmp.add(v2);
+				normalmode_tmp.add(v3);
 			}
 		}
-		if(freqs_tmp.size()>0){
-			freqs=new double[freqs_tmp.size()];
-			for(int i=0;i<freqs_tmp.size();i++)
-				freqs[i]=(Double)freqs_tmp.get(i);
+
+		if(normalmode_tmp.size()>0){
+			normalModeVectors=new double[normalmode_tmp.size()][];
+			for(int i=0;i<normalmode_tmp.size();i++)
+				normalModeVectors[i]=normalmode_tmp.get(i).clone();
 		}
+
+		freqs=MolExtra.ConvertToDoubleArray(freqs_tmp);
+		reducedMass=MolExtra.ConvertToDoubleArray(reducedMass_tmp);
 		return (nAtoms!=0);
 	}
 
