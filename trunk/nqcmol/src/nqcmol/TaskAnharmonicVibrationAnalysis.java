@@ -9,9 +9,13 @@ import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.potential.GaussianInterfacePotential;
+import nqcmol.potential.Potential;
 import nqcmol.tools.MTools;
+import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.polynomials.PolynomialFunction;
 import org.apache.commons.math.optimization.OptimizationException;
+import org.apache.commons.math.optimization.fitting.CurveFitter;
+import org.apache.commons.math.optimization.fitting.ParametricRealFunction;
 import org.apache.commons.math.optimization.fitting.PolynomialFitter;
 import org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer;
 import org.kohsuke.args4j.Option;
@@ -21,14 +25,17 @@ import org.kohsuke.args4j.Option;
  *
  * @author nqc
  */
-public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
+public class TaskAnharmonicVibrationAnalysis extends Task {
+
+	@Option(name="-a",usage="parameter for Gaussian. It should be in this format \"method@charge@multiplicity\". For example: \"b3lyp\6-31+G*@0@1\" (note the quote)",metaVar="STRING")
+    String sFileParam="hf/31G@1@1";
+
 	private String basisSet="";
 	private String chargeAndMultiplicity="0 1";
 	private String sFileCheckPoint="checkpoint.chk";
 
+	Potential pot;
 	GaussianInterfacePotential gau=null;
-
-
 
 	@Override
 	public String getName(){
@@ -37,18 +44,20 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 
 	@Override
 	protected void Initialize() {
-		super.Initialize();
-		
-		pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
-		assert(pot.getEquation().contains("Gaussian"));
-		gau=(GaussianInterfacePotential)pot;
-
-		basisSet=gau.getBasisSet();
-		chargeAndMultiplicity=gau.getChargeAndMultiplicity();
-
-		String filename=(new File(sFileIn)).getName();
-		String ext=(filename.lastIndexOf(".")==-1)?"":filename.substring(filename.lastIndexOf(".")+1,filename.length());
-		sFileCheckPoint=filename.replace("."+ext,"");
+		try {
+			super.Initialize();
+			pot = MolExtra.SetupPotential("g03", sFileParam, "Hartree", "");
+			assert (pot.getEquation().contains("Gaussian"));
+			gau = (GaussianInterfacePotential) pot;
+			xmllog.writeNormalText(gau.Info(1));
+			basisSet = gau.getBasisSet();
+			chargeAndMultiplicity = gau.getChargeAndMultiplicity();
+			String filename = (new File(sFileIn)).getName();
+			String ext = (filename.lastIndexOf(".") == -1) ? "" : filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+			sFileCheckPoint = filename.replace("." + ext, "");
+		} catch (IOException ex) {
+			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
 
@@ -60,17 +69,23 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 //			xmllog.endEntity();
 			if (cluster.Read(fileIn, "g03")) {
 				//Reading normal modes
+				cluster.setTag((new File(sFileIn)).getName());
 				xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
 				xmllog.writeAttribute("nAtom", Integer.toString(cluster.getNAtoms()));
 				xmllog.writeAttribute("Energy", Double.toString(cluster.getEnergy()));
 				if(cluster.getNormalModeVectors()!=null){
 					
-					if(iMode==-1)
+					if(iMode==-1){
 						for(int i=0;i<cluster.getFreqs().length;i++){
 							CalculateAnharmonicityFreq(i);
 						}
-					else
-						CalculateAnharmonicityFreq(iMode);
+					}else{
+						int iFrom=iMode;
+						int iTo= Math.min(iMode + nModes,cluster.getFreqs().length);
+						for(int i=iFrom;i<iTo;i++){
+							CalculateAnharmonicityFreq(i);
+						}
+					}
 				}
 
 				xmllog.endEntity().flush();
@@ -83,15 +98,19 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 
 
 	///===================
+	@Option(name = "-np", usage = "number of processors using in Gaussian. Default is 1.", metaVar = "INTEGER")
+	int numOfProcessors=1;
 
-
-	@Option(name = "-np", usage = "number of points using in approximation", metaVar = "INTEGER")
+	@Option(name = "-num", usage = "number of points using in approximation. Default is 5.", metaVar = "INTEGER")
 	int nPoints=5;
 	double[] delta=null;
 	double[] energies=null;
 
-	@Option(name = "-mode", usage = "specify mode to be analyzed (count from 0). if -1, all normal modes will be approximated.", metaVar = "INTEGER")
-	int iMode=0;
+	@Option(name = "-m", usage = "starting mode to be calculated (count from 0), number of calculated modes is determined from -nmodes option. If -1 (default), all normal modes will be calculated.", metaVar = "INTEGER")
+	int iMode=-1;
+
+	@Option(name = "-nmodes", usage = "number of modes will be calculated (default is 1). The starting mode is determined from -m option", metaVar = "INTEGER")
+	int nModes=1;
 
 	@Option(name = "-degree", usage = "Maximum degree in approximation. Default is 2.", metaVar = "INTEGER")
 	int degree=2;
@@ -107,6 +126,7 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 			if((m>=cluster.getFreqs().length)||(m<0))
 				xmllog.writeText(String.format("Error. Mode %d is not valid because it is not in between [0,%d)",m,cluster.getFreqs().length));
 			else{
+				long duration =  System.currentTimeMillis();
 				xmllog.writeAttribute("Freq", Double.toString(cluster.getFreqs(m)));
 				xmllog.writeAttribute("ReducedMass", Double.toString(cluster.getReducedMass(m)));
 				xmllog.writeEntity("Vector");
@@ -121,60 +141,90 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 				//generate gaussian input
 				xmllog.writeEntity("GaussianCalling");
 				String sGaussianInput = GenGaussianInputFromNormalModes(m);
+				//System.err.println(sGaussianInput);
 				gau.setCluster(cluster);
 				energies = gau.getEnergies(sGaussianInput);
 				for (int j = 0; j < energies.length; j++) {
-					xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j));
+					xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j+1));
 					xmllog.writeAttribute("DeltaX", Double.toString(delta[j]));
 					xmllog.writeAttribute("Energy", Double.toString(energies[j]));
 					xmllog.endEntity().flush();
 				}
 				xmllog.endEntity().flush();
 
-				//Morse potential approximation
+				double[] params=null,calcE=null;
+				double anFreq=0;
+
+				//Polynomial approximation
 				xmllog.writeEntity("PolynomialFitting");
-				PolynomialFunction fitted=PolynominalFit(degree);				
-				if(fitted!=null){
-					double[] coefs = fitted.getCoefficients();
-					for (int j = 0; j < coefs.length; j++) {
-						xmllog.writeEntity("Term").writeAttribute("Degree", Integer.toString(j));
-						xmllog.writeAttribute("Coefficient", Double.toString(coefs[j]));
-						xmllog.endEntity().flush();
-					}
-					
-					double rmsE=0;
-					xmllog.writeEntity("Validity");
-					for (int j = 0; j < energies.length; j++) {
-						double calcE=fitted.value(delta[j]);
-						double deltaE=Math.abs(calcE-energies[j]);
-						rmsE+=deltaE*deltaE;
-						xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j));
-						xmllog.writeAttribute("DeltaX", Double.toString(delta[j]));
-						xmllog.writeAttribute("ObservedE", Double.toString(energies[j]));
-						xmllog.writeAttribute("CalcE", Double.toString(calcE));
-						xmllog.writeAttribute("DeltaE", Double.toString(deltaE));
-						xmllog.endEntity().flush();
-					}
-					xmllog.writeEntity("RMS");
-						xmllog.writeNormalText(Double.toString(rmsE));
-					xmllog.endEntity();
-					xmllog.endEntity().flush();
-
-					///
-
-					xmllog.writeEntity("Results");
+					PolynomialFit(params,calcE,degree);
 						double reducedMass=cluster.getReducedMass(m);//in amu
-						double forceConst=coefs[2]*2;//in Hartree.Angstrom^-2
-
+						double forceConst=params[2]*2;//in Hartree.Angstrom^-2
 						double kConvert=Math.sqrt(5.4857990943e-4)*1e8*7.297352569e-3;
-						double anFreq=kConvert*Math.sqrt(forceConst/reducedMass)/(2.0*Math.PI);//in cm-1
-						xmllog.writeAttribute("AnFreq",Double.toString(anFreq));
-					xmllog.endEntity();
-				}				
+						anFreq=kConvert*Math.sqrt(forceConst/reducedMass)/(2.0*Math.PI);//in cm-1
+					xmllog.writeAttribute("AnFreq",Double.toString(anFreq));
+
+					//details of parameters
+					for (int j = 0; j < params.length; j++) {
+						xmllog.writeEntity("Term").writeAttribute("Degree", Integer.toString(j));
+						xmllog.writeAttribute("Coefficient", Double.toString(params[j]));
+						xmllog.endEntity().flush();
+					}
+					//writing validity of fitting: rmsE etc
+					WriteValidity(calcE);
+				xmllog.endEntity().flush();
+
+
+				//Morse fitting
+//				xmllog.writeEntity("MorsePotentialFitting");
+//					MorseFit(params,calcE);
+//					double De=params[0];
+//					double alpha=params[1];
+//					//results
+//					xmllog.writeAttribute("AnFreq",Double.toString(anFreq));
+//
+//					//details of parameters
+//					xmllog.writeAttribute("De", Double.toString(params[0]));
+//					xmllog.writeAttribute("Alpha", Double.toString(params[1]));
+//
+//					//writing validity of fitting: rmsE etc
+//					WriteValidity(calcE);
+//
+//				xmllog.endEntity().flush();
+
+				xmllog.writeEntity("Duration");
+					xmllog.writeNormalText(Double.toString((duration-System.currentTimeMillis())/1000.0));
 				xmllog.endEntity().flush();
 			}
 
+
 		xmllog.endEntity().flush();
+	}
+
+	double WriteValidity(double[] calcE){
+		double rmsE = 0;
+		try {
+			xmllog.writeEntity("Validity");
+			for (int j = 0; j < energies.length; j++) {
+				double deltaE = Math.abs(calcE[j] - energies[j]);
+				rmsE += deltaE * deltaE;
+			}
+			rmsE = Math.sqrt(rmsE / energies.length);
+			xmllog.writeAttribute("RMSE", Double.toString(rmsE));
+			for (int j = 0; j < energies.length; j++) {
+				double deltaE = Math.abs(calcE[j] - energies[j]);
+				xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j));
+				xmllog.writeAttribute("DeltaX", Double.toString(delta[j]));
+				xmllog.writeAttribute("ObservedE", Double.toString(energies[j]));
+				xmllog.writeAttribute("CalcE", Double.toString(calcE[j]));
+				xmllog.writeAttribute("DeltaE", Double.toString(deltaE));
+				xmllog.endEntity().flush();
+			}
+			xmllog.endEntity().flush();
+		} catch (IOException ex) {
+			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		return rmsE;
 	}
 
 	String GenGaussianInputFromNormalModes(int m){
@@ -189,7 +239,9 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 			double beta=(2.0*i/(nPoints-1)-1)*deltaX;
 			delta[i]=beta;
 
-			String g03header="%chk="+sFileCheckPoint+String.format("-m%d.chk", m)+" \n%mem=1GB \n%nproc=2 \n#p "+basisSet;
+			String g03header="%chk="+sFileCheckPoint+String.format("-m%d.chk", m);
+			g03header+=" \n%mem=1GB \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
+			//g03header+=" \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
 
 
 			if(i!=0)	g03header="--Link1--\n"+	g03header + " Guess=Read ";
@@ -213,20 +265,84 @@ public class TaskAnharmonicVibrationAnalysis extends TaskCalculate {
 		return input;
 	}
 
-	PolynomialFunction PolynominalFit(int degree) {
+	/**
+	 * Fitting polynomial potential with observation (x,y)=(delta,energies)
+	 * @param params coefficients of Morse potential, will be initialized and updated after fitting
+	 * @param calcE values of energies calculated by new polynomial,will be initialized and updated after fitting
+	 * @param degree maximum degree of polynomial
+	 */
+	void PolynomialFit(double[] params,double[] calcE,int degree) {
 			PolynomialFitter fitter = new PolynomialFitter(degree, new LevenbergMarquardtOptimizer());
 			fitter.addObservedPoint(1, 0, cluster.getEnergy());
 			for (int i = 0; i < delta.length; i++) {
 				fitter.addObservedPoint(1, delta[i], energies[i]);
 			}
-			PolynomialFunction fitted=null;
+			PolynomialFunction fittedFunc=null;
 			try {
-				fitted = fitter.fit();
+				fittedFunc = fitter.fit();
+				params=fittedFunc.getCoefficients();
+				calcE=new double[energies.length];
+				for (int j = 0; j < energies.length; j++) {
+					calcE[j]=fittedFunc.value(delta[j]);
+				}
 			} catch (OptimizationException ex) {
 				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
 			}
-			return fitted;
-
+			
 	}
+
+	/**
+	 * Fitting Morse potential with observation (x,y)=(delta,energies)
+	 * @param params params of Morse potential, will be initialized and updated after fitting
+	 * @param calcE values of energies calculated by Morse potential,will be initialized and updated after fitting
+	 */
+	void MorseFit(double[] params,double[] calcE) {
+			CurveFitter fitter = new CurveFitter(new LevenbergMarquardtOptimizer());
+			fitter.addObservedPoint(1, 0, cluster.getEnergy());
+			for (int i = 0; i < delta.length; i++) {
+				fitter.addObservedPoint(1, delta[i], energies[i]);
+			}
+			MorsePotential fittedFunc=new MorsePotential();
+			double[] inputParam={1,1};
+
+			try {
+				params = fitter.fit(fittedFunc, inputParam);
+				calcE=new double[energies.length];
+				for (int j = 0; j < energies.length; j++) {
+					calcE[j]=fittedFunc.value(delta[j],params);
+				}
+			} catch (OptimizationException ex) {
+				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+			} catch (FunctionEvaluationException ex) {
+				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+			} catch (IllegalArgumentException ex) {
+				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+			}
+	}
+
+	class MorsePotential implements ParametricRealFunction{
+
+		@Override
+		public double value(double x, double[] param) throws FunctionEvaluationException {
+			double De=param[0];
+			double a=param[1];
+			double re=0;
+			return De*Math.pow(1-Math.exp(a*(re-x)),2);
+		}
+
+		@Override
+		public double[] gradient(double x, double[] param) throws FunctionEvaluationException {
+			double De=param[0];
+			double a=param[1];
+			double re=0;
+			double[] gradient=new double[2];
+
+			gradient[0]=Math.pow(1-Math.exp(a*(re-x)),2);
+			gradient[1]=2.0*De*(1-Math.exp(a*(re-x)))*(-(re-x)*Math.exp(a*(re-x)));
+			return gradient;
+		}
+		
+	}
+
 	
 }

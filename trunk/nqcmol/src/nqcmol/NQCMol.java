@@ -23,6 +23,7 @@ public class NQCMol {
 		"\t sort \t - sort clusters according to energies\n" +
 		"\t class \t - classify clusters according to topologies\n" +
 		"\t hsa \t - harmonic superposition approximation\n" +
+		"\t equiAtom \t - detect topologically equivalent atoms in clusters\n" +
 		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
 
@@ -85,6 +86,16 @@ public class NQCMol {
 
 		else if(sTask.contentEquals("sym")){
 			Task calc=new TaskCalculateSymmetryPointGroup();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("equiAtom")){
+			Task calc=new TaskDetectEquivalentAtoms();
+			calc.Execute(args);			return;
+		}
+
+		else if(sTask.contentEquals("corr")){
+			Task calc=new TaskAutoCorrelationAndTransform();
 			calc.Execute(args);			return;
 		}
 
