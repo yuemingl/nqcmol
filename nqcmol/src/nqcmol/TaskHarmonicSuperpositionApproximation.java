@@ -267,7 +267,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 					calcPopularity_group();
 
 					if(fileOut!=null){
-						fileOut.write(String.format("T=%fK\n",T));
+						fileOut.write(String.format("T=%fK Percent\n",T));
 						for(PartFunc func:pop){
 						  fileOut.write(String.format("%s %f\n",func.getTag(),Math.exp(func.lnz-(Zp[0].lnZ+refZp))));
 						 }

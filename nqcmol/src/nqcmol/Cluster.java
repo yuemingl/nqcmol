@@ -1447,6 +1447,7 @@ public class Cluster implements Cloneable{
 	protected boolean ReadGauOut(Scanner scanner){
 		Clear();
 		int flag=0;
+		tag="0";
 
 		Vector<Double> freqs_tmp=new Vector<Double>();
 		Vector<Double> reducedMass_tmp=new Vector<Double>();
@@ -1457,8 +1458,8 @@ public class Cluster implements Cloneable{
 			//cout<<s<<endl;
 			//read atomic number and coordinates
 
-			if( (s.contains("Input orientation")|| s.contains("Standard orientation") && (flag==0) )
-					   ){
+			//if( (s.contains("Input orientation")|| s.contains("Standard orientation") && (flag==0) )){
+			if( ( s.contains("Input orientation") && (flag==0) ) || s.contains("Standard orientation") ){
 				scanner.nextLine();scanner.nextLine();scanner.nextLine();scanner.nextLine();
 				int i=0;
 				Vector coords_tmp=new Vector();
@@ -1645,9 +1646,10 @@ public class Cluster implements Cloneable{
 			try {				
 				if(format.contentEquals("cml")){
 					WriteCML(writer);
-				}else
-				if(format.contentEquals("int")){
+				}else	if(format.contentEquals("int")){
 					WriteInt(writer);
+				}else	if(format.contentEquals("eps")){
+					WriteEPS(writer);
 				}else{
 					WriteXYZ(writer);
 				}
@@ -1767,5 +1769,97 @@ public class Cluster implements Cloneable{
 				writer.append(s1);
 			}
 		}
+	}
+
+
+	protected void WriteEPS(Writer writer) throws IOException{
+		if(nAtoms==0) return;
+
+ 		double zoom=100; //determine how many point size 1 Angtrom should be converted
+		double ro=0.3; //radius of atom measured in Angstrom, will be scaled according to atomic mass, this value is for oxygen.
+		double xo=100,yo=100; //coordinates of origin
+		double width=300,height=300; //size of screen
+		double angle=Math.toRadians(90.0); //perspective angle
+
+		String s="%!PS-Adobe-2.0 EPSF-2.0 \n"
+				+"%%BoundingBox:  " + String.format("%d %d %d %d \n",(int)xo,(int)yo,(int)(xo+width),(int)(yo+height))
+				+"%%DocumentFonts: Helvetica-Bold \n"
+				+"%%Title: Snapshot postscript file from Moviemol \n"
+				+"%%Pages: 1 \n"
+				+"%%EndComments \n%%EndProlog \n%%Page: 1 1 \n";
+		//define macro
+		s+="/mm { 2.83465 mul } def  \n";
+		s+="/doAAtom \n{ newpath \n"
+				+"0 360 arc \n"
+				+"gsave \nsethsbcolor \nfill \ngrestore \n.0 setgray \nsetlinewidth \n"
+				+"stroke } def \n";
+		s+="/doALamp { newpath    0 360 arc    1.0 setgray    fill } def\n";
+		s+="/bondArcn { newpath  arc } def\n";
+		s+="/bondFill  { lineto      lineto      closepath      sethsbcolor    fill } def \n";
+		s+="/bondFillSimple  { newpath moveto lineto lineto lineto closepath sethsbcolor    fill } def\n";
+		s+="/bondOtl { newpath    moveto    lineto   moveto   lineto } def \n";
+		s+="/bondWidt  {  .0 setgray     setlinewidth    stroke } def\n";
+		s+="/showSymbol  { /Helvetica-Bold findfont   exch scalefont setfont   moveto  .0 setgray  show } def\n";
+
+		s+="595 0 translate\n";
+		 s+="90 rotate\n";
+		 s+="1 setlinejoin\n";
+		 s+="420 297 translate\n";
+		 s+="-90 rotate\n";
+		 s+="0.71 0.71 scale\n";
+		 s+="-420 -297 translate\n";
+
+		 s+="/black       {  0.00 0.00 0.00 } def\n";
+		 s+="/darkblue    {  0.66 1.00 0.50 } def\n";
+		 s+="/green       {  0.33 1.00 1.00 } def\n";
+		 s+="/lightblue   {  0.66 0.35 1.00 } def\n";
+		 s+="/red         {  0.00 1.00 1.00 } def\n";
+		 s+="/purple      {  0.78 1.00 0.90 } def\n";
+		 s+="/toffee      {  0.14 0.80 0.90 } def\n";
+		 s+="/lightgray   {  0.00 0.00 0.90 } def\n";
+		 s+="/gray        {  0.00 0.00 0.70 } def\n";
+		 s+="/blue        {  0.66 1.00 1.00 } def\n";
+		 s+="/greenyellow {  0.20 1.00 1.00 } def\n";
+		 s+="/turquoise   {  0.50 1.00 1.00 } def\n";
+		 s+="/salmonpink  {  0.00 0.18 1.00 } def\n";
+		 s+="/magenta     {  0.83 1.00 1.00 } def\n";
+		 s+="/yellow      {  0.16 1.00 1.00 } def\n";
+		 s+="/white       {  0.00 0.00 1.00 } def\n";
+		 s+="/lightyellow {  0.16 0.30 1.00 } def\n";
+		 s+="/pink        {  0.00 0.36 1.00 } def\n";
+		 s+="/steelgray   {  0.66 0.10 0.90 } def\n";
+		 s+="/darkgray    {  0.00 0.00 0.50 } def\n";
+		 s+="/bluegreen   {  0.50 0.00 0.70 } def\n";
+	//                         H       He       Li         B                 C         F      O
+	String[] AtomColor={"red","yellow","yellow","yellow","yellow","yellow","yellow","yellow","red"};
+
+		Center();
+
+	double D=width*0.5/Math.tan(angle/2);
+	double maxX=0,maxY=0;
+
+		for(int i=0;i<nAtoms;i++){
+			maxX=Math.max(Math.abs(coords[i*3]),maxX);
+			maxY=Math.max(Math.abs(coords[i*3+1]),maxY);
+		}
+		maxX+=0.5;
+		maxY+=0.5;
+		zoom=Math.min(width/(2.0*maxX),height/(2.0*maxX));
+
+		for(int i=0;i<nAtoms;i++){
+			double[] v={coords[i*3],coords[i*3+1],coords[i*3+2]};
+
+			double xpos = xo + v[0] * zoom*(v[2]+D)/D + width * 0.5;
+			double ypos = yo + v[1] * zoom*(v[2]+D)/D + height * 0.5;
+			double rpos	=  	ro *Math.pow(getMass(i)/16.0,0.15)* zoom*(v[2]+D)/D;
+
+			s+=String.format("1.05 %s  %1.1f  %1.1f %1.1f  doAAtom \n",AtomColor[Nz[i]],xpos,ypos,rpos);
+		}
+
+		s+=" showpage \n";
+
+		//writing extra information
+		//output
+		writer.append(s);
 	}
 }
