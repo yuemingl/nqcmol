@@ -17,8 +17,8 @@ import nqcmol.tools.MTools;
  *
  * @author nqc
  */
-public class OSS2Potential extends Potential{
-	public OSS2Potential(){
+public class FOSS2Potential extends Potential{
+	public FOSS2Potential(){
 		nativeUnit="kcal/mol";
 		unit=nativeUnit;
 		ParseParameters();
@@ -26,7 +26,7 @@ public class OSS2Potential extends Potential{
 
 	@Override
 	public String getEquation(){
-		String equation="OSS2";
+		String equation="FOSS2";
 		return equation;
 	}
 	
@@ -57,7 +57,7 @@ public class OSS2Potential extends Potential{
 				scanner.nextLine();
 			}
 		} catch (FileNotFoundException ex) {
-			Logger.getLogger(OSS2Potential.class.getName()).log(Level.SEVERE, null, ex);
+			Logger.getLogger(FOSS2Potential.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		}
 		ParseParameters();
@@ -66,7 +66,7 @@ public class OSS2Potential extends Potential{
 	@Override
 	public void setCluster(Cluster cluster_) {
 		super.setCluster(cluster_);
-		AllocatePrivateVariables(cluster_.getNAtoms());
+		AllocatePrivateVariables(cluster_.getNAtoms(),cluster_.getNonHydrogenNum());
 		cluster.CorrectOrder();
 	}
 
@@ -75,7 +75,7 @@ public class OSS2Potential extends Potential{
 		double energy=0;
 		if(_p.length<=3) return 0;
 		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
-		AllocatePrivateVariables(_p.length/3);
+		AllocatePrivateVariables(_p.length/3,nO);
 
 		CalcDistanceAndCharge(_p,false);
 
@@ -125,7 +125,7 @@ public class OSS2Potential extends Potential{
 		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
 		if(_p.length<=3) return ;
 		
-		AllocatePrivateVariables(_p.length/3);
+		AllocatePrivateVariables(_p.length/3,nO);
 
 		CalcDistanceAndCharge(_p,true);
 
@@ -252,10 +252,10 @@ public class OSS2Potential extends Potential{
 		return x*x;
 	}
 
-	private void AllocatePrivateVariables(int nAtoms_){
+	private void AllocatePrivateVariables(int nAtoms_,int nO_){
 		if(nAtom!=nAtoms_){
 			nAtom=nAtoms_;
-			nO=(nAtom%3 == 2)?(nAtom/3+1):(nAtom/3);
+			nO=nO_;
 			x=new double[nAtom][3];
 			q=new double[nAtom];
 			r=new double[nAtom][nAtom];
