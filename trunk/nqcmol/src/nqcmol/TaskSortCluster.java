@@ -50,7 +50,7 @@ public class TaskSortCluster extends Task{
 			int i = 0;
 			Vector<Cluster> pop=new Vector<Cluster>();
 			while (scanner.hasNext()) {
-				Cluster mol = new WaterCluster();
+				Cluster mol = new Cluster();
 				mol.Read(scanner, sFormatIn);
 				
 				if(mol.nAtoms<=0) break;

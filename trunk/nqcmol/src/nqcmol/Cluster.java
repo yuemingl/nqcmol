@@ -846,6 +846,11 @@ public class Cluster implements Cloneable{
 		return answer;
 	}
 
+    /**
+     * replace a number of atoms (from index) as the whole atoms from mol
+     * @param index starting position to replace
+     * @param mol
+     */
 	public void replaceMolecule(int index,Cluster mol){
 		for(int j=0;j<mol.getNAtoms();j++){
 			coords[(index+j)*3+0]=mol.getCoords(j*3+0);
@@ -853,6 +858,45 @@ public class Cluster implements Cloneable{
 			coords[(index+j)*3+2]=mol.getCoords(j*3+2);
 			Nz[index+j]=mol.getAtomicNumber(j);
 		}
+		for(int i=0;i<cTypeMax;i++) nType[i]=0;
+		for(int i=0;i<nAtoms;i++) nType[Nz[i]]++;
+	}
+
+    /**
+     * erase an atom, the number of atoms will be deduced by 1
+     * @param index of atom to be erased
+     */
+	public void eraseAtom(int index){
+        double[] newCoords=new double[coords.length-3];
+        MTools.eraseElementsFromArray(coords,newCoords, index*3,3);
+        coords=newCoords;
+
+        int[] newNz = new int[Nz.length-1];
+        MTools.eraseElementsFromArray(Nz,newNz, index,1);
+        Nz=newNz;
+        
+//        System.arraycopy(coords, 0, newCoords, 0, index*3);
+//        if (coords.length != index*3) {
+//            System.arraycopy(coords, (index + 1)*3, newCoords, index*3, coords.length - 3*index );
+//        }
+//        coords=newCoords;
+//
+//        int[] newNz = new double[(nAtoms-1)*3];
+//
+//        System.arraycopy(Nz, 0, newNz, 0, index*3);
+//        if (coords.length != index*3) {
+//            System.arraycopy(coords, (index + 1)*3, newCoords, index*3, coords.length - 3*index );
+//        }
+//        coords=newCoords;
+//
+//		for(int j=0;j<mol.getNAtoms();j++){
+//			coords[(index+j)*3+0]=mol.getCoords(j*3+0);
+//			coords[(index+j)*3+1]=mol.getCoords(j*3+1);
+//			coords[(index+j)*3+2]=mol.getCoords(j*3+2);
+//			Nz[index+j]=mol.getAtomicNumber(j);
+//		}
+
+        nAtoms--;
 		for(int i=0;i<cTypeMax;i++) nType[i]=0;
 		for(int i=0;i<nAtoms;i++) nType[Nz[i]]++;
 	}

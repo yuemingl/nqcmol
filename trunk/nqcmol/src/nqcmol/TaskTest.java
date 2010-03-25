@@ -6,17 +6,11 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.kohsuke.args4j.*;
 
 
-import nqcmol.potential.*;
-import nqcmol.symmetry.PointGroup;
-import nqcmol.symmetry.Symmetry;
-import nqcmol.tools.XmlWriter;
 
 /**
  *
@@ -39,8 +33,8 @@ public class TaskTest extends TaskCalculate {
 				TaskFitPotential fit=new TaskFitPotential();
 				pot.setCluster(mol);
 				
-				fit.func.setF(pot);
-				fit.optimize();
+				//fit.func.setF(pot);
+				//fit.optimize();
 				xmllog.writeEntity("Cluster");
 				xmllog.endEntity();
 				xmllog.flush();

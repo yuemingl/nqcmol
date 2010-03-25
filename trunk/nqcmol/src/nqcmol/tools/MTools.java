@@ -5,6 +5,8 @@
 
 package nqcmol.tools;
 
+import java.lang.reflect.Array;
+
 
 /**
  *
@@ -270,4 +272,17 @@ public  class  MTools{
 		int sep = fullPath.lastIndexOf("/");
 		return fullPath.substring(0, sep);
 	  }
+
+      /**
+       *
+       * @param src source array
+       * @param pos index of first element to be erased
+       * @param num number of elements to be erased
+       */
+      public static void eraseElementsFromArray(Object src,Object dest,int pos,int num) {
+          //result = (T[])new Object[src.length - num];
+          //System.out.printf("d =%d",Array.getLength(src));
+          System.arraycopy(src, 0, dest, 0, pos);
+          System.arraycopy(src, pos + num, dest, pos, Array.getLength(src) - pos - num );
+      }
 }

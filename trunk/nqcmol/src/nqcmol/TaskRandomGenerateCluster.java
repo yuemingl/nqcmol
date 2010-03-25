@@ -254,9 +254,12 @@ public class TaskRandomGenerateCluster extends Task {
 	 * Place molecules at calculated coordinates and dumpt out the results.
 	 */
 	private void PlaceMoleculesAndDumpOut(){
+                int c=0;
 		try {
 			Cluster result = new Cluster();
 			result.setNAtoms(nAtoms);
+                        result.setTag(Integer.toString(c));
+                        c++;
 			xmllog.writeEntity("PlaceMoleculesAndDumpOut");
 			int pos = 0;
 			for (int i = 0; i < listMol.size(); i++) {

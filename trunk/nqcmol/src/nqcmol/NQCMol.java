@@ -19,11 +19,13 @@ public class NQCMol {
 		"\t ener \t - calculate energy\n" +
 		"\t grad \t - validate gradients. Perform both analytical (if applicant) and numerical gradients and calculate the residual\n" +
 		"\t vib \t - calculate harmonic frequencies\n" +
+                "\t anvib \t - calculate anharmonic frequencies\n" +
 		"\t be \t - calculate binding energies\n" +
 		"\t sort \t - sort clusters according to energies\n" +
 		"\t class \t - classify clusters according to topologies\n" +
 		"\t hsa \t - harmonic superposition approximation\n" +
 		"\t equiAtom \t - detect topologically equivalent atoms in clusters\n" +
+        "\t W2radW \t - Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n" +
 		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
 
@@ -126,6 +128,11 @@ public class NQCMol {
 
 		else if(sTask.contentEquals("fit")){
 			TaskFitPotential calc=new TaskFitPotential();
+			calc.Execute(args);			return;
+		}
+
+        else if(sTask.contentEquals("W2radW")){
+			Task calc=new TaskConvertWaterToRadicalWater();
 			calc.Execute(args);			return;
 		}
 
