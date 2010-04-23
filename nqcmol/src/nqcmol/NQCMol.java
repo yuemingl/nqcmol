@@ -25,6 +25,8 @@ public class NQCMol {
 		"\t class \t - classify clusters according to topologies\n" +
 		"\t hsa \t - harmonic superposition approximation\n" +
 		"\t equiAtom \t - detect topologically equivalent atoms in clusters\n" +
+        "\t gen \t - randomly generate clusters\n" +
+        "\t alongVib \t - generate clusters by translating along vibrational normal modes\n" +
         "\t W2radW \t - Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n" +
 		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
@@ -108,6 +110,11 @@ public class NQCMol {
 
 		else if(sTask.contentEquals("gen")){
 			Task calc=new TaskRandomGenerateCluster();
+			calc.Execute(args);			return;
+		}
+
+        else if(sTask.contentEquals("alongVib")){
+			Task calc=new TaskGenerateCluster();
 			calc.Execute(args);			return;
 		}
 
