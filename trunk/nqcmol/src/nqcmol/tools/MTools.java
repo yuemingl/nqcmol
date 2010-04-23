@@ -250,25 +250,25 @@ public  class  MTools{
 			System.err.printf("\n");
 	}
 
-		public static void PrintArray(double[] a){
+	public static void PrintArray(double[] a){
 			for(int j=0;j<a.length;j++)
 				System.err.printf("%1.9f ",a[j]);
 			System.err.printf("\n");
 	}
 
 
-		public static String getExtension(String fullPath) {
+	public static String getExtension(String fullPath) {
 			int dot = fullPath.lastIndexOf(".");
 			return fullPath.substring(dot + 1);
 	  }
 
-	  public static String getFilename(String fullPath) { // gets filename without extension
+	public static String getFilename(String fullPath) { // gets filename without extension
 		int dot = fullPath.lastIndexOf(".");
 		int sep = fullPath.lastIndexOf("/");
 		return fullPath.substring(sep + 1, dot);
 	  }
 
-	  public static String getPath(String fullPath) {
+	public static String getPath(String fullPath) {
 		int sep = fullPath.lastIndexOf("/");
 		return fullPath.substring(0, sep);
 	  }
@@ -279,7 +279,7 @@ public  class  MTools{
        * @param pos index of first element to be erased
        * @param num number of elements to be erased
        */
-      public static void eraseElementsFromArray(Object src,Object dest,int pos,int num) {
+    public static void eraseElementsFromArray(Object src,Object dest,int pos,int num) {
           //result = (T[])new Object[src.length - num];
           //System.out.printf("d =%d",Array.getLength(src));
           System.arraycopy(src, 0, dest, 0, pos);

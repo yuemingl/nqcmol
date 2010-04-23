@@ -1536,7 +1536,7 @@ public class Cluster implements Cloneable{
 			}
 
 			//read the energy
-			if(s.contains("E(")){
+			if(s.contains("E(")&&s.contains("SCF Done")){
 				int pos1=s.indexOf("=")+1;
 				int pos2=s.indexOf("A.U.");
 				String substr=s.substring(pos1,pos2);
@@ -1545,9 +1545,10 @@ public class Cluster implements Cloneable{
 			}
 
 
-			if ( s.contains("EUMP2")  ){	// wow, energy
-				String substr=s.substring(s.indexOf("EUMP2 =")+6);
-				substr.replace('D','E');
+			if ( s.contains("EUMP2 =")  ){	// wow, energy
+				String substr=s.substring(s.indexOf("EUMP2 =")+7);
+				substr=substr.replace('D','E');
+                //System.out.println(substr);
 				energy=Double.parseDouble(substr);
 				flag|=2; //indicate energy has been collected
 			}
