@@ -103,7 +103,12 @@ public  class  MTools{
 //	public static void MAT2_MUL_NUM(a,B,num,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]=(B)[i][j]*(num);
 //	public static void MAT2_EQU_MAT2(a,B,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]=(B)[i][j];
 //
-//	public static void MAT2_PLUS_NUM(a,B,num,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]=(B)[i][j]+(num);
+	public static void MAT2_PLUS_NUM(double[][] A,double[][] B,double num){
+		if(A!=null)
+		for(int i=0;i<A.length;i++)
+			for(int j=0;j<A[i].length;j++) A[i][j]=B[i][j]+num;
+	}
+
 	public static void MAT2_EQU_NUM(double[][] A,double num){
 		if(A!=null)
 		for(int i=0;i<A.length;i++)
@@ -111,7 +116,18 @@ public  class  MTools{
 	}
 //	public static void MUL_NUM(a,num,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]*=(num);
 //	public static void PLUS_NUM(a,num,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]+=(num);
-//	public static void MAT2_MUL_MAT2(a,B,C,s0,s1,s2) for(i=0;i<(s0);i++) for(n=0;n<(s2);n++){ (a)[i][n]=0;for(j=0;j<(s1);j++) (a)[i][n]+=(B)[i][j]*(C)[j][n];}
+	public static void MAT2_MUL_MAT2(double[][] A,double[][] B,double[][] C){
+        int s0=B.length;
+        int s1=C.length;
+        int s2=C[0].length;
+
+        for(int i=0;i<(s0);i++)
+            for(int n=0;n<(s2);n++){
+                A[i][n]=0;
+                for(int j=0;j<(s1);j++) A[i][n]+=B[i][j]*C[j][n];
+            }
+
+    }
 //
 	public static void MAT2_MUL_VEC(double[] A,double B[][],double C[]){
 		for(int i=0;i<A.length;i++){
@@ -120,14 +136,29 @@ public  class  MTools{
 		}
 	}
 
+
+
 //	public static void MAT2_PLUS_MAT2(a,B,C,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]=(B)[i][j]+(C)[i][j];
 //
 //	public static void PLUS_MAT2(a,B,s0,s1) for(i=0;i<(s0);i++)	for(j=0;j<(s1);j++) (a)[i][j]+=(B)[i][j];
 //
 //	//for converting
-//	public static void MAT2_TO_VEC(a,B,s0,s1) for(i=0;i<(s0);i++) for(j=0;j<(s1);j++) (B)[i*(s1)+j]=(a)[i][j];
+	public static void MAT2_TO_VEC(double[][] A,double[] b){
+        int s0=A.length;
+
+        for(int i=0;i<(s0);i++){
+            int s1=A[i].length;
+            for(int j=0;j<(s1);j++)
+                b[i*(s1)+j]=A[i][j];
+        }
+    }
 //
-//	public static void VEC_TO_MAT2(B,a,s0,s1) for(i=0;i<(s0);i++) for(j=0;j<(s1);j++) (a)[i][j]=(B)[i*(s1)+j];
+	public static void VEC_TO_MAT2(double[] a, double[][] B){
+        for(int i=0;i<B.length;i++){
+            int s1=B[i].length;
+            for(int j=0;j<s1;j++) B[i][j]=a[i*s1+j];
+        }
+    }
 
 
 	public static double CalculateRMS(double[] x){
@@ -142,6 +173,10 @@ public  class  MTools{
 	// for eigen vector solver
 
 
+    /**
+     * Solve A*x=b, where A is a square matrix, x and b are vectors.
+     * @param x the solution. x is needed to be generated first.
+     */
 	public static void LinearSolver_apache(double[][] A, double[] b, double[] x) {
 //		if(A.length==1){
 //			x[0]=b[0]/A[0][0];
@@ -152,6 +187,23 @@ public  class  MTools{
 		org.apache.commons.math.linear.RealVector solution = solver.solve(bt);
 		double[] sol=solution.getData();
 		System.arraycopy(sol, 0, x, 0, sol.length);
+//		}
+	}
+
+    /**
+     * Inverse matrix A
+     * @param X the solution. X is needed to be generated first.
+     */
+    public static void InverseMatrix_apache(double[][] A, double[][] X) {
+//		if(A.length==1){
+//			x[0]=b[0]/A[0][0];
+//		}else{
+		org.apache.commons.math.linear.RealMatrix At =new org.apache.commons.math.linear.Array2DRowRealMatrix(A,false);
+		org.apache.commons.math.linear.DecompositionSolver solver = new org.apache.commons.math.linear.LUDecompositionImpl(At).getSolver();
+        org.apache.commons.math.linear.RealMatrix solution = solver.getInverse();
+
+		double[][] sol=solution.getData();
+        MAT2_PLUS_NUM(X,sol,0);
 //		}
 	}
 

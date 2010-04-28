@@ -12,11 +12,8 @@ import java.util.logging.Logger;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.DifferentiableMultivariateVectorialFunction;
 import org.apache.commons.math.analysis.MultivariateMatrixFunction;
-import org.apache.commons.math.optimization.MultivariateRealOptimizer;
 import org.apache.commons.math.optimization.OptimizationException;
-import org.apache.commons.math.optimization.RealPointValuePair;
 import org.apache.commons.math.optimization.VectorialPointValuePair;
-import org.apache.commons.math.optimization.direct.NelderMead;
 import org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -462,21 +459,21 @@ public class TaskFitPotential extends TaskCalculate {
 					fileOut=new FileWriter(new File(sFileOut));
 				}
 
-//				double[] result=new double[nparam_inp];
-//				ConvertParam(r.getPoint(),result);
-//
-//				for(int i=0;i<result.length;i++){
-//					if(fileOut!=null)
-//						fileOut.write(String.format("%f\t%f\t%f\t%d\t%s\n",result[i],lb_inp[i],ub_inp[i],fixed[i],label_inp[i]));
-//
-//					xmllog.writeEntity("Param").writeAttribute("id", Integer.toString(i));
-//					xmllog.writeAttribute("Value", Double.toString(result[i]));
-//					xmllog.writeAttribute("Lower", Double.toString(lb_inp[i]));
-//					xmllog.writeAttribute("Upper", Double.toString(ub_inp[i]));
-//					xmllog.writeAttribute("Fixed", Integer.toString(fixed[i]));
-//					xmllog.writeAttribute("Label", label_inp[i]);
-//					xmllog.endEntity().flush();
-//				}
+				double[] result=new double[nparam_inp];
+				ConvertParam(param,result);
+
+				for(int i=0;i<result.length;i++){
+					if(fileOut!=null)
+						fileOut.write(String.format("%f\t%f\t%f\t%d\t%s\n",result[i],lb_inp[i],ub_inp[i],fixed[i],label_inp[i]));
+
+					xmllog.writeEntity("Param").writeAttribute("id", Integer.toString(i));
+					xmllog.writeAttribute("Value", Double.toString(result[i]));
+					xmllog.writeAttribute("Lower", Double.toString(lb_inp[i]));
+					xmllog.writeAttribute("Upper", Double.toString(ub_inp[i]));
+					xmllog.writeAttribute("Fixed", Integer.toString(fixed[i]));
+					xmllog.writeAttribute("Label", label_inp[i]);
+					xmllog.endEntity().flush();
+				}
 				if(fileOut!=null)
 					fileOut.close();
 			xmllog.endEntity().flush();

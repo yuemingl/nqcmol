@@ -38,6 +38,15 @@ public class TaskRandomGenerateCluster extends Task {
 	@Option(name = "-DMax", usage = "Maximum distance of any neighbour molecules", metaVar = "DOUBLE")
 	double DMax=4.0;
 
+    //@Option(name = "-cubic", usage = "Confine molecules in a cubic box instead of a sphere as default", metaVar = "BOOLEAN")
+	//boolean bBox=false;
+
+    @Option(name = "-nocenter", usage = "Move mass center to origin", metaVar = "BOOLEAN")
+	boolean bNoCenter=false;
+
+    @Option(name = "-norotation", usage = "Don't randomly rotate molecules", metaVar = "BOOLEAN")
+	boolean bNoRotation=false;
+
 	@Override
 	public String getName(){
 		return "RandomGenerateCluster";
@@ -49,7 +58,8 @@ public class TaskRandomGenerateCluster extends Task {
 			parser = new CmdLineParser(this);
 			parser.parseArgument(args);
 			String output = "";
-			for (int i = 0; i < args.length; i++) {
+			for (int i = 0; i < args.length-1; i++) {
+                if(args[i].length()>=2)
 				if (args[i].substring(0, 2).contentEquals("-o")) {
 					output = args[i];
 					sFileOut = args[i + 1];
@@ -57,8 +67,7 @@ public class TaskRandomGenerateCluster extends Task {
 			}
 			//System.out.println(input+" and "+output);
 			for (int i = 0; i < Cluster.format.length; i++) {
-				String format = "-i" + Cluster.format[i];
-				format = "-o" + Cluster.format[i];
+				String format = "-o" + Cluster.format[i];
 				if (format.contentEquals(output)) {
 					sFormatOut = Cluster.format[i];
 				}
@@ -210,10 +219,12 @@ public class TaskRandomGenerateCluster extends Task {
 			for (int i = 1; i < listMol.size(); i++) {
 				double dmin = 1000;
 				double[] x=new double[3];
-				do {					
-					x[0]=(radius * (2.0 * gen.nextDouble() - 1.0));
-					x[1]=(radius * (2.0 * gen.nextDouble() - 1.0));
-					x[2]=(radius * (2.0 * gen.nextDouble() - 1.0));
+				do {
+                    //if(bBox){
+                        x[0]=radius * gen.nextDouble();
+                        x[1]=radius * gen.nextDouble();
+                        x[2]=radius * gen.nextDouble();
+                   // }
 					//if(sqrt(v.length_2())>radius) continue;
 					dmin = 1000;
 					for (int j = 0; j < i; j++) {
@@ -260,12 +271,16 @@ public class TaskRandomGenerateCluster extends Task {
 				Cluster mol = (Cluster) molLib.get(listMol.get(i)).clone();
 				//mol.Write(System.err, "xyz");
 				//randomly rotate
-				double[] axis = {gen.nextDouble(), gen.nextDouble(), gen.nextDouble()};
-				double angle = 2.0 * Math.PI * gen.nextDouble();
-				mol.RotateAxis(angle, axis);
-				axis[0] = molCoords[i * 3 + 0];
-				axis[1] = molCoords[i * 3 + 1];
-				axis[2] = molCoords[i * 3 + 2];
+                double[] axis = {gen.nextDouble(), gen.nextDouble(), gen.nextDouble()};
+                if(!bNoRotation){
+                    double angle = 2.0 * Math.PI * gen.nextDouble();
+                    mol.RotateAxis(angle, axis);
+                }
+
+                axis[0] = molCoords[i * 3 + 0];
+                axis[1] = molCoords[i * 3 + 1];
+                axis[2] = molCoords[i * 3 + 2];
+
 				mol.Translate(axis, 1);
 				result.replaceMolecule(pos, mol);
 				pos += mol.getNAtoms();
@@ -273,7 +288,8 @@ public class TaskRandomGenerateCluster extends Task {
 
 			xmllog.endEntity();
 			
-			result.Center();
+			if(!bNoCenter) result.Center();
+            
 			if (fileOut != null) {				
 				result.Write(fileOut, sFormatOut);
 			}

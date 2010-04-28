@@ -80,7 +80,7 @@ public class Cluster implements Cloneable{
 
 	protected static final int cTypeMax=cElements.length;
 
-	public final static String[] format={"xyz","g03","g03c"};
+	public final static String[] format={"xyz","g03","g03c","car"};
 
 	//================== properties of Clusters
 	/**
@@ -1278,6 +1278,7 @@ public class Cluster implements Cloneable{
 		if(format.contentEquals("int"))	isReadable=ReadInt(scanner);
 		else if(format.contentEquals("g03"))	isReadable=ReadGauOut(scanner);
 		else if(format.contentEquals("g03c"))	isReadable=ReadGauOut_C(scanner);
+        else if(format.contentEquals("car"))	isReadable=ReadCAR(scanner);
 		else
 			isReadable=ReadXYZ(scanner);
 		
@@ -1488,6 +1489,13 @@ public class Cluster implements Cloneable{
 		return true;
 	}
 
+     protected boolean ReadCAR(Scanner scanner){
+        Clear();
+		int flag=0;
+		tag="0";
+        return false;
+     }
+
 	protected boolean ReadGauOut(Scanner scanner){
 		Clear();
 		int flag=0;
@@ -1565,15 +1573,15 @@ public class Cluster implements Cloneable{
 				String substr=s.substring(16);
 
 				StringTokenizer token = new StringTokenizer(substr, "\t ,;"); 
-				freqs_tmp.add(Double.parseDouble(token.nextToken()));
-				freqs_tmp.add(Double.parseDouble(token.nextToken()));
-				freqs_tmp.add(Double.parseDouble(token.nextToken()));
+                int nToken=token.countTokens();
+                for(int m=0;m<nToken;m++)
+                    freqs_tmp.add(Double.parseDouble(token.nextToken()));
 
 				substr=scanner.nextLine().substring(16);//getline(is,s);	sscanf(s.c_str(), "Red. masses  --  %lf ",&(dtmp[0]));
 				token = new StringTokenizer(substr, "\t ,;");
-				reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
-				reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
-				reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+                for(int m=0;m<nToken;m++)
+                    reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+				
 
 				while(scanner.hasNext()){
 					substr=scanner.nextLine();//getline(is,s);	sscanf(s.c_str(), "Frc consts  --  %lf ",&(dtmp[0]));
@@ -1581,27 +1589,21 @@ public class Cluster implements Cloneable{
 				}
 
 				//while(s.find("Atom")!=0) getline(fin,s);
-				double[] v1=new double[ncoords];
-				double[] v2=new double[ncoords];
-				double[] v3=new double[ncoords];
+				double[][] v1=new double[nToken][ncoords];
 				for(int k=0;k<nAtoms;k++){
 					substr=scanner.nextLine();
 					token = new StringTokenizer(substr, "\t ,;");
 					token.nextToken();
 					token.nextToken();
-					for(int j=0;j<3;j++){
-						v1[k*3+j]=Double.parseDouble(token.nextToken());
-						//System.err.printf("%f\n", v1[k*3+j]);
-					}
-					for(int j=0;j<3;j++)
-						v2[k*3+j]=Double.parseDouble(token.nextToken());
-					for(int j=0;j<3;j++)
-						v3[k*3+j]=Double.parseDouble(token.nextToken());
+                    for(int m=0;m<nToken;m++)
+                        for(int j=0;j<3;j++)
+                            v1[m][k*3+j]=Double.parseDouble(token.nextToken());
+						//System.err.printf("%f\n", v1[k*3+j]);		
+					
 				}
 
-				normalmode_tmp.add(v1);
-				normalmode_tmp.add(v2);
-				normalmode_tmp.add(v3);
+                for(int m=0;m<nToken;m++)
+                    normalmode_tmp.add(v1[m]);
 			}
 		}
 
@@ -1695,6 +1697,8 @@ public class Cluster implements Cloneable{
 					WriteInt(writer);
 				}else	if(format.contentEquals("eps")){
 					WriteEPS(writer);
+                }else	if(format.contentEquals("car")){
+					WriteCAR(writer);
 				}else{
 					WriteXYZ(writer);
 				}
@@ -1816,6 +1820,9 @@ public class Cluster implements Cloneable{
 		}
 	}
 
+    protected void WriteCAR(Writer writer) throws  IOException{
+        writer.append("Not implemented yet.\n");
+    }
 
 	protected void WriteEPS(Writer writer) throws IOException{
 		if(nAtoms==0) return;
