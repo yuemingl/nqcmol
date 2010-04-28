@@ -44,6 +44,10 @@ public class MolExtra {
 			pot=new TTM21FPotential();
 		}
 
+        else if(sPotential.contentEquals("KJ")){
+			pot=new KJPotential();
+		}
+
 		else if(sPotential.contentEquals("g03")){
 			pot=new GaussianInterfacePotential();
 			GaussianInterfacePotential gauss=(GaussianInterfacePotential)pot;
