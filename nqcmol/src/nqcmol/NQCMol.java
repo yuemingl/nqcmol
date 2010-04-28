@@ -28,6 +28,7 @@ public class NQCMol {
         "\t gen \t - randomly generate clusters\n" +
         "\t alongVib \t - generate clusters by translating along vibrational normal modes\n" +
         "\t W2radW \t - Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n" +
+        "\t cutLattice \t - Generate clusters by cutting from lattice\n" +
 		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
 
@@ -140,6 +141,11 @@ public class NQCMol {
 
         else if(sTask.contentEquals("W2radW")){
 			Task calc=new TaskConvertWaterToRadicalWater();
+			calc.Execute(args);			return;
+		}
+
+        else if(sTask.contentEquals("cutLattice")){
+			Task calc=new TaskCutFromLattice();
 			calc.Execute(args);			return;
 		}
 

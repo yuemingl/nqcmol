@@ -6,13 +6,9 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 import java.util.Vector;
-import java.util.logging.*;
 import nqcmol.tools.MTools;
-import nqcmol.tools.XmlWriter;
 import org.kohsuke.args4j.*;
 
 /**
@@ -27,6 +23,12 @@ public class TaskRemoveDuplicateCluster extends Task{
 	@Option(name="-deltaE",usage="threshold of energy difference",metaVar="DOUBLE")
     double deltaE=0.1;
 
+    @Option(name="-retag",usage="Change tags of structures to 0,1,2,etc")
+    boolean isReTag=false;
+
+    @Option(name="-sortatom",usage="Sort atoms in descending order respect to atomic number.")
+    boolean isSortAtom=false;
+
 	@Override
 	public String getName(){
 		return "RemoveDuplicateCluster";
@@ -36,7 +38,9 @@ public class TaskRemoveDuplicateCluster extends Task{
 	protected void Initialize() {
 		super.Initialize();		
 		xmllog.writeAttribute("USRthreshold", Double.toString(lim));
-		xmllog.writeAttribute("deltaE", Double.toString(deltaE));		
+		xmllog.writeAttribute("deltaE", Double.toString(deltaE));
+        xmllog.writeAttribute("reTag", Boolean.toString(isReTag));
+        xmllog.writeAttribute("SortAtom", Boolean.toString(isSortAtom));
 	}
 
 	@Override
@@ -103,7 +107,8 @@ public class TaskRemoveDuplicateCluster extends Task{
 					if(bb[i]) {
 						if(!sFileOut.isEmpty()){
 							//if(Integer.parseInt(pop.get(i).getTag())==0)
-							//	pop.get(i).setTag(Integer.toString(count));
+							if(isReTag)	pop.get(i).setTag(Integer.toString(count));
+                            if(isSortAtom) pop.get(i).CorrectOrder();
 							//System.err.print(pop.get(i).getNAtoms());
 							pop.get(i).Write(fileOut,MTools.getExtension(sFileOut));
 						}

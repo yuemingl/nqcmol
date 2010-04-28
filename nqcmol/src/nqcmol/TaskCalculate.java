@@ -7,7 +7,6 @@ package nqcmol;
 
 //import com.thoughtworks.xstream.XStream;
 import java.io.*;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,7 +14,6 @@ import org.kohsuke.args4j.*;
 
 
 import nqcmol.potential.*;
-import nqcmol.tools.XmlWriter;
 //import org.xml.sax.SAXException;
 //import org.xml.sax.helpers.AttributesImpl;
 
