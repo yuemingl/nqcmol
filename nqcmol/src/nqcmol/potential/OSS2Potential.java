@@ -19,7 +19,7 @@ import nqcmol.tools.MTools;
  */
 public class OSS2Potential extends Potential{
 	public OSS2Potential(){
-		nativeUnit="kcal/mol";
+		nativeUnit="Hartree";
 		unit=nativeUnit;
 		ParseParameters();
 	};
