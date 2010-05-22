@@ -296,12 +296,15 @@ public class Potential {
 			optimizedE=r.getValue();
 
 			x=r.getPoint();
+            RmsGrad=this.getRMSGrad(x);
 		}else if(optMethod.contentEquals("NETMEAD")){//conjugate gradient
 
 		}
-	
+
+
 		cluster.setCoords(x);
 		cluster.setEnergy(optimizedE);
+        cluster.setRmsGrad(RmsGrad);
 
 		return (iConverged!=0);
 	}
@@ -625,7 +628,7 @@ public class Potential {
 	public double getGradientTol(){return GradTol;}
 	public void setGradientTol(double a){ GradTol=a;}
 
-	double MaxStepSize=0.01;//!< maximum step size
+	double MaxStepSize=0.1;//!< maximum step size
 	public double getMaxStepSize(){return MaxStepSize;}
 	public void setMaxStepSize(double a){ MaxStepSize=a;}
 
@@ -647,7 +650,12 @@ public class Potential {
 
 	double MaxGrad,RmsGrad;//!< Maximum gradient component and Root Mean Square of gradient, will be updated in optimization
 
-	public double getRMSGrad(double[] x){//!< return RMS of gradient of x
+    /**
+     * return RMS of gradient of coordinates x. A real gradient is performed
+     * @param x coordinates
+     * @return
+     */
+	public double getRMSGrad(double[] x){//!< 
 		if(x.length==0) return 1;
 		double[] gradient=new double[x.length];
 		getGradient(x,gradient);		

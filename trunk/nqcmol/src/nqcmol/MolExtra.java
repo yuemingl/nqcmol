@@ -32,8 +32,16 @@ public class MolExtra {
 			pot=new OSS2Potential();
 		}
 
-                else if(sPotential.contentEquals("FOSS2")){
+        else if(sPotential.contentEquals("FOSS2")){
 			pot=new FOSS2Potential();
+		}
+
+        else if(sPotential.contentEquals("OSS2_R")){
+			pot=new OSS2RPotential();
+		}
+
+        else if(sPotential.contentEquals("OSS2_FC")){
+			pot=new OSS2_FCPotential();
 		}
 
 		else if(sPotential.contentEquals("HF2")){

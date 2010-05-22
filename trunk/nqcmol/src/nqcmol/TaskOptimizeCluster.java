@@ -6,15 +6,13 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.kohsuke.args4j.*;
 
 
-import nqcmol.potential.*;
-import nqcmol.tools.XmlWriter;
+
 
 
 /**
@@ -22,6 +20,14 @@ import nqcmol.tools.XmlWriter;
  * @author nqc
  */
 public class TaskOptimizeCluster extends TaskCalculate {
+    @Option(name="-ftol",usage=" energy tolerance: default is 1e-9",metaVar="DOUBLE")
+    double ftol=1e-9;
+
+    @Option(name="-gtol",usage=" RMS of gradient tolerance: default is 1e-6",metaVar="DOUBLE")
+    double gtol=1e-6;
+
+    @Option(name="-mstep",usage=" Maximum step size of each iteration: default is 0.1",metaVar="DOUBLE")
+    double mstep=1e-1;
 
 	@Override
 	public String getName(){
@@ -35,11 +41,23 @@ public class TaskOptimizeCluster extends TaskCalculate {
 //			xmllog.writeText(" Time is measured in seconds");
 //			xmllog.endEntity();
 
+            pot.setEnergyTol(ftol);
+            pot.setGradientTol(gtol);
+            pot.setMaxStepSize(mstep);
+            
 			int i = 0;
 			while (mol.Read(fileIn, sFormatIn)) {
 				//mol.Write(System.out,"xyz");
-				double oldEnergy = mol.getEnergy();
+                
+                Cluster oldMol=(Cluster) mol.clone();
+               // for(int k=0;k<12;k++) oldMol.getUSRsig()[k]=0;
+                //MTools.PrintArray(oldMol.getUSRsig());
+                oldMol.CalcUSRsignature();
+                
+
+                double oldEnergy = mol.getEnergy();
 				pot.Optimize(mol);
+                                
 				double newEnergy = mol.getEnergy();
 				//				MultivariateRealOptimizer opt=new NelderMead();
 				//				PotentialFitting fit=new PotentialFitting();
@@ -54,9 +72,12 @@ public class TaskOptimizeCluster extends TaskCalculate {
 				//				} catch (OptimizationException ex) {
 				//					Logger.getLogger(TaskSingleCluster.class.getName()).xmllog(Level.SEVERE, null, ex);
 				//				}
-				if (fileOut!=null) {
+				if ((fileOut!=null)&& !mol.isNAN()) {
 					mol.Write(fileOut, sFormatOut);
+                    //MTools.PrintArray(mol.getUSRsig());
 				}
+                mol.CalcUSRsignature();
+                
 				xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
 				xmllog.writeAttribute("nAtoms", Integer.toString(mol.getNAtoms()));
 				xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergy));
@@ -64,6 +85,8 @@ public class TaskOptimizeCluster extends TaskCalculate {
 				xmllog.writeAttribute("NEvals", Integer.toString(pot.getNEvals()));
 				xmllog.writeAttribute("RMSGrad", Double.toString(pot.getRMSGrad()));
 				xmllog.writeAttribute("MaxRMSGrad", Double.toString(pot.getMaxGrad()));
+                xmllog.writeAttribute("Similarity", String.format("%1.2f",mol.CalcUSRSimilarity(oldMol)));
+                xmllog.writeAttribute("Error", Boolean.toString(mol.isNAN()));
 				xmllog.endEntity();
 				xmllog.flush();
 				i++;

@@ -48,6 +48,9 @@ public class Cluster implements Cloneable{
 		//System.out.println(" Come here");
 		setAtomicNumber(src.getAtomicNumber());
 		//System.out.println(" Come here");
+        double[] p=src.getUSRsig();
+        for (int i=0; i<12; i++){	USRsig[i] = p[i];}
+
 		tag=src.getTag();
 		rmsGrad=src.getRmsGrad();	
 	}
@@ -65,12 +68,22 @@ public class Cluster implements Cloneable{
 	protected static final String[] cElements={"$",
 	"H","He","Li","Be","B","C","N","O","F","Ne", //1st and 2nd round
 	"Na","Mg","Al","Si","P","S","Cl","Ar", 	//3rd round
-	"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr"};
+	"K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr",//4th round
+    "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe",//5th round
+    "Cs","Ba", //6th round
+    "La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb", //Lanthaniod
+    "Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn" //6th round
+};
 
 	protected static final String[] cAtomicNo={"0",
-	"1","2","3","4","5","6","7","8","9","10",
-	"11","12","13","14","15","16","17","18",
-	"19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"};
+	"1","2","3","4","5","6","7","8","9","10",//1st and 2nd round
+	"11","12","13","14","15","16","17","18",//3rd round
+	"19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36",//4th round
+    "37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54",//5th round
+    "55","56",//6th round
+    "57","58","59","60","61","62","63","64","65","66","67","68","69","70",//Lanthaniod
+    "71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86"//6th round
+    };
 
 
 	protected static final double[] cMass={0,
@@ -480,6 +493,14 @@ public class Cluster implements Cloneable{
 		return cMass[Nz[i]];
 	}
 
+
+    public boolean isNAN(){
+        boolean answer=false;
+
+        answer=Double.isNaN(energy);
+        for(int i=0;i<coords.length;i++) answer=Double.isNaN(coords[i]);
+        return answer;
+    }
 	//======================== Methods
 
 
@@ -1137,6 +1158,10 @@ public class Cluster implements Cloneable{
 	//======================== Similarity index
 	protected double[] USRsig=new double[12];
 
+    public double[] getUSRsig(){
+        return USRsig;
+    }
+
 	/**
 	 *
 	 * @param p: Cluster will be compared. Supposed that USR signature of p and (this) is both computed already
@@ -1318,7 +1343,7 @@ public class Cluster implements Cloneable{
 					}
 				}
 			}else if(!line.isEmpty()){
-				info= token.nextToken();     	energy = Double.parseDouble(info);
+				info= token.nextToken();     	tag=info;//energy = Double.parseDouble(info);
 			}
 
 
@@ -1661,29 +1686,37 @@ public class Cluster implements Cloneable{
 			}
 
 			//read the energy
-			if(s.contains("E(")){
+			if( ( (flag & 1) ==1) && s.contains("E(")&& s.contains("SCF Done") ){
 				int pos1=s.indexOf("=")+1;
 				int pos2=s.indexOf("A.U.");
+               // System.err.printf("pos 1 = %d pos 2 = %d\n",pos1,pos2);
 				String substr=s.substring(pos1,pos2);
 				energy=Double.parseDouble(substr);
-				//System.err.printf("%f\n",energy);
+				
 				flag|=2; //indicate energy has been collected
+
+                //System.err.printf("ERHF=%f - %d\n",energy,flag);
 			}
 
 
-			if ( s.contains("EUMP2")  ){	// wow, energy
-				String substr=s.substring(s.indexOf("EUMP2 =")+6);
-				substr.replace('D','E');
+			if ( ((flag&1)==1)&& s.contains("EUMP2")  ){	// wow, energy
+                String substr=s.substring(s.indexOf("EUMP2")+8);
+				substr=substr.replace('D','E');
+               //System.out.println(substr);
 				energy=Double.parseDouble(substr);
+               
 				flag|=2; //indicate energy has been collected
+                // System.err.printf("EUMP2=%f- %d\n",energy,flag);
 			}
 
 			//read the RMS
-			if(s.contains("RMS     Force")){
+			if( (flag==3) && s.contains("RMS     Force")){
 				String substr=s.substring(25,37);
 				rmsGrad=Double.parseDouble(substr);
+                flag=0; return true;
 			}
-			if(flag==3){ 	flag=0; return true;}
+            
+			if((flag==3) && s.contains("Population")){ 	flag=0; return true;}
 		}
 		return false;
 	}
@@ -1914,4 +1947,32 @@ public class Cluster implements Cloneable{
 		//output
 		writer.append(s);
 	}
+
+    protected void WritePDB(Writer writer) throws IOException{
+        if(nAtoms>=1){
+//            String s1 = "TITLE     "+tag+ "\n";
+//			writer.append(s1);
+//            s1="AUTHOR NGUYEN QUOC CHINH\n";
+//                    //"CRYST1    ";
+//           // for(i=0;i<DGR;i++)	os<<setw(8)<<setprecision(3)<<left<<fixed<<a[i]<<" ";
+//            //for(i=0;i<DGR;i++)	os<<setw(6)<<setprecision(2)<<left<<fixed<<alpha[i]*180.0/M_PI<<" ";
+//            //s1="  P 1           1\n";   writer.append(s1);
+//            s1+="MODEL        1\n"; writer.append(s1);
+//
+//            for(int i=0;i<nAtoms;i++){
+//                s1=String.format("ATOM %6d",i);
+//                if(Nz[i]==O)
+//                    switch(k){
+//                        case 0:os<<"  "<<Elements[inv.Nz[k]]<<"W  SOL     "<<i+1<<"    ";break;
+//                        default:os<<"  "<<Elements[inv.Nz[k]]<<"W"<<k<<" SOL     "<<i+1<<"    ";break;
+//                    }
+//                    for(j=0;j<DGR;j++)	os<<format("%7.3lf ")%inv.x[k*DGR+j];
+//                    os<<" 1.00  0.00"<<endl;
+//                }
+//            }
+//            os<<"TER"<<endl;
+//            os<<"ENDMDL"<<endl;
+        }
+    }
+
 }

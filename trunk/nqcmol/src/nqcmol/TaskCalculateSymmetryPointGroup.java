@@ -11,6 +11,8 @@ import java.util.logging.Logger;
 
 
 
+import org.kohsuke.args4j.*;
+
 import nqcmol.symmetry.PointGroup;
 import nqcmol.symmetry.Symmetry;
 
@@ -19,6 +21,15 @@ import nqcmol.symmetry.Symmetry;
  * @author nqc
  */
 public class TaskCalculateSymmetryPointGroup extends Task{
+
+    @Option(name="-final",usage="Final criterion for atom equivalence",metaVar="DOUBLE")
+    double tolFinal= 5e-2;
+
+    @Option(name="-primary",usage="Initial criterion for atom equivalence",metaVar="DOUBLE")
+    double tolInitial= 5e-2;
+
+    @Option(name="-same",usage="Atoms are colliding if distance falls below this value",metaVar="DOUBLE")
+    double tolSame= 1e-3;
 
 	@Override
 	public String getName(){
@@ -33,6 +44,9 @@ public class TaskCalculateSymmetryPointGroup extends Task{
 			Cluster mol=new Cluster();
 			while (mol.Read(fileIn, sFormatIn)) {
 				Symmetry sym=new Symmetry();
+                sym.setToleranceFinal(tolFinal);
+                sym.setTolerancePrimary(tolInitial);
+                sym.setToleranceSame(tolSame);
 				Symmetry.CalculateSymmetry(sym, mol,verbose);
 				
 				xmllog.writeEntity("Cluster");
@@ -50,7 +64,7 @@ public class TaskCalculateSymmetryPointGroup extends Task{
 				xmllog.endEntity();
 				xmllog.flush();
 				i++;
-				break;
+				//break;
 			}
 			fileIn.close();
 		} catch (IOException ex) {

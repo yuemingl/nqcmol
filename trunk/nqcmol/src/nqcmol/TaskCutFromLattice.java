@@ -58,7 +58,7 @@ public class TaskCutFromLattice extends Task {
 			xmllog.writeAttribute("DMin", Double.toString(DMin));
 			xmllog.writeAttribute("DMax", Double.toString(DMax));
 
-            Lattice lat=new Lattice();
+            Crystal lat=new Crystal();
             lat.Read(fileIn, sFormatIn);
             lat.Write(System.out, "car");
 		
