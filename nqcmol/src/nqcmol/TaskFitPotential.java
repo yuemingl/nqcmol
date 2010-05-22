@@ -15,73 +15,24 @@ import org.apache.commons.math.analysis.MultivariateMatrixFunction;
 import org.apache.commons.math.optimization.OptimizationException;
 import org.apache.commons.math.optimization.VectorialPointValuePair;
 import org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
+import org.kohsuke.args4j.*;
 
 
+import org.jgap.*;
+import org.jgap.impl.*;
 
 /**
  *
  * @author nqc
  */
 public class TaskFitPotential extends TaskCalculate {		
-	public class APACHEObjectiveFunction implements DifferentiableMultivariateVectorialFunction {//used with apache commom optimization
-		public class Jacobian implements MultivariateMatrixFunction {
-				@Override
-				public double[][] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
-					double[][] result=new double[data.size()][a.length];
-					double ratio=1e-3;
-
-					//one point jacobian
-					double[] y0=APACHEObjectiveFunction.this.value(a);
-					for(int i=0;i<a.length;i++){
-						//double delta=Math.abs(a[i])*ratio;
-						double delta=ratio;
-						double tmp=a[i];
-						a[i]+=delta;
-						double[] y2=APACHEObjectiveFunction.this.value(a);
-						a[i]=tmp;
-						for(int j=0;j<result[i].length;j++)
-							result[i][j]=(y2[j]-y0[j])/(delta);
-					}
-
-					//two points jacobian
-//					for(int i=0;i<a.length;i++){
-//						double delta=Math.abs(a[i])*ratio;
-//						a[i]-=delta;
-//						double[] y1=APACHEObjectiveFunction.this.value(a);
-//						a[i]+=2*delta;
-//						double[] y2=APACHEObjectiveFunction.this.value(a);
-//						a[i]-=delta;
-//						for(int j=0;j<result[i].length;j++)
-//							result[i][j]=(y2[j]-y1[j])/(2*delta);
-//					}
-
-
-					return result;
-				}
-			}
-
-		Jacobian jacobian=new Jacobian();
-
-		@Override
-		public MultivariateMatrixFunction jacobian() {			
-			return jacobian;
-		}
-
-		@Override
-		public double[] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
-			double[] y=new double[data.size()];
-			Evaluate(a,y,0);
-			//System.err.printf(" valuesize=%d\n", y.length);
-			return y;
-		}
-
-	}
+	
 
 	@Option(name="-ref",usage="to calculate binding energies. It MUST be in F_XYZ format and in the following order: neutral, protonated, deprotonated. ",metaVar="FILE")
-	String sFileRef="";	
+	String sFileRef="";
+
+    @Option(name="-random",usage="Randomize the input parameters withing the range")
+	boolean isRandom=false;
 		
 	final int cParamMax=100;
 
@@ -275,6 +226,7 @@ public class TaskFitPotential extends TaskCalculate {
 	protected void Initialize(){
 	try {
 		xmllog.writeAttribute("InputFile", sFileIn).writeAttribute("FormatInput", sFormatIn);
+        xmllog.writeAttribute("RandomParam", Boolean.toString(isRandom));
 		xmllog.writeAttribute("Verbose", Integer.toString(verbose));
 
 		xmllog.writeEntity("Initialize");
@@ -306,6 +258,11 @@ public class TaskFitPotential extends TaskCalculate {
 				label_inp[i] = tokenizer.nextToken() + " ";
 			}
 			//sscanf(line.c_str(),"%lf %lf %lf %d %line", &param_inp[nparam_inp], &lb_inp[nparam_inp], &ub_inp[nparam_inp], &fixed[nparam_inp]);
+
+            if((isRandom)&&(fixed[i]==0)){
+                param_inp[i]=lb_inp[i]+Math.random()*(ub_inp[i]-lb_inp[i]);
+            }
+
 			nfixed += fixed[i];
 			xmllog.writeEntity("Param").writeAttribute("id", Integer.toString(i));
 			xmllog.writeAttribute("Value", Double.toString(param_inp[i]));
@@ -403,7 +360,27 @@ public class TaskFitPotential extends TaskCalculate {
 	}
 
 }
-	
+
+    int nIterations=0;
+    int nEvaluations=0;
+    double finalRMS=0;
+
+    protected void WriteParam(double[] param){
+        try {
+            if (!sFileOut.isEmpty()) {
+                fileOut = new FileWriter(new File(sFileOut));
+            }
+            double[] result = new double[nparam_inp];
+            ConvertParam(param, result);
+            for (int i = 0; i < result.length; i++) {
+                fileOut.write(String.format("%f\t%f\t%f\t%d\t%s\n", result[i], lb_inp[i], ub_inp[i], fixed[i], label_inp[i]));
+            }
+            fileOut.close();
+        } catch (IOException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
 	@Override
 	protected void Process(){
 		try {
@@ -414,58 +391,33 @@ public class TaskFitPotential extends TaskCalculate {
 			xmllog.writeEntity("Optimization");
 				long duration=System.currentTimeMillis();
 
-				APACHEObjectiveFunction obj=new APACHEObjectiveFunction();
-				
-				LevenbergMarquardtOptimizer fit=new LevenbergMarquardtOptimizer();
-				double[] newweight=new double[weight.size()];
-				for(int i=0;i<newweight.length;i++) newweight[i]=weight.get(i);
-				
-				//System.err.printf("targetsize=%d \n",target.length);
-				fit.setCostRelativeTolerance(1e-14);
-				fit.setOrthoTolerance(1e-14);
-				fit.setParRelativeTolerance(1e-14);
-				
-				VectorialPointValuePair r=fit.optimize(obj, target, newweight, param);
-				param=r.getPoint();
-//
-
-				//MTools.PrintArray(y);			
-//				MultivariateRealOptimizer fit = new NelderMead();
-//				RealPointValuePair r = null; //=new RealPointValuePair();
-//
-
-
-				//double finalRMS=Math.sqrt(fit.getChiSquare());
-
-				int nIterations=fit.getIterations();
-				double finalRMS=fit.getRMS();
-
+                //FitUsingApache();
+                FitUsingGA();
 				duration=(System.currentTimeMillis()-duration);
 				
-				xmllog.writeAttribute("TotalRMS", Double.toString(finalRMS));
-				xmllog.writeAttribute("MaxInterations", Integer.toString(fit.getMaxIterations()));
-				xmllog.writeAttribute("MaxEvaluations", Integer.toString(fit.getMaxEvaluations()));
-				xmllog.writeAttribute("Interations", Integer.toString(fit.getIterations()));
-				xmllog.writeAttribute("Evaluations", Integer.toString(fit.getEvaluations()));
-				xmllog.writeAttribute("Duration", Double.toString(duration/1000.0));
 			xmllog.endEntity().flush();
+
+            xmllog.writeEntity("ConvergenceInfo");
+                    xmllog.writeAttribute("TotalRMS", Double.toString(finalRMS));
+                    //xmllog.writeAttribute("MaxInterations", Integer.toString(fit.getMaxIterations()));
+                    //xmllog.writeAttribute("MaxEvaluations", Integer.toString(fit.getMaxEvaluations()));
+                    xmllog.writeAttribute("Iterations", Integer.toString(nIterations));
+                    xmllog.writeAttribute("Evaluations", Integer.toString(nEvaluations));
+                    xmllog.writeAttribute("Duration", Double.toString(duration/1000.0));
+            xmllog.endEntity().flush();
 
 			xmllog.writeEntity("FinalEvaluation");
 				Evaluate(param, 4);
 			xmllog.endEntity().flush();
 			
 			xmllog.writeEntity("FinalParameters");	
-				if(!sFileOut.isEmpty()){
-					fileOut=new FileWriter(new File(sFileOut));
-				}
+				WriteParam(param);
 
 				double[] result=new double[nparam_inp];
 				ConvertParam(param,result);
 
-				for(int i=0;i<result.length;i++){
-					if(fileOut!=null)
-						fileOut.write(String.format("%f\t%f\t%f\t%d\t%s\n",result[i],lb_inp[i],ub_inp[i],fixed[i],label_inp[i]));
 
+				for(int i=0;i<result.length;i++){					
 					xmllog.writeEntity("Param").writeAttribute("id", Integer.toString(i));
 					xmllog.writeAttribute("Value", Double.toString(result[i]));
 					xmllog.writeAttribute("Lower", Double.toString(lb_inp[i]));
@@ -474,14 +426,8 @@ public class TaskFitPotential extends TaskCalculate {
 					xmllog.writeAttribute("Label", label_inp[i]);
 					xmllog.endEntity().flush();
 				}
-				if(fileOut!=null)
-					fileOut.close();
 			xmllog.endEntity().flush();
 
-		} catch (OptimizationException ex) {
-			Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (FunctionEvaluationException ex) {
-			Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (IllegalArgumentException ex) {
 			Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
 		} catch (IOException ex) {
@@ -489,5 +435,244 @@ public class TaskFitPotential extends TaskCalculate {
 		}
 	}
 
-	
+     //=================== for APACHE fitting
+    public class APACHEObjectiveFunction implements DifferentiableMultivariateVectorialFunction {//used with apache commom optimization
+            public class Jacobian implements MultivariateMatrixFunction {
+				@Override
+				public double[][] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
+					double[][] result=new double[data.size()][a.length];
+					double ratio=1e-3;
+
+					//one point jacobian
+					double[] y0=APACHEObjectiveFunction.this.value(a);
+					for(int i=0;i<a.length;i++){
+						//double delta=Math.abs(a[i])*ratio;
+						double delta=ratio;
+						double tmp=a[i];
+						a[i]+=delta;
+						double[] y2=APACHEObjectiveFunction.this.value(a);
+						a[i]=tmp;
+						for(int j=0;j<result[i].length;j++)
+							result[i][j]=(y2[j]-y0[j])/(delta);
+					}
+
+					//two points jacobian
+//					for(int i=0;i<a.length;i++){
+//						double delta=Math.abs(a[i])*ratio;
+//						a[i]-=delta;
+//						double[] y1=APACHEObjectiveFunction.this.value(a);
+//						a[i]+=2*delta;
+//						double[] y2=APACHEObjectiveFunction.this.value(a);
+//						a[i]-=delta;
+//						for(int j=0;j<result[i].length;j++)
+//							result[i][j]=(y2[j]-y1[j])/(2*delta);
+//					}
+
+
+					return result;
+				}
+			}
+
+		Jacobian jacobian=new Jacobian();
+
+		@Override
+		public MultivariateMatrixFunction jacobian() {
+			return jacobian;
+		}
+
+		@Override
+		public double[] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
+			double[] y=new double[data.size()];
+			Evaluate(a,y,0);
+			//System.err.printf(" valuesize=%d\n", y.length);
+			return y;
+		}
+
+	}
+
+	protected void FitUsingApache(){
+        try {
+            APACHEObjectiveFunction obj = new APACHEObjectiveFunction();
+            LevenbergMarquardtOptimizer fit = new LevenbergMarquardtOptimizer();
+            double[] newweight = new double[weight.size()];
+            for (int i = 0; i < newweight.length; i++) {
+                newweight[i] = weight.get(i);
+            }
+            //System.err.printf("targetsize=%d \n",target.length);
+            fit.setCostRelativeTolerance(1e-14);
+            fit.setOrthoTolerance(1e-14);
+            fit.setParRelativeTolerance(1e-14);
+            fit.setMaxIterations(nOpts);
+            fit.setMaxEvaluations(100*nOpts);
+
+            //fitting here
+            
+            VectorialPointValuePair r = fit.optimize(obj, target, newweight, param);
+            
+            param = r.getPoint(); //
+           
+            nIterations = fit.getIterations();
+            nEvaluations = fit.getEvaluations();
+            finalRMS = fit.getRMS();
+        } catch (FunctionEvaluationException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (OptimizationException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IllegalArgumentException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /*/=================== for LMA fitting
+    public class LMAObjectiveFunction extends LMAMultiDimFunction {
+        @Override
+        public double getY(double[] x, double[] a) {
+                double[] alpha=new double[nparam_inp];
+                ConvertParam(a,alpha);
+                pot.setParam(alpha);
+
+                //calculate
+                double[] ener_shift=new double[molRef.size()];
+
+                for(int i=0; i<molRef.size(); i++){
+                        Cluster m=molRef.get(i);
+                        pot.setCluster(m);
+                        ener_shift[i] = pot.getEnergy(m.getCoords());
+                }
+
+                int i=0;//=(int)x;
+                Cluster m=data.get(i);
+                //calculate binding energy
+                double ener = pot.getEnergy(m.getCoords());
+
+                int index=MolExtra.indexForBE(m, molRef);
+                double y = ener - ener_shift[0]*(m.getNonHydrogenNum()-1) - ener_shift[index];
+                return y;
+        }
+
+        @Override
+        public double getPartialDerivate(double[] x, double[] a, int parameterIndex) {
+            double[] t=a.clone();
+                double delta=1e-5;
+                t[parameterIndex]-=delta;
+                double y1=getY(x,t);
+                t[parameterIndex]+=2*delta;
+                double y2=getY(x,t);
+
+                return (y2-y1)/(2*delta);
+        }
+	}
+
+    protected void FitUsingLMA(){
+        //MultivariateRealOptimizer fit = new NelderMead();
+    	//RealPointValuePair r = null; //=new RealPointValuePair();
+        //double finalRMS=Math.sqrt(fit.getChiSquare());
+
+        LMA lma = new LMA(
+			new LMAObjectiveFunction(),
+			new double[] {1, 1, 1},
+			new double[][] {
+				// y x0 x1
+				{0, 2, 6},
+				{5, 10, 2},
+				{7, 20, 4},
+				{9, 30, 7},
+				{12, 40, 6}
+			}
+		);
+		lma.fit();
+
+        nIterations=lma.iterationCount;
+        finalRMS= Math.sqrt(lma.chi2);
+
+		
+//			"param0: " + lma.parameters[0] + ",\n" +
+//			"param1: " + lma.parameters[1] + ",\n" +
+//			"param2: " + lma.parameters[2]
+//		
+    }
+    */
+
+    //=================== for GA fitting
+    public class GAFitnessFunction  extends FitnessFunction{
+        @Override
+        protected double evaluate(IChromosome indv) {
+            double rms=0;
+            double[] x=new double[indv.size()];
+            for (int i = 0; i < indv.size(); i++) {
+                    DoubleGene gene = (DoubleGene)indv.getGene(i);
+                    x[i]=gene.doubleValue();
+            }
+            rms=1./Evaluate(x,0);
+            return rms;
+        }
+    }
+
+    protected void FitUsingGA(){      
+        try {
+            Configuration conf = new DefaultConfiguration();
+            FitnessFunction myFunc =   new GAFitnessFunction();
+            conf.setFitnessFunction(myFunc);
+            
+            conf.setPreservFittestIndividual(true);
+            conf.setKeepPopulationSizeConstant(false);
+            Gene[] sampleGenes = new Gene[param.length];
+            for (int i = 0; i < param.length; i++) {
+                    DoubleGene gene = new DoubleGene(conf, lb[i], ub[i]);
+                    
+                    sampleGenes[i] = gene;
+            }
+
+            IChromosome sampleChromosome = new Chromosome(conf, sampleGenes);
+            conf.setSampleChromosome(sampleChromosome);
+            // Finally, we need to tell the Configuration object how many
+            // Chromosomes we want in our population. The more Chromosomes,
+            // the larger number of potential solutions (which is good for
+            // finding the answer), but the longer it will take to evolve
+            // the population (which could be seen as bad).
+            // ------------------------------------------------------------
+            conf.setPopulationSize(50);
+             // Create random initial population of Chromosomes.
+            // ------------------------------------------------
+            Genotype population = Genotype.randomInitialGenotype(conf);
+                         
+            // Evolve the population. Since we don't know what the best answer
+            // is going to be, we just evolve the max number of times.
+            // ---------------------------------------------------------------
+            int percentEvolution = nOpts / 100;
+            for (int i = 0; i < nOpts; i++) {
+              population.evolve();
+              if (( i % percentEvolution == 0) || i==(nOpts-1)) {
+                  IChromosome fittest = population.getFittestChromosome();
+                  double fitness = fittest.getFitnessValue();
+
+                  xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(i));
+					xmllog.writeAttribute("RMS", Double.toString(1.0/fitness));
+				  xmllog.endEntity().flush();
+                  
+                  double[] currentParam=new double[fittest.size()];
+                  for (int k = 0; k < fittest.size(); k++) {
+                    DoubleGene gene = (DoubleGene)fittest.getGene(k);
+                    currentParam[k]=gene.doubleValue();
+                  }
+                  WriteParam(currentParam);
+                }
+            }
+            
+
+           IChromosome bestSolutionSoFar = population.getFittestChromosome();
+           finalRMS=1.0/bestSolutionSoFar.getFitnessValue();
+                     
+           for (int i = 0; i < bestSolutionSoFar.size(); i++) {
+                    DoubleGene gene = (DoubleGene)bestSolutionSoFar.getGene(i);
+                    param[i]=gene.doubleValue();
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InvalidConfigurationException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        }
+              
+    }
 }
+

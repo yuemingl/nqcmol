@@ -11,19 +11,17 @@ import java.text.SimpleDateFormat;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.Vector;
-import java.util.logging.*;
 import nqcmol.tools.MTools;
-import nqcmol.tools.XmlWriter;
 
 /**
  *
  * @author nqc
  */
-public class Lattice extends Cluster{
-	public Lattice(){
+public class Crystal extends Cluster{
+	public Crystal(){
 	};
 		
-	public void Get(Lattice src){
+	public void Get(Crystal src){
 		//System.out.println(" Come here");
 		setNAtoms(src.getNAtoms());
 		//System.out.println(" Come here");
@@ -61,23 +59,55 @@ public class Lattice extends Cluster{
 
         return nAtom;
     }
-/*
-//private functions
+ */
+
+    @Override
+    public void dR(int i,int j,double[] dr){
+			for(int l=0;l<3;l++)	dr[l]=coords[j*3+l]-coords[i*3+l];
+			TransformVec(dr);
+	}
+
+
+
+
+    /**
+     * Transform vector v to equivalent and minimal vector in unit cell
+     * @param v
+     */
     private void  TransformVec(double[] v){
-        int l[3],i,j;
-        for(i=0;i<3;i++){
-            double d=(v[0]*x[(nAtom+i)*3+0] +v[1]*x[(nAtom+i)*3+1]+v[2]*x[(nAtom+i)*3+2]);
-            d/=SQR(a[i]);
+        int[] l=new int[3];
+        for(int i=0;i<3;i++){
+            double d=MTools.DOTPRODUCT(v,A[i])/MTools.SQR(a[i]);
+            l[i]=-(int)(d);
+            d=d+l[i];
             //cout<<endl<<i<<" - "<<d<<" "<<a[i]<<endl;
-            if(d>0.5) l[i]=-1;
-            else if(d<-0.5) l[i]=1;
-                    else l[i]=0;
+            if(d>0.5) l[i]-=1;
+            else if(d<-0.5) l[i]+=1;
         }
 
-        for(i=0;i<3;i++)
-            v[i]+=l[0]*x[(nAtom+0)*3+i]+l[1]*x[(nAtom+1)*3+i]+l[2]*x[(nAtom+2)*3+i];
+        for(int i=0;i<3;i++)
+            v[i]+=l[0]*A[i][0]+l[1]*A[i][1]+l[2]*A[i][2];
     }
-*/
+
+    public double getCellLength(int i){
+        return a[i];
+    }
+
+    public void setCellLength(double a0,double a1,double a2){
+        a[0]=a0;    a[1]=a1;    a[2]=a2;
+    }
+
+
+    public double getCellAngle(int i){
+        return alpha[i];
+    }
+
+    public void setCellAngle(double a0_degree,double a1_degree,double a2_degree){
+        alpha[0]=Math.toRadians(a0_degree);
+        alpha[1]=Math.toRadians(a1_degree);
+        alpha[2]=Math.toRadians(a2_degree);
+    }
+
 
     public int ConvertToFract(boolean toFrag){
         CalcAB();
@@ -119,16 +149,7 @@ public class Lattice extends Cluster{
     public boolean isCalcAB() {
         return isCalcAB;
     }
-
-    /**
-     * Set the value of CalcAB
-     *
-     * @param CalcAB new value of CalcAB
-     */
-    public void setCalcAB(boolean CalcAB) {
-        this.isCalcAB = CalcAB;
-    }
-
+    
     public int CalcAB(){ //calculate A and B matrice
         A[0][0]=a[0];
         A[0][1]=0;

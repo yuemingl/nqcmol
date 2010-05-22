@@ -26,7 +26,8 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 	protected void Process() {
 		try {
 			int i = 0;
-			while (mol.Read(fileIn, sFormatIn)) {
+			while (mol.Read(fileIn, sFormatIn))
+            if(mol.getNAtoms()>2){
 				//mol.Write(System.err, "xyz");
 				//calculate Hessian
 //				pot.getGradient(mol);
@@ -45,6 +46,10 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 				xmllog.writeAttribute("LargestFreq", Double.toString(mol.getFreqs(mol.getFreqs().length - 1)));
 				xmllog.endEntity();
 				xmllog.flush();
+
+                if ((fileOut!=null)&& !mol.isNAN()) {
+					mol.Write(fileOut, sFormatOut);
+				}
 				i++;
 
 			}

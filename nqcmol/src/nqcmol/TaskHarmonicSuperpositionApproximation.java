@@ -263,7 +263,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 			for(double T=Tmin;T<=Tmax;T+=dT){
 					ScanLnZ(T);
 					calcZp_all(2);
-					
+
 					calcPopularity_group();
 
 					if(fileOut!=null){

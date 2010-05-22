@@ -5,7 +5,6 @@
 
 package nqcmol.potential;
 
-import java.util.Collections;
 import nqcmol.Cluster;
 import nqcmol.tools.MTools;
 

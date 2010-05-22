@@ -29,6 +29,7 @@ public class NQCMol {
         "\t alongVib \t - generate clusters by translating along vibrational normal modes\n" +
         "\t W2radW \t - Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n" +
         "\t cutLattice \t - Generate clusters by cutting from lattice\n" +
+        "\t rdf \t - Calculate Radial Distribution Function\n" +
 		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
     String sTask="";
 
@@ -131,6 +132,11 @@ public class NQCMol {
 
 		else if(sTask.contentEquals("sim")){
 			Task calc=new TaskRemoveDuplicateCluster();
+			calc.Execute(args);			return;
+		}
+
+        else if(sTask.contentEquals("rdf")){
+			Task calc=new TaskCalculateRadialDistributionFunction();
 			calc.Execute(args);			return;
 		}
 
