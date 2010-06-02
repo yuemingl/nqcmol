@@ -21,14 +21,28 @@ import org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer;
 import org.kohsuke.args4j.Option;
 
 
+import org.xml.sax.SAXException;
+
+// DOM classes.
+import org.w3c.dom.*;
+//JAXP 1.1
+import javax.xml.parsers.*;
+import javax.xml.transform.*;
+import javax.xml.transform.stream.*;
+import javax.xml.transform.dom.*;
+
+
 /**
  *
  * @author nqc
  */
 public class TaskAnharmonicVibrationAnalysis extends Task {
 
-	@Option(name="-a",usage="parameter for Gaussian. It should be in this format \"method@charge@multiplicity\". For example: \"b3lyp\6-31+G*@0@1\" (note the quote)",metaVar="STRING")
-    String sFileParam="hf/31G@1@1";
+	@Option(name="-a",usage="parameter for Gaussian. It should be in this format \"method@charge@multiplicity\". For example: \"b3lyp/6-31+G*@0@1\" (note the quote)",metaVar="STRING")
+    String sFileParam="hf/3-21G@0@1";
+
+    //@Option(name="-xml",usage="input XML file generated from Gaussian scaling. If specified, the program will perform fitting instead of sanning ",metaVar="STRING")
+    //String sFileXML="";
 
 	private String basisSet="";
 	private String chargeAndMultiplicity="0 1";
@@ -42,60 +56,67 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 		return "AnharmonicVibrationAnalysis";
 	}
 
-	@Override
+    static final public String Option="anvib";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "anharmonic vibration analysis\n";
+
+   	@Override
 	protected void Initialize() {
 		try {
 			super.Initialize();
-			pot = MolExtra.SetupPotential("g03", sFileParam, "Hartree", "");
-			assert (pot.getEquation().contains("Gaussian"));
-			gau = (GaussianInterfacePotential) pot;
-			xmllog.writeNormalText(gau.Info(1));
-			basisSet = gau.getBasisSet();
-			chargeAndMultiplicity = gau.getChargeAndMultiplicity();
-			String filename = (new File(sFileIn)).getName();
-			String ext = (filename.lastIndexOf(".") == -1) ? "" : filename.substring(filename.lastIndexOf(".") + 1, filename.length());
-			sFileCheckPoint = filename.replace("." + ext, "");
+            if(!sFormatIn.contentEquals("xml")){
+                pot = MolExtra.SetupPotential("g03", sFileParam, "Hartree", "");
+                assert (pot.getEquation().contains("Gaussian"));
+                gau = (GaussianInterfacePotential) pot;
+                xmllog.writeNormalText(gau.Info(1));
+                basisSet = gau.getBasisSet();
+                chargeAndMultiplicity = gau.getChargeAndMultiplicity();
+
+               int dot = sFileIn.lastIndexOf('.');
+              // String ext=sFileIn.substring(dot + 1);
+               int sep = sFileIn.lastIndexOf('/');
+               sFileCheckPoint=sFileIn.substring(sep + 1, dot);
+            }
+			//String filename = (new File(sFileIn)).getName();
+			//String ext = (filename.lastIndexOf(".") == -1) ? "" : filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+			//sFileCheckPoint = filename.replace("." + ext, "");
 		} catch (IOException ex) {
 			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
-
+   
 
 	@Override
 	protected void Process() {
 		try {
-//			xmllog.writeEntity("Note");
-//			xmllog.writeText(" Time is measured in seconds");
-//			xmllog.endEntity();
-			if (cluster.Read(fileIn, "g03")) {
-				//Reading normal modes
-				cluster.setTag((new File(sFileIn)).getName());
-				xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
-				xmllog.writeAttribute("nAtom", Integer.toString(cluster.getNAtoms()));
-				xmllog.writeAttribute("Energy", Double.toString(cluster.getEnergy()));
-				if(cluster.getNormalModeVectors()!=null){
-					
-					if(iMode==-1){
-						for(int i=0;i<cluster.getFreqs().length;i++){
-							CalculateAnharmonicityFreq(i);
-						}
-					}else{
-						int iFrom=iMode;
-						int iTo= Math.min(iMode + nModes,cluster.getFreqs().length);
-						for(int i=iFrom;i<iTo;i++){
-							CalculateAnharmonicityFreq(i);
-						}
-					}
-				}
+			xmllog.writeEntity("Note");
+			xmllog.writeText(" There are two steps to calculate anharmonic frequencye. Firstly, perform Gaussian scanning  and pipeline the results to an XML file. Then, use XML file generated to approximate frequencies. Remember to specify the output file in the second step.");
+			xmllog.endEntity();
+            if(!sFormatIn.contentEquals("xml")){//Gaussian scanning
+                if (cluster.Read(fileIn, "g03")) {
+                    //Reading normal modes
+                    cluster.setTag((new File(sFileIn)).getName());
+                    xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
+                    xmllog.writeAttribute("nAtom", Integer.toString(cluster.getNAtoms()));
+                    xmllog.writeAttribute("Energy", Double.toString(cluster.getEnergy()));
+                    if(cluster.getNormalModeVectors()!=null){
+                        int iFrom=iMode;
+                        int iTo=Math.min(iMode + nModes,cluster.getFreqs().length);
+                        if(iMode==-1){  iFrom=0; iTo=cluster.getFreqs().length;}
+                            
+                        for(int i=iFrom;i<iTo;i++)  ScanningAlongNormalModes(i);
+                    }
+                    xmllog.endEntity().flush();
+                }
+            }else{// perform fitting
+                ParseXMLFile();
+            }
 
-				xmllog.endEntity().flush();
-			}
 			fileIn.close();
 		} catch (IOException ex) {
 			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
-
 
 	///===================
 	@Option(name = "-np", usage = "number of processors using in Gaussian. Default is 1.", metaVar = "INTEGER")
@@ -103,8 +124,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 
 	@Option(name = "-num", usage = "number of points using in approximation. Default is 5.", metaVar = "INTEGER")
 	int nPoints=5;
-	double[] delta=null;
-	double[] energies=null;
+	
 
 	@Option(name = "-m", usage = "starting mode to be calculated (count from 0), number of calculated modes is determined from -nmodes option. If -1 (default), all normal modes will be calculated.", metaVar = "INTEGER")
 	int iMode=-1;
@@ -115,13 +135,19 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 	@Option(name = "-degree", usage = "Maximum degree in approximation. Default is 2.", metaVar = "INTEGER")
 	int degree=2;
 
-
 	@Option(name = "-maxX", usage = "maximum displacement in approximation", metaVar = "INTEGER")
-	double deltaX=0.2;
+	double maxX=0.2;
 
 	Cluster cluster=new Cluster();
 
-	void CalculateAnharmonicityFreq(int m) throws IOException{
+	void ScanningAlongNormalModes(int m) throws IOException{
+        double[] deltaX=new double[nPoints];
+        for(int i=0;i<nPoints;i++){
+			//temporary scaling factor
+			double beta=(2.0*i/(nPoints-1)-1)*maxX;
+			deltaX[i]=beta;
+        }
+
 		xmllog.writeEntity("NormalMode").writeAttribute("id", Integer.toString(m));
 			if((m>=cluster.getFreqs().length)||(m<0))
 				xmllog.writeText(String.format("Error. Mode %d is not valid because it is not in between [0,%d)",m,cluster.getFreqs().length));
@@ -139,181 +165,323 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 				}
 				xmllog.endEntity().flush();
 				//generate gaussian input
-				xmllog.writeEntity("GaussianCalling");
-				String sGaussianInput = GenGaussianInputFromNormalModes(m);
+				xmllog.writeEntity("GaussianScanning");
+				String sGaussianInput = GenGaussianInputFromNormalModes(m,deltaX);
 				//System.err.println(sGaussianInput);
 				gau.setCluster(cluster);
+
+                double[] energies=null;
 				energies = gau.getEnergies(sGaussianInput);
 				for (int j = 0; j < energies.length; j++) {
 					xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j+1));
-					xmllog.writeAttribute("DeltaX", Double.toString(delta[j]));
+					xmllog.writeAttribute("DeltaX", Double.toString(deltaX[j]));
 					xmllog.writeAttribute("Energy", Double.toString(energies[j]));
 					xmllog.endEntity().flush();
 				}
+                xmllog.writeEntity("Duration");
+					xmllog.writeNormalText(Double.toString((System.currentTimeMillis()-duration)/1000.0));
 				xmllog.endEntity().flush();
 
-				double[] params=null,calcE=null;
-				double anFreq=0;
-
-				//Polynomial approximation
-				xmllog.writeEntity("PolynomialFitting");
-					PolynomialFit(params,calcE,degree);
-						double reducedMass=cluster.getReducedMass(m);//in amu
-						double forceConst=params[2]*2;//in Hartree.Angstrom^-2
-						double kConvert=Math.sqrt(5.4857990943e-4)*1e8*7.297352569e-3;
-						anFreq=kConvert*Math.sqrt(forceConst/reducedMass)/(2.0*Math.PI);//in cm-1
-					xmllog.writeAttribute("AnFreq",Double.toString(anFreq));
-
-					//details of parameters
-					for (int j = 0; j < params.length; j++) {
-						xmllog.writeEntity("Term").writeAttribute("Degree", Integer.toString(j));
-						xmllog.writeAttribute("Coefficient", Double.toString(params[j]));
-						xmllog.endEntity().flush();
-					}
-					//writing validity of fitting: rmsE etc
-					WriteValidity(calcE);
-				xmllog.endEntity().flush();
-
-
-				//Morse fitting
-//				xmllog.writeEntity("MorsePotentialFitting");
-//					MorseFit(params,calcE);
-//					double De=params[0];
-//					double alpha=params[1];
-//					//results
-//					xmllog.writeAttribute("AnFreq",Double.toString(anFreq));
-//
-//					//details of parameters
-//					xmllog.writeAttribute("De", Double.toString(params[0]));
-//					xmllog.writeAttribute("Alpha", Double.toString(params[1]));
-//
-//					//writing validity of fitting: rmsE etc
-//					WriteValidity(calcE);
-//
-//				xmllog.endEntity().flush();
-
-				xmllog.writeEntity("Duration");
-					xmllog.writeNormalText(Double.toString((duration-System.currentTimeMillis())/1000.0));
-				xmllog.endEntity().flush();
+				xmllog.endEntity().flush();			
 			}
-
-
 		xmllog.endEntity().flush();
 	}
 
-	double WriteValidity(double[] calcE){
-		double rmsE = 0;
-		try {
-			xmllog.writeEntity("Validity");
-			for (int j = 0; j < energies.length; j++) {
-				double deltaE = Math.abs(calcE[j] - energies[j]);
-				rmsE += deltaE * deltaE;
-			}
-			rmsE = Math.sqrt(rmsE / energies.length);
-			xmllog.writeAttribute("RMSE", Double.toString(rmsE));
-			for (int j = 0; j < energies.length; j++) {
-				double deltaE = Math.abs(calcE[j] - energies[j]);
-				xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j));
-				xmllog.writeAttribute("DeltaX", Double.toString(delta[j]));
-				xmllog.writeAttribute("ObservedE", Double.toString(energies[j]));
-				xmllog.writeAttribute("CalcE", Double.toString(calcE[j]));
-				xmllog.writeAttribute("DeltaE", Double.toString(deltaE));
-				xmllog.endEntity().flush();
-			}
-			xmllog.endEntity().flush();
-		} catch (IOException ex) {
-			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		return rmsE;
-	}
+    static double getDoubleAttributeXML(String name,Element element){
+        return Double.parseDouble(element.getAttribute(name));
+    }
 
-	String GenGaussianInputFromNormalModes(int m){
-		double[] coord=cluster.getCoords();
-		double[] direction=cluster.getNormalModeVectors()[m];
+    static void addAttributeXML(String name, String value,Element node){
+        Attr attr=node.getOwnerDocument().createAttribute(name);
+        attr.setValue(value);
+        node.getAttributes().setNamedItem(attr);
+    }
 
+    /**
+     * create a child node under a parent one
+     * @param name Name/Identity of the child node
+     * @param parent
+     * @return child node
+     */
+    static Element createNodeXML(String name, Element parent){
+        Document doc=parent.getOwnerDocument();
+        Element child=null;
+        if(doc!=null){
+           child =doc.createElement(name);
+            parent.appendChild(child);
+        }
+        return child;
+    }
 
-		String input="";
-		delta=new double[nPoints];
-		for(int i=0;i<nPoints;i++){
-			//temporary scaling factor
-			double beta=(2.0*i/(nPoints-1)-1)*deltaX;
-			delta[i]=beta;
+    /**
+     * remove a child node under a parent one if exists.
+     * @param Name/Identity of the child node
+     * @param parent
+     */
+    static void removeNodeXML(String name, Element parent){
+        Element child=(Element)parent.getElementsByTagName(name).item(0);
+        if(child!=null)
+            child.getParentNode().removeChild(child);
+    }
 
-			String g03header="%chk="+sFileCheckPoint+String.format("-m%d.chk", m);
-			g03header+=" \n%mem=1GB \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
-			//g03header+=" \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
+    
 
+    void ParseXMLFile(){
+        try {
+            File file = new File(sFileIn);
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(file);
+            doc.getDocumentElement().normalize();
+            
+            //System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
+            //System.out.println("-----------------------");
 
-			if(i!=0)	g03header="--Link1--\n"+	g03header + " Guess=Read ";
-			input+=g03header+"\n";
-			input+=String.format("\nM= %d i= %d beta= %1.5f\n\n",m,i,beta);
+            NodeList listCluster = doc.getElementsByTagName("Cluster");
+           
+            for (int iCluster = 0; iCluster < listCluster.getLength(); iCluster++) {//for each cluster
 
-			input+=chargeAndMultiplicity+"\n";//Charge and multiplicity
+               Element nodeCluster = (Element)listCluster.item(iCluster);
+               //System.out.println("Tag : "  + nodeCluster.getAttributes().getNamedItem("Tag"));
+               //System.out.println("nAtom : "  + nodeCluster.getAttributes().getNamedItem("nAtom"));
+               //System.out.println("Energy : "  + nodeCluster.getAttributes().getNamedItem("Energy"));
+               
+               double energy=getDoubleAttributeXML("Energy",nodeCluster); //reading energy
 
-			double[] newCoords=new double[coord.length];
+               NodeList listNormalMode=nodeCluster.getElementsByTagName("NormalMode");             
 
-			MTools.VEC_PLUS_VEC(newCoords, coord, direction, 1.0, beta);
+               for(int iNormalMode=0;iNormalMode < listNormalMode.getLength();iNormalMode++){//for each normal mode
 
-			for(int j=0;j<cluster.getNAtoms();j++){
-				input+=cluster.getAtomicSymbol(j)+" ";
-				input+=String.format("%12.8f %12.8f %12.8f\n",newCoords[j*3+0],newCoords[j*3+1],newCoords[j*3+2]);
-			}
+                  // System.out.println("\tNormalMode : "  + iNormalMode);
+                   Element nodeNormalMode=(Element)listNormalMode.item(iNormalMode);
+                   double reducedMass=getDoubleAttributeXML("ReducedMass",nodeNormalMode); //reading reduced mass
 
-			input+="\n";
-		}
-		
-		return input;
-	}
+                   //System.out.println("\t\tReducedMass : "  + reducedMass);
 
-	/**
+                   Element nodeGaussianScanning=(Element)nodeNormalMode.getElementsByTagName("GaussianScanning").item(0);
+                   NodeList listStep=nodeGaussianScanning.getElementsByTagName("Step");
+
+                   //double[] deltaX=new double[listStep.getLength()+1];
+                   //double[] energies=new double[listStep.getLength()+1];
+
+                   double[] deltaX=new double[listStep.getLength()];
+                   double[] energies=new double[listStep.getLength()];
+
+                   //deltaX[0]=0; energies[0]=energy;
+                   for(int iStep=0;iStep < listStep.getLength();iStep++){//for every steps                        
+                        Element nodeStep= (Element)listStep.item(iStep);
+                        deltaX[iStep]  =getDoubleAttributeXML("DeltaX",nodeStep);
+                        energies[iStep]=getDoubleAttributeXML("Energy",nodeStep);
+                       //System.out.println("\t\tStep : "  + iStep + " " + deltaX[iStep]+" "+energies[iStep]);
+                   }
+
+                  // nodeGaussianScanning.getParentNode().removeChild(nodeGaussianScanning);
+
+                   
+                   PolynomialFitting(deltaX,energies,reducedMass,nodeNormalMode);
+                   MorseFitting(deltaX,energies,reducedMass,energy,nodeNormalMode);
+               }
+            }
+
+            //writing out the results
+            if(fileOut!=null){
+                doc.normalize();//              Normalize the DOM tree to combine all adjacent nodes
+
+                DOMSource domSource = new DOMSource(doc);
+                StreamResult streamResult = new StreamResult(fileOut);
+                TransformerFactory tf = TransformerFactory.newInstance();
+                Transformer serializer = tf.newTransformer();
+                serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                serializer.setOutputProperty(OutputKeys.INDENT,"yes");
+
+                serializer.transform(domSource, streamResult);
+            }
+
+        } catch (TransformerException ex) {
+            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);        
+        } catch (SAXException ex) {
+            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ParserConfigurationException ex) {
+            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
 	 * Fitting polynomial potential with observation (x,y)=(delta,energies)
-	 * @param params coefficients of Morse potential, will be initialized and updated after fitting
-	 * @param calcE values of energies calculated by new polynomial,will be initialized and updated after fitting
-	 * @param degree maximum degree of polynomial
+	 * @param params params of Morse potential, will be initialized and updated after fitting
+	 * @param calcE values of energies calculated by Morse potential,will be initialized and updated after fitting
 	 */
-	void PolynomialFit(double[] params,double[] calcE,int degree) {
-			PolynomialFitter fitter = new PolynomialFitter(degree, new LevenbergMarquardtOptimizer());
-			fitter.addObservedPoint(1, 0, cluster.getEnergy());
-			for (int i = 0; i < delta.length; i++) {
-				fitter.addObservedPoint(1, delta[i], energies[i]);
-			}
-			PolynomialFunction fittedFunc=null;
-			try {
-				fittedFunc = fitter.fit();
-				params=fittedFunc.getCoefficients();
-				calcE=new double[energies.length];
-				for (int j = 0; j < energies.length; j++) {
-					calcE[j]=fittedFunc.value(delta[j]);
-				}
-			} catch (OptimizationException ex) {
-				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
-			}
-			
-	}
+    void PolynomialFitting(double[] deltaX,double[] energies,double reducedMass,Element nodeNormalMode){
+        try {
+            //Polynomial approximation            
 
+            //start fitting
+                PolynomialFitter fitter = new PolynomialFitter(degree, new LevenbergMarquardtOptimizer());
+                //fitter.addObservedPoint(1, 0, cluster.getEnergy());
+                for (int i = 0; i < deltaX.length; i++) {
+                    //System.out.println(" "+i+" "+deltaX[i]+" "+energies[i]);
+                    fitter.addObservedPoint(1, deltaX[i], energies[i]);
+                }
+                PolynomialFunction fittedFunc=null;
+
+                fittedFunc = fitter.fit();
+                double[] params=fittedFunc.getCoefficients(); //System.out.println(" length=  "+params.length);
+                double[] calcE=new double[deltaX.length];
+                for (int j = 0; j < deltaX.length; j++) {
+                    calcE[j]=fittedFunc.value(deltaX[j]);
+                }
+			          
+            //double reducedMass = cluster.getReducedMass(m); //in amu
+            double forceConst = params[2] * 2; //in Hartree.Angstrom^-2
+            double kConvert = Math.sqrt(5.4857990943e-4) * 1e8 * 7.297352569e-3;
+
+            double omega = kConvert * Math.sqrt(forceConst / reducedMass) / (2.0 * Math.PI); //in cm-1
+
+
+            //remove the old fit if exists
+            removeNodeXML("PolynomialFitting",nodeNormalMode);            
+            //create a new one
+            Element nodePoly=createNodeXML("PolynomialFitting",nodeNormalMode);
+
+            //add result
+            addAttributeXML("HarmonicFrequency",Double.toString(omega),nodePoly);
+
+
+            for (int j = 0; j < params.length; j++) {//details of parameters
+                Element nodeTerm=createNodeXML("Term",nodePoly);
+                addAttributeXML("Degree", Integer.toString(j),nodeTerm);
+                addAttributeXML("Coefficient",  Double.toString(params[j]),nodeTerm);
+                //nodePoly.appendChild(nodeTerm);
+            }
+            
+
+
+//            xmllog.writeEntity("PolynomialFitting");
+//            xmllog.writeAttribute("AnFreq", Double.toString(anFreq));//result
+//
+//            for (int j = 0; j < params.length; j++) {//details of parameters
+//                xmllog.writeEntity("Term").writeAttribute("Degree", Integer.toString(j));
+//                xmllog.writeAttribute("Coefficient", Double.toString(params[j]));
+//                xmllog.endEntity().flush();
+//            }
+            //writing validity of fitting: rmsE etc
+            WriteValidity(deltaX,energies,calcE,nodePoly);
+            
+            //xmllog.endEntity().flush();
+        } catch (OptimizationException ex) {
+            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+//        } catch (IOException ex) {
+//            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+   
 	/**
 	 * Fitting Morse potential with observation (x,y)=(delta,energies)
 	 * @param params params of Morse potential, will be initialized and updated after fitting
 	 * @param calcE values of energies calculated by Morse potential,will be initialized and updated after fitting
 	 */
-	void MorseFit(double[] params,double[] calcE) {
-			CurveFitter fitter = new CurveFitter(new LevenbergMarquardtOptimizer());
-			fitter.addObservedPoint(1, 0, cluster.getEnergy());
-			for (int i = 0; i < delta.length; i++) {
-				fitter.addObservedPoint(1, delta[i], energies[i]);
-			}
-			MorsePotential fittedFunc=new MorsePotential();
-			double[] inputParam={1,1};
-
+	void MorseFitting(double[] deltaX,double energies[],double reducedMass,double energy,Element nodeNormalMode) {
 			try {
-				params = fitter.fit(fittedFunc, inputParam);
-				calcE=new double[energies.length];
-				for (int j = 0; j < energies.length; j++) {
-					calcE[j]=fittedFunc.value(delta[j],params);
+                //Morse fitting
+               
+
+                MorsePotential fittedFunc=new MorsePotential();
+                double[] params={1,2.18};
+//                CurveFitter fitter = new CurveFitter(new LevenbergMarquardtOptimizer());
+//                for (int i = 0; i < deltaX.length; i++) {
+//                    fitter.addObservedPoint(1, deltaX[i], energies[i]-energy);
+//                }
+                
+//                
+//                params = fitter.fit(fittedFunc, params);
+
+                FileWriter fileTMP=new FileWriter(new File("data.tmp"));
+                fileTMP.write(String.format("%12.8f\t%12.8f\n",0, 0));
+                for (int i = 0; i < deltaX.length; i++) {
+                    fileTMP.write(String.format("%12.8f\t%12.8f\n", deltaX[i], energies[i]-energy));
+                }
+                fileTMP.close();
+
+                Runtime r = Runtime.getRuntime();
+                //String gnuplotInput="";
+                String command = "gnuplot -e \" De=1;alpha=1;f(x)=De*(1-exp(-alpha*x))**2;fit f(x) \\\"data.tmp\\\" using 1:2 via De,alpha; \"";
+                Process p = r.exec(new String[]{"/bin/bash", "-c",command});
+
+                //System.out.println(command);
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+                String s;
+                while ((s = in.readLine()) != null) {
+                    if(s.contains("Final set of parameters            Asymptotic Standard Error")){
+                        in.readLine();in.readLine();
+                        s=in.readLine();
+                        int equalSign=s.indexOf("="); int plusSign=s.indexOf("+");
+                        params[0]=Double.parseDouble(s.substring(equalSign+1, plusSign-1).trim());
+                        s=in.readLine();
+                        equalSign=s.indexOf("=");     plusSign=s.indexOf("+");
+                        params[1]=Double.parseDouble(s.substring(equalSign+1, plusSign-1).trim());
+
+                    }
+                    //System.out.println(s);
+                }
+
+                try {
+				if (p.waitFor() != 0) {
+					System.err.println(" Error termination with GNUPLOT. Exit value = " + p.exitValue());
 				}
-			} catch (OptimizationException ex) {
-				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
-			} catch (FunctionEvaluationException ex) {
+                } catch (InterruptedException e) {
+                    System.err.println(e);
+                } finally {
+                    // Close the InputStream
+                    in.close();
+                }
+
+
+				double[] calcE=new double[energies.length];
+				for (int j = 0; j < energies.length; j++) {
+					calcE[j]=fittedFunc.value(deltaX[j],params)+energy;
+				}
+
+                //=====
+                double De=params[0];//in Hartree
+                double alpha=params[1];// in AA^-1
+                double M=reducedMass;//in a.u
+
+                double forceConst=2*De*Math.pow(alpha,2);
+                double kConvert = Math.sqrt(5.4857990943e-4) * 1e8 * 7.297352569e-3;
+                double omega = kConvert * Math.sqrt(forceConst / M) / (2.0 * Math.PI); //in cm-1
+                
+                double ksiomega=alpha*alpha/(M*0.2436);//a*Math.sqrt(2.0*De/reducedMass)/(2*Math.PI);//a/2pi*sqrt(2De/m)
+                double anFreq=omega-ksiomega*2.0;
+
+                //remove the old fit if exists
+                removeNodeXML("MorseFitting",nodeNormalMode);
+                //create a new one
+                Element nodeMorse=createNodeXML("MorseFitting",nodeNormalMode);
+
+                //add result
+                addAttributeXML("De",Double.toString(De),nodeMorse);
+                addAttributeXML("alpha",Double.toString(alpha),nodeMorse);
+                addAttributeXML("HarmonicFrequency",Double.toString(omega),nodeMorse);
+                addAttributeXML("AnharmonicityConstant",Double.toString(ksiomega),nodeMorse);
+                addAttributeXML("AnharmonicFrequency",Double.toString(anFreq),nodeMorse);
+
+
+//                xmllog.writeEntity("MorseFitting");
+//                xmllog.writeAttribute("AnFreq", Double.toString(anFreq));//result
+//                xmllog.writeAttribute("De", Double.toString(De));
+//                xmllog.writeAttribute("alpha", Double.toString(alpha));
+//                xmllog.writeAttribute("AnharmonicityConstant", Double.toString(ksiomega));
+
+                //writing validity of fitting: rmsE etc
+                WriteValidity(deltaX,energies,calcE,nodeMorse);
+
+                //xmllog.endEntity().flush();
+			} catch (IOException ex) {
+            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (FunctionEvaluationException ex) {
 				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
 			} catch (IllegalArgumentException ex) {
 				Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
@@ -342,6 +510,87 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 			return gradient;
 		}
 		
+	}
+
+    double WriteValidity(double[] deltaX,double[] energies,double[] calcE,Element node){
+		double rmsE = 0;
+		//try {
+			for (int j = 0; j < energies.length; j++) {
+				double deltaE = Math.abs(calcE[j] - energies[j]);
+				rmsE += deltaE * deltaE;
+			}
+			rmsE = Math.sqrt(rmsE / energies.length);
+
+            //create a new one
+            Element nodeValidity=createNodeXML("Validity",node);
+
+            //add result
+            addAttributeXML("RMSE",Double.toString(rmsE),nodeValidity);
+
+            for (int j = 0; j < energies.length; j++) {
+				double deltaE = Math.abs(calcE[j] - energies[j]);
+                Element nodeStep=createNodeXML("Step",nodeValidity);
+                addAttributeXML("DeltaE",Double.toString(deltaE),nodeStep);
+                addAttributeXML("CalcE",Double.toString(calcE[j]),nodeStep);
+                addAttributeXML("ObservedE",Double.toString(energies[j]),nodeStep);
+                addAttributeXML("DeltaX",Double.toString(deltaX[j]),nodeStep);                
+                addAttributeXML("id",Integer.toString(j),nodeStep);
+
+			}
+           
+//            xmllog.writeEntity("Validity");
+//			xmllog.writeAttribute("RMSE", Double.toString(rmsE));
+//			for (int j = 0; j < energies.length; j++) {
+//				double deltaE = Math.abs(calcE[j] - energies[j]);
+//				xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(j));
+//				xmllog.writeAttribute("DeltaX", Double.toString(deltaX[j]));
+//				xmllog.writeAttribute("ObservedE", Double.toString(energies[j]));
+//				xmllog.writeAttribute("CalcE", Double.toString(calcE[j]));
+//				xmllog.writeAttribute("DeltaE", Double.toString(deltaE));
+//				xmllog.endEntity().flush();
+//			}
+//			xmllog.endEntity().flush();
+//		} catch (IOException ex) {
+//			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
+//		}
+		return rmsE;
+	}
+
+	String GenGaussianInputFromNormalModes(int m,double[] delta){
+		double[] coord=cluster.getCoords();
+		double[] direction=cluster.getNormalModeVectors()[m];
+
+
+		String input="";
+		
+		for(int i=0;i<delta.length;i++){
+			//temporary scaling factor
+			double beta=delta[i];
+
+			String g03header="%chk="+sFileCheckPoint+String.format("-m%d.chk", m);
+			g03header+=" \n%mem=1GB \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
+			//g03header+=" \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
+
+
+			if(i!=0)	g03header="--Link1--\n"+	g03header + " Guess=Read ";
+			input+=g03header+"\n";
+			input+=String.format("\nM= %d i= %d beta= %1.5f\n\n",m,i,beta);
+
+			input+=chargeAndMultiplicity+"\n";//Charge and multiplicity
+
+			double[] newCoords=new double[coord.length];
+
+			MTools.VEC_PLUS_VEC(newCoords, coord, direction, 1.0, beta);
+
+			for(int j=0;j<cluster.getNAtoms();j++){
+				input+=cluster.getAtomicSymbol(j)+" ";
+				input+=String.format("%12.8f %12.8f %12.8f\n",newCoords[j*3+0],newCoords[j*3+1],newCoords[j*3+2]);
+			}
+
+			input+="\n";
+		}
+
+		return input;
 	}
 
 	

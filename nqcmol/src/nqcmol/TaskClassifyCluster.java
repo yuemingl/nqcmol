@@ -28,6 +28,10 @@ public class TaskClassifyCluster extends Task{
 		return "ClassifyCluster";
 	}
 
+    static final public String Option="class";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Classify clusters according to topologies\n";
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();

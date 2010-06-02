@@ -28,6 +28,10 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 		return "CalculateBindingEnergy";
 	}
 
+    static final public String Option="be";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Calculate binding energies\n";
+
 	@Override
 	protected void Process() {
 			try {

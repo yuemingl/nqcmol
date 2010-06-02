@@ -36,6 +36,10 @@ public class TaskCalculateSymmetryPointGroup extends Task{
 		return "CalculateSymmetryPointGroup";
 	}
 
+    static final public String Option="sym";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Calculate symmetry point group based on brute-force algorithm\n";
+
 	@Override
 	protected void Process() {
 		try {			

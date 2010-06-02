@@ -58,28 +58,50 @@ public class TaskFitPotential extends TaskCalculate {
 
 	Vector<String> datafile=new Vector<String>();
 	Vector<Double> dataWeight=new Vector<Double>();
+
+    @Override
+	public String getName() {
+		return "FitPotential";
+	}
+
+    static final public String Option="fit";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Fit potential by using GA\n";
 	
 	void ProcessData(){
+        double[] ener_ref={molRef.get(0).getEnergy(),molRef.get(1).getEnergy(),molRef.get(2).getEnergy()};
 		target=new double[data.size()];
 		for (int i=0; i< data.size(); i++){
 			Cluster m=data.get(i);
-			int index=MolExtra.indexForBE(m,molRef);
-			target[i]= m.getEnergy() - (m.getNonHydrogenNum()-1)*molRef.get(0).getEnergy() - molRef.get(index).getEnergy();
+
+			target[i]= CalcBindingEnergy(m,m.getEnergy(),ener_ref);
 			//target[i]*=1000;
 		}
 	}
+
+    private double CalcBindingEnergy(Cluster m,double ener,double[] ener_shift){
+        double be=0;
+        int nIons=m.getNonHydrogenNum();
+        switch(m.getTotalCharge()){
+            case  0:    be = ener - ener_shift[0]*(nIons); break;
+            case  1:    be = ener - ener_shift[0]*(nIons-1) -     ener_shift[1]; break;
+            case -1:    be = ener - ener_shift[0]*(nIons-1) -     ener_shift[2]; break;
+            case  2:    be = ener - ener_shift[0]*(nIons-2) - 2.0*ener_shift[1]; break;
+        }
+        return be;
+    }
 
 	double Evaluate(double[] p,int debug){
 		double[] y=new double[data.size()];
 		return Evaluate(p,y,debug);
 	}
 
-	double Evaluate(double[] p,double[] y,int debug){
+	double Evaluate(double[] p,double[] y,int verbose){
 			double[] alpha=new double[nparam_inp];
 			ConvertParam(p,alpha);
 			pot.setParam(alpha);
 
-			if(debug>=1){
+			if(verbose>=1){
 				try {
 					xmllog.writeEntity("Alpha");
 					String s = "";
@@ -103,7 +125,7 @@ public class TaskFitPotential extends TaskCalculate {
 				ener_shift[i] = pot.getEnergy(m.getCoords());
 			}
 
-			if (debug>=2){
+			if (verbose>=2){
 				try {
 					xmllog.writeEntity("Reference");
 					for (int i = 0; i < ener_shift.length; i++) {
@@ -127,14 +149,13 @@ public class TaskFitPotential extends TaskCalculate {
 				pot.setCluster(m);
 				double ener = pot.getEnergy(m.getCoords());
 
-				int index=MolExtra.indexForBE(m, molRef);
-				y[i] = ener - ener_shift[0]*(m.getNonHydrogenNum()-1) - ener_shift[index];
+				y[i] = CalcBindingEnergy(m,ener,ener_shift);
 				//y[i]*=1000;
 
 				double dE = Math.abs(y[i] - target[i])* Math.sqrt(weight.get(i));
 				rms+=dE*dE;
 
-				if(debug>=3){
+				if(verbose>=3){
 					try {
 						xmllog.writeEntity("Eval");
 						xmllog.writeAttribute("id", Integer.toString(i));
@@ -153,7 +174,7 @@ public class TaskFitPotential extends TaskCalculate {
 
 			rms=Math.sqrt(rms/data.size());
 
-			if (debug>=1){
+			if (verbose>=1){
 				try {
 					xmllog.writeEntity("TotalRMS");
 					xmllog.writeNormalText(Double.toString(rms));
@@ -217,10 +238,7 @@ public class TaskFitPotential extends TaskCalculate {
 	}
 
 
-	@Override
-	public String getName() {
-		return "FitPotential";
-	}
+	
 
 	@Override
 	protected void Initialize(){
@@ -514,6 +532,7 @@ public class TaskFitPotential extends TaskCalculate {
             nIterations = fit.getIterations();
             nEvaluations = fit.getEvaluations();
             finalRMS = fit.getRMS();
+            
         } catch (FunctionEvaluationException ex) {
             Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
         } catch (OptimizationException ex) {
@@ -619,7 +638,7 @@ public class TaskFitPotential extends TaskCalculate {
             Gene[] sampleGenes = new Gene[param.length];
             for (int i = 0; i < param.length; i++) {
                     DoubleGene gene = new DoubleGene(conf, lb[i], ub[i]);
-                    
+                    gene.setAllele(param[i]);
                     sampleGenes[i] = gene;
             }
 
@@ -632,14 +651,18 @@ public class TaskFitPotential extends TaskCalculate {
             // the population (which could be seen as bad).
             // ------------------------------------------------------------
             conf.setPopulationSize(50);
+
              // Create random initial population of Chromosomes.
             // ------------------------------------------------
             Genotype population = Genotype.randomInitialGenotype(conf);
+               //replace the first chromosome to the input
+            population.getPopulation().setChromosome(0, sampleChromosome);
+
                          
             // Evolve the population. Since we don't know what the best answer
             // is going to be, we just evolve the max number of times.
             // ---------------------------------------------------------------
-            int percentEvolution = nOpts / 100;
+            int percentEvolution = (int)Math.max(1, nOpts / 100);
             for (int i = 0; i < nOpts; i++) {
               population.evolve();
               if (( i % percentEvolution == 0) || i==(nOpts-1)) {
@@ -649,11 +672,13 @@ public class TaskFitPotential extends TaskCalculate {
                   xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(i));
 					xmllog.writeAttribute("RMS", Double.toString(1.0/fitness));
 				  xmllog.endEntity().flush();
-                  
+
+                  //System.out.println(" size ="+ fittest.size());
                   double[] currentParam=new double[fittest.size()];
                   for (int k = 0; k < fittest.size(); k++) {
                     DoubleGene gene = (DoubleGene)fittest.getGene(k);
                     currentParam[k]=gene.doubleValue();
+                   // System.out.println(" param ="+ currentParam[k]);
                   }
                   WriteParam(currentParam);
                 }

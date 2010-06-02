@@ -93,7 +93,7 @@ public class Cluster implements Cloneable{
 
 	protected static final int cTypeMax=cElements.length;
 
-	public final static String[] format={"xyz","g03","g03c","car"};
+	public final static String[] format={"xyz","g03","g03c","car","xml"};
 
 	//================== properties of Clusters
 	/**
@@ -491,6 +491,30 @@ public class Cluster implements Cloneable{
 	 */
 	public double getMass(int i){
 		return cMass[Nz[i]];
+	}
+
+    	/**
+	 * @return Total charge of clusters
+	 */
+	public int getTotalCharge() {
+		int TotalCharge=0;
+		for(int i=0;i<nAtoms;i++)
+			TotalCharge+=getCharge(i);
+		return TotalCharge;
+	}
+
+	/**
+	 * @param index index of atom
+	 * @return getMass of an atom
+	 */
+	public int getCharge(int i){
+        int charge = 0;
+        switch(Nz[i]){
+            case 1: charge= 1;break;
+            case 8: charge=-2;break;
+            case 7: charge=-1;break;
+        }
+		return charge;
 	}
 
 

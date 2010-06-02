@@ -13,8 +13,6 @@ import org.kohsuke.args4j.*;
 
 
 
-
-
 /**
  *
  * @author nqc
@@ -34,13 +32,13 @@ public class TaskOptimizeCluster extends TaskCalculate {
 		return "Optimize";
 	}
 
+    static final public String Option="opt";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "optimize clusters\n";
+
 	@Override
 	protected void Process() {
-		try {
-//			xmllog.writeEntity("Note");
-//			xmllog.writeText(" Time is measured in seconds");
-//			xmllog.endEntity();
-
+		try {			
             pot.setEnergyTol(ftol);
             pot.setGradientTol(gtol);
             pot.setMaxStepSize(mstep);

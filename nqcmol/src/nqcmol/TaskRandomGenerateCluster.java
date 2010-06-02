@@ -52,6 +52,10 @@ public class TaskRandomGenerateCluster extends Task {
 		return "RandomGenerateCluster";
 	}
 
+    static final public String Option="gen";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Randomly generate clusters\n";
+
 	@Override
 	public void ParseArguments(String[] args) {
 		try {

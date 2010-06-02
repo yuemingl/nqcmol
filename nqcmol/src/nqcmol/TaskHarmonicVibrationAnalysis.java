@@ -21,6 +21,10 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 		return "HarmonicVibrationAnalysis";
 	}
 
+    static final public String Option="vib";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Harmonic Vibration Analysis\n";
+
 
 	@Override
 	protected void Process() {

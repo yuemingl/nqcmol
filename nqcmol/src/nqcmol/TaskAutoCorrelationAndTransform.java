@@ -6,16 +6,9 @@
 package nqcmol;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Scanner;
 import java.util.StringTokenizer;
-import java.util.Vector;
 import java.util.logging.*;
-import nqcmol.tools.MTools;
 import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.transform.FastFourierTransformer;
 import org.kohsuke.args4j.*;
@@ -40,18 +33,9 @@ public class TaskAutoCorrelationAndTransform extends Task{
 		return "AutoCorrelationAndTransform";
 	}
 
-	@Override
-	protected void Initialize() {
-		super.Initialize();
-		try {			
-			xmllog.writeEntity("Note");
-			xmllog.writeText("Calculate auto-correlation and Fourier Transform");
-			xmllog.endEntity();
-			
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRemoveDuplicateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
-	}
+    static final public String Option="corr";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Calculate auto-correlation and Fourier Transform\n";
 
 	@Override
 	protected void Process() {

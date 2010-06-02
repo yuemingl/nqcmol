@@ -33,6 +33,10 @@ public class TaskGenerateCluster extends Task {
 	public String getName(){
 		return "GenerateCluster";
 	}
+
+    static final public String Option="alongVib";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Generate clusters by translating along vibrational normal modes\n";
 	
 	@Override
 	protected void Process() {			

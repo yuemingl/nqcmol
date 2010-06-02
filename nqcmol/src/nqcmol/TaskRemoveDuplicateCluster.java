@@ -34,6 +34,10 @@ public class TaskRemoveDuplicateCluster extends Task{
 		return "RemoveDuplicateCluster";
 	}
 
+    static final public String Option="sim";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Remove duplicate clusters based on USR\n";
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();		
@@ -47,7 +51,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 	protected void Process() {
 		try {
 			xmllog.writeEntity("Note");
-			xmllog.writeText("Remove duplicate clusters based on USR\n");
+			xmllog.writeText(getName());
 			xmllog.endEntity();
 
 			Scanner scanner = new Scanner(new File(sFileIn));
