@@ -16,6 +16,10 @@ public class TaskValidateGradient extends TaskCalculate {
 		return "ValidateGradient";
 	}
 
+    static final public String Option="grad";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "validate gradients. Perform both analytical (if applicant) and numerical gradients.\n";
+
 	@Override
 	protected void Process() {		
 //			xmllog.writeEntity("Note");

@@ -28,6 +28,10 @@ public class TaskDetectEquivalentAtoms extends Task{
 		return "DetectEquivalentAtoms";
 	}
 
+    static final public String Option="equiAtom";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Detect topologically equivalent atoms in clusters\n";
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();

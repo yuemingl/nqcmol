@@ -18,6 +18,10 @@ public class TaskConvertWaterToRadicalWater extends Task{
 		return "ConvertWaterToRadicalWater";
 	}
 
+    static final public String Option="W2radW";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n";
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();		

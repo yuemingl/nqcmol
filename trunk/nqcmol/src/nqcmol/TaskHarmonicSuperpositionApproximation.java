@@ -144,6 +144,10 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 		return "HSA";
 	}
 
+    static final public String Option="hsa";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Harmonic Superposition Approximation\n";
+
 	@Override
 	protected void Initialize() {
 		try {

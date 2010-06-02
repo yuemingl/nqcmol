@@ -38,6 +38,10 @@ public class TaskCalculateRadialDistributionFunction extends Task{
 		return "CalculateRadialDistributionFunction";
 	}
 
+    static final public String Option="rdf";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Calculate RDF function\n";
+
     private double peakWidth=0;
 
     int binsToFillOnEachSide ;

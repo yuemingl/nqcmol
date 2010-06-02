@@ -49,6 +49,10 @@ public class TaskCutFromLattice extends Task {
 		return "CutFromLattice";
 	}
 
+    static final public String Option="cutLattice";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Generate clusters by cutting from lattice\n";
+
 	
 	@Override
 	protected void Process() {			

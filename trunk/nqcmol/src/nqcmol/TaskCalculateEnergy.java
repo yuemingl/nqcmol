@@ -32,6 +32,10 @@ public class TaskCalculateEnergy extends TaskCalculate {
 		return "CalculateEnergy";
 	}
 
+    static final public String Option="ener";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "calculate energy\n";
+
 	@Override
 	protected void Process() {
 		try {

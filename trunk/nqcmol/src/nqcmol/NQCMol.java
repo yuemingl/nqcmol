@@ -15,22 +15,24 @@ import org.kohsuke.args4j.*;
  */
 public class NQCMol {
 	@Option(name="-t",usage="Please choose one of those operations\n" +
-		"\t opt \t - optimize clusters\n" +
-		"\t ener \t - calculate energy\n" +
-		"\t grad \t - validate gradients. Perform both analytical (if applicant) and numerical gradients and calculate the residual\n" +
-		"\t vib \t - calculate harmonic frequencies\n" +
-                "\t anvib \t - calculate anharmonic frequencies\n" +
-		"\t be \t - calculate binding energies\n" +
-		"\t sort \t - sort clusters according to energies\n" +
-		"\t class \t - classify clusters according to topologies\n" +
-		"\t hsa \t - harmonic superposition approximation\n" +
-		"\t equiAtom \t - detect topologically equivalent atoms in clusters\n" +
-        "\t gen \t - randomly generate clusters\n" +
-        "\t alongVib \t - generate clusters by translating along vibrational normal modes\n" +
-        "\t W2radW \t - Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n" +
-        "\t cutLattice \t - Generate clusters by cutting from lattice\n" +
-        "\t rdf \t - Calculate Radial Distribution Function\n" +
-		"\t sim \t - remove duplicate clusters\n",metaVar="OPER")
+		TaskOptimizeCluster.Descriptions+
+		TaskCalculateEnergy.Descriptions+
+        TaskValidateGradient.Descriptions+
+		TaskHarmonicVibrationAnalysis.Descriptions+
+        TaskAnharmonicVibrationAnalysis.Descriptions +
+		TaskCalculateBindingEnergy.Descriptions+
+		TaskSortCluster.Descriptions+
+		TaskClassifyCluster.Descriptions+
+		TaskHarmonicSuperpositionApproximation.Descriptions+
+        TaskCalculateSymmetryPointGroup.Descriptions+
+		TaskDetectEquivalentAtoms.Descriptions+
+        TaskRandomGenerateCluster.Descriptions+
+        TaskGenerateCluster.Descriptions+
+        TaskConvertWaterToRadicalWater.Descriptions+
+        TaskFitPotential.Descriptions+
+        //"\t cutLattice \t - Generate clusters by cutting from lattice\n" +
+        //"\t rdf \t - Calculate Radial Distribution Function\n" +
+		TaskRemoveDuplicateCluster.Descriptions,metaVar="OPER")
     String sTask="";
 
     @Option(name="-h",usage="Print out the help. Run nqcmol -t [oper] -h for the details of operation.")
@@ -38,8 +40,9 @@ public class NQCMol {
 
     /**
      * @param args the command line arguments
+     * @throws IOException
      */
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException  {
 		 new NQCMol().doMain(args);
 	}
 
@@ -59,48 +62,48 @@ public class NQCMol {
 		}
 		//parser.parseArgument("more","args");
 	
-		if(sTask.contentEquals("ener")){
+		if(sTask.contentEquals(TaskCalculateEnergy.Option)){
 			Task calc=new TaskCalculateEnergy();
 			calc.Execute(args);			return;
 		}
 
 
-		else if(sTask.contentEquals("grad")){
+		else if(sTask.contentEquals(TaskValidateGradient.Option)){
 			Task calc=new TaskValidateGradient();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("opt")){
+		else if(sTask.contentEquals(TaskOptimizeCluster.Option)){
 			Task calc=new TaskOptimizeCluster();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("vib")){
+		else if(sTask.contentEquals(TaskHarmonicVibrationAnalysis.Option)){
 			Task calc=new TaskHarmonicVibrationAnalysis();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("anvib")){
+		else if(sTask.contentEquals(TaskAnharmonicVibrationAnalysis.Option)){
 			Task calc=new TaskAnharmonicVibrationAnalysis();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("be")){
+		else if(sTask.contentEquals(TaskCalculateBindingEnergy.Option)){
 			Task calc=new TaskCalculateBindingEnergy();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("sym")){
+		else if(sTask.contentEquals(TaskCalculateSymmetryPointGroup.Option)){
 			Task calc=new TaskCalculateSymmetryPointGroup();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("equiAtom")){
+		else if(sTask.contentEquals(TaskDetectEquivalentAtoms.Option)){
 			Task calc=new TaskDetectEquivalentAtoms();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("corr")){
+		else if(sTask.contentEquals(TaskAutoCorrelationAndTransform.Option)){
 			Task calc=new TaskAutoCorrelationAndTransform();
 			calc.Execute(args);			return;
 		}
@@ -110,52 +113,52 @@ public class NQCMol {
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("gen")){
+		else if(sTask.contentEquals(TaskRandomGenerateCluster.Option)){
 			Task calc=new TaskRandomGenerateCluster();
 			calc.Execute(args);			return;
 		}
 
-        else if(sTask.contentEquals("alongVib")){
+        else if(sTask.contentEquals(TaskGenerateCluster.Option)){
 			Task calc=new TaskGenerateCluster();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("class")){
+		else if(sTask.contentEquals(TaskClassifyCluster.Option)){
 			Task calc=new TaskClassifyCluster();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("sort")){
+		else if(sTask.contentEquals(TaskSortCluster.Option)){
 			Task calc=new TaskSortCluster();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("sim")){
+		else if(sTask.contentEquals(TaskRemoveDuplicateCluster.Option)){
 			Task calc=new TaskRemoveDuplicateCluster();
 			calc.Execute(args);			return;
 		}
 
-        else if(sTask.contentEquals("rdf")){
+        else if(sTask.contentEquals(TaskCalculateRadialDistributionFunction.Option)){
 			Task calc=new TaskCalculateRadialDistributionFunction();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("fit")){
+		else if(sTask.contentEquals(TaskFitPotential.Option)){
 			TaskFitPotential calc=new TaskFitPotential();
 			calc.Execute(args);			return;
 		}
 
-        else if(sTask.contentEquals("W2radW")){
+        else if(sTask.contentEquals(TaskConvertWaterToRadicalWater.Option)){
 			Task calc=new TaskConvertWaterToRadicalWater();
 			calc.Execute(args);			return;
 		}
 
-        else if(sTask.contentEquals("cutLattice")){
+        else if(sTask.contentEquals(TaskCutFromLattice.Option)){
 			Task calc=new TaskCutFromLattice();
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals("hsa")){
+		else if(sTask.contentEquals(TaskHarmonicSuperpositionApproximation.Option)){
 			Task calc=new TaskHarmonicSuperpositionApproximation();
 			calc.Execute(args);			return;
 		}
