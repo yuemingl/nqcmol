@@ -422,6 +422,7 @@ is divided into following sections:
 		<unjar dest="${build.classes.dir}" src="${file.reference.commons-math-2.0.jar-1}"/>
 		<unjar dest="${build.classes.dir}" src="${file.reference.log4j-1.2.15.jar}"/>
         <unjar dest="${build.classes.dir}" src="${file.reference.jgap.jar}"/>
+        <unjar dest="${build.classes.dir}" src="${file.reference.vecmath1.2-1.14.jar}"/>
     </target>
     <target depends="init,compile,-pre-pre-jar,-pre-jar" name="-do-jar-without-manifest" unless="manifest.available">
         <j2seproject1:jar/>

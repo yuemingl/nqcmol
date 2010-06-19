@@ -19,7 +19,7 @@ import nqcmol.tools.MTools;
  */
 public class FOSS2Potential extends Potential{
 	public FOSS2Potential(){
-		nativeUnit="kcal/mol";
+		nativeUnit="Hartree";
 		unit=nativeUnit;
 		ParseParameters();
 	};
@@ -311,7 +311,7 @@ public class FOSS2Potential extends Potential{
 		}
 
 		for(int i=0; i<nAtom; i++ ){
-				q[i] = ((i<nO)? -2 : 1);
+				q[i] = ((i<nO)? -1 : 1);
 		}
 	}
 

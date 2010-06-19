@@ -6,7 +6,11 @@
 package nqcmol.tools;
 
 import java.lang.reflect.Array;
-
+import java.util.Random;
+import javax.vecmath.AxisAngle4d;
+import javax.vecmath.Matrix3d;
+import javax.vecmath.Point3d;
+import javax.vecmath.Vector3d;
 
 /**
  *
@@ -326,7 +330,6 @@ public  class  MTools{
 	  }
 
       /**
-       *
        * @param src source array
        * @param pos index of first element to be erased
        * @param num number of elements to be erased
@@ -337,4 +340,49 @@ public  class  MTools{
           System.arraycopy(src, 0, dest, 0, pos);
           System.arraycopy(src, pos + num, dest, pos, Array.getLength(src) - pos - num );
       }
+
+    public static void generateRandomVector(double vec[],Random ran,double scale){
+        for(int i=0;i<vec.length;i++){
+            vec[i]=scale*ran.nextDouble();
+        }
+    }
+
+    private static Vector3d rotate(Vector3d vector, Vector3d axis, double angle) {
+        Matrix3d rotate = new Matrix3d();
+        rotate.set(new AxisAngle4d(axis, angle));
+        Vector3d result = new Vector3d();
+        rotate.transform(vector, result);
+        return result;
+    }
+
+    public static double[] zmatrixToCartesian(double distances, double[] first_atoms,
+                                        double angles,   double[] second_atoms,
+                                        double dihedrals, double[] third_atoms) {      
+
+       Vector3d f1 = new Vector3d(first_atoms);
+       Vector3d f2 = new Vector3d(second_atoms);
+       Vector3d f3 = new Vector3d(third_atoms);
+
+       Vector3d cd = new Vector3d();       cd.sub(f3, f2);
+
+       Vector3d bc = new Vector3d();      bc.sub(f2, f1);
+
+       Vector3d n1 = new Vector3d();
+       n1.cross(cd, bc);
+
+        Vector3d n2 = rotate(n1,bc,-dihedrals);
+        Vector3d ba = rotate(bc,n2,-angles);
+
+        ba.normalize();
+        ba.scale(distances);
+
+        Point3d result = new Point3d();
+        result.add(f1, ba);
+        double[] cartesianCoords = new double[3];
+        cartesianCoords[0] = result.x;
+        cartesianCoords[1] = result.y;
+        cartesianCoords[2] = result.z;
+
+        return cartesianCoords;
+    }
 }

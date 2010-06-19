@@ -93,7 +93,7 @@ public class Cluster implements Cloneable{
 
 	protected static final int cTypeMax=cElements.length;
 
-	public final static String[] format={"xyz","g03","g03c","car","xml"};
+	public final static String[] format={"xyz","g03","g03c","car","xml","int"};
 
 	//================== properties of Clusters
 	/**
@@ -560,6 +560,7 @@ public class Cluster implements Cloneable{
 	}
 
 	public void R(int i,double[] dr){
+        if(dr==null) dr=new double[3];
 		for(int l=0;l<3;l++) dr[l]=coords[i*3+l];
 	}
 
@@ -619,13 +620,16 @@ public class Cluster implements Cloneable{
 		MTools.CROSSPRODUCT(c2,b2,b3); //c2 = cross(b2,b3);
 		MTools.CROSSPRODUCT(c3,c1,c2); //c3 = cross(c1,c2);
 
-		if (MTools.DOTPRODUCT(c1,c1) * MTools.DOTPRODUCT(c2,c2) < 0.001) {
-		  t = 0.0;
-		  return t;
-		}
+        double b2abs=Math.sqrt(MTools.DOTPRODUCT(b2, b2));
+        t=-Math.atan2(b2abs*MTools.DOTPRODUCT(b1,c2), MTools.DOTPRODUCT(c1,c2));//see wikipedia
 
-		t = Math.acos(MTools.DOTPRODUCT(c1,c2)/Math.sqrt(MTools.DOTPRODUCT(c1,c1)*MTools.DOTPRODUCT(c2,c2)));
-		if (MTools.DOTPRODUCT(b2,c3) > 0.0)    t = -t;
+//		if (MTools.DOTPRODUCT(c1,c1) * MTools.DOTPRODUCT(c2,c2) < 0.001) {
+//		  t = 0.0;
+//		  return t;
+//		}
+//
+//		t = Math.acos(MTools.DOTPRODUCT(c1,c2)/Math.sqrt(MTools.DOTPRODUCT(c1,c1)*MTools.DOTPRODUCT(c2,c2)));
+//		if (MTools.DOTPRODUCT(b2,c3) > 0.0)    t = -t;
 
 		return (t);
 	}
@@ -1445,7 +1449,7 @@ public class Cluster implements Cloneable{
 			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
 
 
-			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
+			System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
 
 			//gradient=new double[nAtoms*3];
 
@@ -1459,77 +1463,88 @@ public class Cluster implements Cloneable{
 				} else {
 					tokenizer = new StringTokenizer(line, "\t ,;");
 					int fields = tokenizer.countTokens();
-					if (fields < 4) {
+                    //System.out.printf(" Number of fieldds = %d \n",fields);
+					if (fields < 1) {
 						return false;
 					} else {
 						String atomtype = tokenizer.nextToken();
 						Nz[i] =  getAtomicNumberFromSymbol(atomtype);
-						//System.out.printf(" %s %d \n",atomtype,index);
+						//System.out.printf(" %s %d \n",atomtype,Nz[i]);
 
-						if(Nz[i]<=0) return false;
+						if(Nz[i]<=0) { nAtoms=0;	return false;}
 
 						//System.out.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
 						nType[Nz[i]]++;
-						if(Nz[i]>0){
-							double dst,ang,tor;
-							int i1,i2,i3;
-							double[] v1=new double[3];
-							double[] v2=new double[3];
-							double[] v3=new double[3];
-							double[] n=new double[3];
-							double[] nn=new double[3];
+                        double dst,ang,tor;
+                        int i1,i2,i3;
+                        double[] v1=new double[3];
+                        double[] v2=new double[3];
+                        double[] v3=new double[3];
+                        double[] n=new double[3];
+                        double[] nn=new double[3];
 
-							switch(i){
-							  case	0: coords[0]=coords[1]=coords[2]=0;
-							  break;
-							  case	1:
-									i1=Integer.parseInt(tokenizer.nextToken());
-									dst=Double.parseDouble(tokenizer.nextToken());
-									coords[i*3+0]=dst;coords[i*3+1]=coords[i*3+2]=0;
-							  break;
-							  case 2:
-								i1=Integer.parseInt(tokenizer.nextToken());
-								dst=Double.parseDouble(tokenizer.nextToken());
-								i2=Integer.parseInt(tokenizer.nextToken());
-								ang=Double.parseDouble(tokenizer.nextToken());
-								i1--;i2--;
-								//cout<<i1<<" "<<dst<<" "<<i2<<" "<<ang<<" "<<i3<<" "<<tor<<endl;
-								ang=Math.toRadians(ang);
-								//cout<<dst*cos(ang)<<" "<<dst*sin(ang)<<endl;
-								coords[i*3+0]=coords[i1*3+0]+dst*Math.cos(ang);
-								coords[i*3+1]=0;
-								coords[i*3+2]=coords[i1*3+2]+dst*Math.sin(ang);
-							  break;
-							  default:
-								i1=Integer.parseInt(tokenizer.nextToken());
-								dst=Double.parseDouble(tokenizer.nextToken());
-								i2=Integer.parseInt(tokenizer.nextToken());
-								ang=Double.parseDouble(tokenizer.nextToken());
-								i3=Integer.parseInt(tokenizer.nextToken());
-								tor=Double.parseDouble(tokenizer.nextToken());
-								i1--;i2--;i3--;
-								ang=Math.toRadians(ang);
-								tor=Math.toRadians(ang);
-								//cout<<i1<<" "<<dst<<" "<<i2<<" "<<ang<<" "<<i3<<" "<<tor<<endl;
+                        switch(i){
+                          case	0: coords[0]=coords[1]=coords[2]=0;
+                          break;
+                          case	1:
+                                i1=Integer.parseInt(tokenizer.nextToken());
+                                dst=Double.parseDouble(tokenizer.nextToken());
+                                coords[i*3+0]=dst;coords[i*3+1]=coords[i*3+2]=0;
+                          break;
+                          case 2:
+                            i1=Integer.parseInt(tokenizer.nextToken());
+                            dst=Double.parseDouble(tokenizer.nextToken());
+                            i2=Integer.parseInt(tokenizer.nextToken());
+                            ang=Double.parseDouble(tokenizer.nextToken());
+                            i1--;i2--;
+                            //cout<<i1<<" "<<dst<<" "<<i2<<" "<<ang<<" "<<i3<<" "<<tor<<endl;
+                            ang=Math.toRadians(ang);
+                            coords[i*3+0] = -Math.cos(ang)*dst + coords[1*3+0];
+                            coords[i*3+1] =  Math.sin(ang)*dst;
+                            coords[i*3+2] =  0;
+                            if (i1== 0)
+                                 coords[i*3+0] = Math.cos(ang)*dst;
 
-								dR(i2,i1,v1);
-								dR(i3,i1,v2);
-								MTools.CROSSPRODUCT(n,v1,v2);
-								MTools.CROSSPRODUCT(nn,v1,n);
-								MTools.NORMALIZE(n);
-								MTools.NORMALIZE(nn);
-								//VEC_MUL_NUM(n,n,3,-sin(tor));
-								//VEC_MUL_NUM(nn,nn,3,cos(tor));
-								MTools.VEC_PLUS_VEC(v3,n,nn,-Math.sin(tor),Math.cos(tor));
-								MTools.NORMALIZE(v3);
-								MTools.VEC_MUL_NUM(v3,v3,dst * Math.sin(ang));
-								MTools.NORMALIZE(v1);
-								MTools.VEC_MUL_NUM(v1,v1,dst * Math.cos(ang));
+                            //cout<<dst*cos(ang)<<" "<<dst*sin(ang)<<endl;
+//                            coords[i*3+0]=coords[i1*3+0]+dst*Math.cos(ang);
+//                            coords[i*3+1]=0;
+//                            coords[i*3+2]=coords[i1*3+2]+dst*Math.sin(ang);
+                          break;
+                          default:
+                            i1=Integer.parseInt(tokenizer.nextToken());
+                            dst=Double.parseDouble(tokenizer.nextToken());
+                            i2=Integer.parseInt(tokenizer.nextToken());
+                            ang=Double.parseDouble(tokenizer.nextToken());
+                            i3=Integer.parseInt(tokenizer.nextToken());
+                            tor=Double.parseDouble(tokenizer.nextToken());
+                            i1--;i2--;i3--;
+                            ang=Math.toRadians(ang);
+                            tor=Math.toRadians(tor);
+                            System.out.printf("%d %f %d %f %d %f\n",i1,dst,i2,ang,i3,tor);
 
-								for(int j=0;j<3;j++) coords[i*3+j]=coords[i1*3+j]+v3[j]-v1[j];
-							  break;
-							}
-						}else{ nAtoms=0;	return false;}
+                            double[] r1=new double[3]; R(i1,r1);
+                            double[] r2=new double[3]; R(i2,r2);
+                            double[] r3=new double[3]; R(i3,r3);
+                            double[] r4=MTools.zmatrixToCartesian(dst, r1, ang, r2, tor, r3);
+                            for(int j=0;j<3;j++) coords[i*3+j]=r4[j];
+
+//                            dR(i2,i1,v1);
+//                            dR(i3,i1,v2);
+//                            MTools.CROSSPRODUCT(n,v1,v2);
+//                            MTools.CROSSPRODUCT(nn,v1,n);
+//                            MTools.NORMALIZE(n);
+//                            MTools.NORMALIZE(nn);
+//                            //VEC_MUL_NUM(n,n,3,-sin(tor));
+//                            //VEC_MUL_NUM(nn,nn,3,cos(tor));
+//                            MTools.VEC_PLUS_VEC(v3,n,nn,-Math.sin(tor),Math.cos(tor));
+//                            MTools.NORMALIZE(v3);
+//                            MTools.VEC_MUL_NUM(v3,v3,dst * Math.sin(ang));
+//                            MTools.NORMALIZE(v1);
+//                            MTools.VEC_MUL_NUM(v1,v1,dst * Math.cos(ang));
+//
+//                            for(int j=0;j<3;j++) coords[i*3+j]=coords[i1*3+j]+v3[j]-v1[j];
+                          break;
+                        }
 					}
 				}
 			}
@@ -1868,9 +1883,9 @@ public class Cluster implements Cloneable{
 
 				s1=cElements[Nz[i]];
 
-				if(j1min!=-1) s1+=String.format(" %3d %8.3lf ",(j1min+1),distance(i,j1min));
-				if(j2min!=-1) s1+=String.format(" %3d %8.3lf ",(j2min+1),angle_dgr(j1min,i,j2min));
-				if(j3min!=-1) s1+=String.format(" %3d %8.3lf ",(j3min+1),torsion_dgr(i,j1min,j2min,j3min));
+				if(j1min!=-1) s1+=String.format(" %3d %8.3f ",(j1min+1),distance(i,j1min));
+				if(j2min!=-1) s1+=String.format(" %3d %8.3f ",(j2min+1),angle_dgr(j1min,i,j2min));
+				if(j3min!=-1) s1+=String.format(" %3d %8.3f ",(j3min+1),torsion_dgr(i,j1min,j2min,j3min));
 				s1+="\n";
 				writer.append(s1);
 			}
