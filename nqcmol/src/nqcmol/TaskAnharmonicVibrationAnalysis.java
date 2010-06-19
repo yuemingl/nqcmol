@@ -90,7 +90,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 	protected void Process() {
 		try {
 			xmllog.writeEntity("Note");
-			xmllog.writeText(" There are two steps to calculate anharmonic frequencye. Firstly, perform Gaussian scanning  and pipeline the results to an XML file. Then, use XML file generated to approximate frequencies. Remember to specify the output file in the second step.");
+			xmllog.writeText(" There are two steps to calculate anharmonic frequencies. Firstly, perform Gaussian scanning  and pipeline the results to an XML file. Then, use XML file generated to approximate frequencies. Remember to specify the output file at the second step.");
 			xmllog.endEntity();
             if(!sFormatIn.contentEquals("xml")){//Gaussian scanning
                 if (cluster.Read(fileIn, "g03")) {
@@ -121,6 +121,9 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 	///===================
 	@Option(name = "-np", usage = "number of processors using in Gaussian. Default is 1.", metaVar = "INTEGER")
 	int numOfProcessors=1;
+
+    @Option(name = "-mem", usage = "Memory allocated for Gaussian.", metaVar = "STRING")
+	String mem="500MB";
 
 	@Option(name = "-num", usage = "number of points using in approximation. Default is 5.", metaVar = "INTEGER")
 	int nPoints=5;
@@ -154,7 +157,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 			else{
 				long duration =  System.currentTimeMillis();
 				xmllog.writeAttribute("Freq", Double.toString(cluster.getFreqs(m)));
-				xmllog.writeAttribute("ReducedMass", Double.toString(cluster.getReducedMass(m)));
+				xmllog.writeAttribute("ReducedMass", Double.toString(cluster.getReducedMass(m)));                
 				xmllog.writeEntity("Vector");
 				for (int k = 0; k < cluster.getNAtoms(); k++) {
 					xmllog.writeEntity("Atom").writeAttribute("id", Integer.toString(k));
@@ -341,23 +344,20 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 
 
             //remove the old fit if exists
-            removeNodeXML("PolynomialFitting",nodeNormalMode);            
+            removeNodeXML("PolynomialFit",nodeNormalMode);            
             //create a new one
-            Element nodePoly=createNodeXML("PolynomialFitting",nodeNormalMode);
+            Element nodePoly=createNodeXML("PolynomialFit",nodeNormalMode);
 
             //add result
-            addAttributeXML("HarmonicFrequency",Double.toString(omega),nodePoly);
+            addAttributeXML("HarFreq",Double.toString(omega),nodePoly);
 
 
             for (int j = 0; j < params.length; j++) {//details of parameters
                 Element nodeTerm=createNodeXML("Term",nodePoly);
                 addAttributeXML("Degree", Integer.toString(j),nodeTerm);
                 addAttributeXML("Coefficient",  Double.toString(params[j]),nodeTerm);
-                //nodePoly.appendChild(nodeTerm);
             }
             
-
-
 //            xmllog.writeEntity("PolynomialFitting");
 //            xmllog.writeAttribute("AnFreq", Double.toString(anFreq));//result
 //
@@ -398,7 +398,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 //                params = fitter.fit(fittedFunc, params);
 
                 FileWriter fileTMP=new FileWriter(new File("data.tmp"));
-                fileTMP.write(String.format("%12.8f\t%12.8f\n",0, 0));
+                fileTMP.write("0.0\t%0.0f\n");
                 for (int i = 0; i < deltaX.length; i++) {
                     fileTMP.write(String.format("%12.8f\t%12.8f\n", deltaX[i], energies[i]-energy));
                 }
@@ -457,16 +457,16 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
                 double anFreq=omega-ksiomega*2.0;
 
                 //remove the old fit if exists
-                removeNodeXML("MorseFitting",nodeNormalMode);
+                removeNodeXML("MorseFit",nodeNormalMode);
                 //create a new one
-                Element nodeMorse=createNodeXML("MorseFitting",nodeNormalMode);
+                Element nodeMorse=createNodeXML("MorseFit",nodeNormalMode);
 
                 //add result
                 addAttributeXML("De",Double.toString(De),nodeMorse);
                 addAttributeXML("alpha",Double.toString(alpha),nodeMorse);
-                addAttributeXML("HarmonicFrequency",Double.toString(omega),nodeMorse);
-                addAttributeXML("AnharmonicityConstant",Double.toString(ksiomega),nodeMorse);
-                addAttributeXML("AnharmonicFrequency",Double.toString(anFreq),nodeMorse);
+                addAttributeXML("HarFreq",Double.toString(omega),nodeMorse);
+                addAttributeXML("AnharConstant",Double.toString(ksiomega),nodeMorse);
+                addAttributeXML("AnharFreq",Double.toString(anFreq),nodeMorse);
 
 
 //                xmllog.writeEntity("MorseFitting");
@@ -568,7 +568,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 			double beta=delta[i];
 
 			String g03header="%chk="+sFileCheckPoint+String.format("-m%d.chk", m);
-			g03header+=" \n%mem=1GB \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
+			g03header+=" \n%mem="+mem+" \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
 			//g03header+=" \n%nproc="+String.format("%d", numOfProcessors)+" \n#p "+basisSet;
 
 
