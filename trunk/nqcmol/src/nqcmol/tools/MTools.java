@@ -329,6 +329,11 @@ public  class  MTools{
 		return fullPath.substring(0, sep);
 	  }
 
+    public static int booleanToInt(boolean b){
+        if(b) return 1;
+        else return 0;
+    }
+
       /**
        * @param src source array
        * @param pos index of first element to be erased
@@ -341,10 +346,16 @@ public  class  MTools{
           System.arraycopy(src, pos + num, dest, pos, Array.getLength(src) - pos - num );
       }
 
-    public static void generateRandomVector(double vec[],Random ran,double scale){
+    public static void generateRandomVector(double vec[],Random ran,double magnetude){
         for(int i=0;i<vec.length;i++){
-            vec[i]=scale*ran.nextDouble();
+            vec[i]=ran.nextDouble();
         }
+        //PrintArray(vec);
+        double length=Math.sqrt(DOTPRODUCT(vec,vec));
+        for(int i=0;i<vec.length;i++){
+            vec[i]*=magnetude/length;
+        }
+       // PrintArray(vec);
     }
 
     private static Vector3d rotate(Vector3d vector, Vector3d axis, double angle) {

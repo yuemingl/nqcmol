@@ -30,6 +30,7 @@ public class NQCMol {
         TaskGenerateCluster.Descriptions+
         TaskConvertWaterToRadicalWater.Descriptions+
         TaskFitPotential.Descriptions+
+        TaskMonteCarlo.Descriptions+
         //"\t cutLattice \t - Generate clusters by cutting from lattice\n" +
         //"\t rdf \t - Calculate Radial Distribution Function\n" +
 		TaskRemoveDuplicateCluster.Descriptions,metaVar="OPER")
@@ -160,6 +161,11 @@ public class NQCMol {
 
 		else if(sTask.contentEquals(TaskHarmonicSuperpositionApproximation.Option)){
 			Task calc=new TaskHarmonicSuperpositionApproximation();
+			calc.Execute(args);			return;
+		}
+
+        else if(sTask.contentEquals(TaskMonteCarlo.Option)){
+			Task calc=new TaskMonteCarlo();
 			calc.Execute(args);			return;
 		}
 
