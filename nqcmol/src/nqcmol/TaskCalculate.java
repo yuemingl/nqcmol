@@ -23,20 +23,19 @@ import nqcmol.potential.*;
  */
 public class TaskCalculate extends Task{
 
-	@Option(name="-ff",usage="Specify the potential",metaVar="POTENTIAL")
+	@Option(name="-ff",usage="Potential model. [LJ}",metaVar="POTENTIAL")
     String sPotential="LJ";
 
-	@Option(name="-a",usage="parameter file for potential if applicant",metaVar="FILE")
+	@Option(name="-a",usage="Parameter file for potential if applicant.",metaVar="FILE")
     String sFileParam="";
 
-	@Option(name="-u",usage="unit of energy if applicant: Hartree, kcal/mol, kJ/mol, eV, au ",metaVar="STRING")
+	@Option(name="-u",usage="Unit of energy if applicant: Hartree, kcal/mol, kJ/mol, eV, au.",metaVar="STRING")
     String sUnit="";
 
-	@Option(name="-med",usage="optimization methods if applicant. METHOD must be one of DFPMIN(quasi-newton), CG (conjugate gradient)",metaVar="METHOD")
+	@Option(name="-med",usage="Optimization methods if applicant. METHOD must be one of DFPMIN(quasi-newton), CG (conjugate gradient)",metaVar="METHOD")
 	String sMethod="DFPMIN";
 
-	@Option(name="-nOpts",usage="maximum number of evaluations",metaVar="INTEGER")
-	int nOpts=0;
+	
 
 	protected Potential pot;
 

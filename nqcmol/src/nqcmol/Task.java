@@ -17,14 +17,14 @@ import org.kohsuke.args4j.*;
  */
 public class Task {
 
-	@Option(name = "-i", usage = "input file name. Default format is xyz.", metaVar = "FILE")
+	@Option(name = "-i", usage = "Input file name. [xyz]", metaVar = "FILE")
 	String sFileIn = "";
 	String sFormatIn = "xyz";
-	@Option(name = "-o", usage = "output file name.", metaVar = "FILE")
+	@Option(name = "-o", usage = "Output file name. [xyz]", metaVar = "FILE")
 	String sFileOut = "";
 	String sFormatOut = "xyz";
 	
-	@Option(name = "-v", usage = "verbose level, default is 0", metaVar = "INTEGER")
+	@Option(name = "-v", usage = "Verbose level. [0]", metaVar = "INTEGER")
 	int verbose = 0;
 	
 	@Option(name = "-h", usage = "Print out the help")

@@ -51,6 +51,7 @@ public class Cluster implements Cloneable{
         double[] p=src.getUSRsig();
         for (int i=0; i<12; i++){	USRsig[i] = p[i];}
 
+        energy=src.getEnergy();
 		tag=src.getTag();
 		rmsGrad=src.getRmsGrad();	
 	}
@@ -271,6 +272,7 @@ public class Cluster implements Cloneable{
 	public void setFreqs(double[] freqs) {
 		if(freqs!=null)
 			this.freqs = freqs.clone();
+        else this.freqs=null;
 	}
 
 	/**
@@ -986,7 +988,8 @@ public class Cluster implements Cloneable{
 	}
 
 	/**
-	 * @return Bond type defined in PairwiseType enum
+     * @param i,j index of atoms
+     * @return Bond type defined in PairwiseType enum
 	 */
 	public PairwiseType getPairwiseBond(int i,int j){
 		int ni=Nz[i];
@@ -1017,6 +1020,19 @@ public class Cluster implements Cloneable{
 			return type;
 		}else return PairwiseType.NONE;
 	}
+
+    public int[] getMolecule(int i){
+        Vector<Integer> tmp=new Vector<Integer>();
+        tmp.add(i);
+        for(int k=0;k<nAtoms;k++) if(k!=i){
+           if(pairwise[i][k]==PairwiseType.HYD_NEAR){
+                tmp.add(k);
+           }
+        }
+        int[] answer=new int[tmp.size()];
+        for(int k=0;k<tmp.size();k++) answer[k]=tmp.elementAt(k);
+        return answer;
+    }
 
 	//======================= Structure query
 	/**
@@ -1449,7 +1465,7 @@ public class Cluster implements Cloneable{
 			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
 
 
-			System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
+			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
 
 			//gradient=new double[nAtoms*3];
 
@@ -1520,7 +1536,7 @@ public class Cluster implements Cloneable{
                             i1--;i2--;i3--;
                             ang=Math.toRadians(ang);
                             tor=Math.toRadians(tor);
-                            System.out.printf("%d %f %d %f %d %f\n",i1,dst,i2,ang,i3,tor);
+                            //System.out.printf("%d %f %d %f %d %f\n",i1,dst,i2,ang,i3,tor);
 
                             double[] r1=new double[3]; R(i1,r1);
                             double[] r2=new double[3]; R(i2,r2);

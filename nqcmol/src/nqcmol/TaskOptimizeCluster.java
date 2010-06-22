@@ -18,14 +18,17 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class TaskOptimizeCluster extends TaskCalculate {
-    @Option(name="-ftol",usage=" energy tolerance: default is 1e-9",metaVar="DOUBLE")
+    @Option(name="-ftol",usage="Energy tolerance. [1e-9]",metaVar="DOUBLE")
     double ftol=1e-9;
 
-    @Option(name="-gtol",usage=" RMS of gradient tolerance: default is 1e-6",metaVar="DOUBLE")
+    @Option(name="-gtol",usage="RMS of gradient tolerance.[1e-6]",metaVar="DOUBLE")
     double gtol=1e-6;
 
-    @Option(name="-mstep",usage=" Maximum step size of each iteration: default is 0.1",metaVar="DOUBLE")
+    @Option(name="-mstep",usage="Maximum step size of each iteration. [0.1]",metaVar="DOUBLE")
     double mstep=1e-1;
+
+    @Option(name="-nOpts",usage="Maximum number of iterations in local optimization. [0]",metaVar="INTEGER")
+	int nOpts=0;
 
 	@Override
 	public String getName(){
@@ -42,6 +45,7 @@ public class TaskOptimizeCluster extends TaskCalculate {
             pot.setEnergyTol(ftol);
             pot.setGradientTol(gtol);
             pot.setMaxStepSize(mstep);
+            pot.setMaxEvals(nOpts);
             
 			int i = 0;
 			while (mol.Read(fileIn, sFormatIn)) {
