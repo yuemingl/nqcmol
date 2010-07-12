@@ -17,11 +17,14 @@ import org.kohsuke.args4j.*;
  */
 public class TaskRemoveDuplicateCluster extends Task{
 
-	@Option(name="-lim",usage="threshold of USR similarity",metaVar="DOUBLE")
+	@Option(name="-lim",usage="Threshold of USR similarity",metaVar="DOUBLE")
     double lim=2;
 
-	@Option(name="-deltaE",usage="threshold of energy difference",metaVar="DOUBLE")
+	@Option(name="-deltaE",usage="Threshold of energy difference",metaVar="DOUBLE")
     double deltaE=0.1;
+
+    @Option(name="-spanE",usage="Energy span. Zero value is the lowest energy of isomers. All isomers out of span will be removed. Negative means not used. [-1] ",metaVar="DOUBLE")
+    double spanE=-1;
 
     @Option(name="-retag",usage="Change tags of structures to 0,1,2,etc")
     boolean isReTag=false;
@@ -43,6 +46,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 		super.Initialize();		
 		xmllog.writeAttribute("USRthreshold", Double.toString(lim));
 		xmllog.writeAttribute("deltaE", Double.toString(deltaE));
+        xmllog.writeAttribute("spanE", Double.toString(spanE));
         xmllog.writeAttribute("reTag", Boolean.toString(isReTag));
         xmllog.writeAttribute("SortAtom", Boolean.toString(isSortAtom));
 	}
@@ -58,11 +62,13 @@ public class TaskRemoveDuplicateCluster extends Task{
 
 			int i = 0;
 			Vector<Cluster> pop=new Vector<Cluster>();
+            double minE=1e100;
 			while (scanner.hasNext()) {
 				Cluster mol = new WaterCluster();
 				mol.Read(scanner, sFormatIn);
 				
 				if(mol.nAtoms<=0) break;
+                minE=Math.min(mol.getEnergy(),minE);
 				mol.CalcUSRsignature();
 				pop.add(mol);
 				//if(i>2)pop.get(i-1).Write(System.err,MTools.getExtension(sFileOut));
@@ -98,15 +104,13 @@ public class TaskRemoveDuplicateCluster extends Task{
 				//cout<<t<<". "<<i<<" "<<c1<<endl;
 			}
 
-
-			FileWriter fileOut=null;
-
 			if(!sFileOut.isEmpty()){
 				fileOut=new FileWriter(new File(sFileOut));
 			}
 
 			//dump non duplicate to file if needed
 			int	count=0;
+            int countOutOfRange=0;
 			for(i=0;i<pop.size();i++)
 					if(bb[i]) {
 						if(!sFileOut.isEmpty()){
@@ -114,15 +118,22 @@ public class TaskRemoveDuplicateCluster extends Task{
 							if(isReTag)	pop.get(i).setTag(Integer.toString(count));
                             if(isSortAtom) pop.get(i).CorrectOrder();
 							//System.err.print(pop.get(i).getNAtoms());
-							pop.get(i).Write(fileOut,MTools.getExtension(sFileOut));
+                            if( ((spanE>0)&&(pop.get(i).getEnergy()<minE+spanE)) || (spanE<0)) {
+                                pop.get(i).Write(fileOut,MTools.getExtension(sFileOut));                                
+                            }else{
+                                countOutOfRange++;
+                            }
 						}
-						count++;
+                        count++;
 					}else{
 //						if(fnDup!=""){
 //							pop[i].Write(odup,outmode);
 //						}
 					}
-			xmllog.writeEntity("NumOfDistincClusters").writeText(Integer.toString(count)).endEntity();
+			xmllog.writeEntity("Summary");
+                xmllog.writeAttribute("NumOfDistincClusters",Integer.toString(count));
+                xmllog.writeAttribute("NumOfOutOfRange",Integer.toString(countOutOfRange));
+            xmllog.endEntity();
 
 		} catch (IOException ex) {
 			//Logger.getLogger(TaskSingleCluster.class.getName()).log(Level.SEVERE, null, ex);

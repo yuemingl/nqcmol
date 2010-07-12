@@ -57,6 +57,9 @@ public class TaskMonteCarlo extends TaskCalculate {
     File fDump;
     File fDead;
 
+    @Option(name="-n",usage="Index of input structure. [0]",metaVar="INTEGER")
+    int iN=0;
+
     @Option(name="-nRuns",usage="Maximum step size of each iteration. [100]",metaVar="INTEGER")
     int nRuns=10;
 
@@ -96,7 +99,11 @@ public class TaskMonteCarlo extends TaskCalculate {
             pot.setMaxStepSize(mstep);
             pot.setMaxEvals(nOpts);
 
-            mol.Read(fileIn, sFormatIn);
+            int i=0;
+            while(mol.Read(fileIn, sFormatIn)){
+                if(i==iN) break;
+                i++;
+            }
 			fileIn.close();
             if(pot.getUnit().contentEquals("Hartree")) kB=3.16682968e-6;//Hartree*K^-1
             if(pot.getUnit().contentEquals("kcal/mol")) kB=0.1986e-3;//kcal/mol*K^-1

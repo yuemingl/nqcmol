@@ -358,7 +358,9 @@ public class Potential {
 						err[k] = 100 * Math.abs((anagrad[i * 3 + k] - numgrad[i * 3 + k]) / numgrad[i * 3 + k]);
 						maxerr = Math.max(err[k],maxerr);
 					} else {
-						err[k] = 100.0;
+						if (anagrad[i * 3 + k] != 0)
+                            err[k] = 100.0;
+                        else err[k]=0;
 					}
 				}
 

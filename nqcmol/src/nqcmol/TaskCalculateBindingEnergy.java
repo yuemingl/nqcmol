@@ -95,11 +95,11 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 				xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("id", Integer.toString(i));
 				xmllog.writeAttribute("nAtoms", Integer.toString(mol.getNAtoms()));
-				xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergy));
-				xmllog.writeAttribute("OldBindingEnergy", Double.toString(oldBE));
-				xmllog.writeAttribute("NewEnergy", Double.toString(newEnergy));
-				xmllog.writeAttribute("NewBindingEnergy", Double.toString(newBE));
-				xmllog.writeAttribute("DeltaBindingEnergy", Double.toString(newBE-oldBE));
+				xmllog.writeAttribute("OldE", Double.toString(oldEnergy));
+				xmllog.writeAttribute("OldBE", Double.toString(oldBE));
+				xmllog.writeAttribute("NewE", Double.toString(newEnergy));
+				xmllog.writeAttribute("NewBE", Double.toString(newBE));
+				xmllog.writeAttribute("DeltaBE", Double.toString(newBE-oldBE));
 
 				xmllog.endEntity();
 				i++;

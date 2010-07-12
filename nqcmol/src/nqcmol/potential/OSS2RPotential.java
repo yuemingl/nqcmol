@@ -26,7 +26,7 @@ public class OSS2RPotential extends Potential{
 
 	@Override
 	public String getEquation(){
-		String equation="OSS2";
+		String equation="OSS2R";
 		return equation;
 	}
 	

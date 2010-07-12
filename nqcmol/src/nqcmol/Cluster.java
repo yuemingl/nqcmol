@@ -73,7 +73,11 @@ public class Cluster implements Cloneable{
     "Rb","Sr","Y","Zr","Nb","Mo","Tc","Ru","Rh","Pd","Ag","Cd","In","Sn","Sb","Te","I","Xe",//5th round
     "Cs","Ba", //6th round
     "La","Ce","Pr","Nd","Pm","Sm","Eu","Gd","Tb","Dy","Ho","Er","Tm","Yb", //Lanthaniod
-    "Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn" //6th round
+    "Lu","Hf","Ta","W","Re","Os","Ir","Pt","Au","Hg","Tl","Pb","Bi","Po","At","Rn", //6th round
+    "Fr","Ra",//7th round
+    "Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No",//Actonid
+    "103","104","105","106","107","108","109","110","111","112","113","114","115","116","116","118", //7th round
+    "OW ","HW1","HW2","LP1","LP2" //extra or dummy atom
 };
 
 	protected static final String[] cAtomicNo={"0",
@@ -83,7 +87,11 @@ public class Cluster implements Cloneable{
     "37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54",//5th round
     "55","56",//6th round
     "57","58","59","60","61","62","63","64","65","66","67","68","69","70",//Lanthaniod
-    "71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86"//6th round
+    "71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86",//6th round
+    "87","88",//7th round
+    "89","90","91","92","93","94","95","96","97","98","99","100","101","102",//Actonid
+    "103","104","105","106","107","108","109","110","111","112","113","114","115","116","116","118", //7th round
+    "119","120","121","122","123" //extra or dummy atom
     };
 
 
@@ -94,7 +102,7 @@ public class Cluster implements Cloneable{
 
 	protected static final int cTypeMax=cElements.length;
 
-	public final static String[] format={"xyz","g03","g03c","car","xml","int"};
+	public final static String[] format={"xyz","g03","g03c","car","xml","int","pdb"};
 
 	//================== properties of Clusters
 	/**
@@ -829,13 +837,15 @@ public class Cluster implements Cloneable{
 	public void getMassCenter(double[] rc){
 		int i,k;
 		for(k=0;k<3;k++) rc[k]=0;
-		double mass=0;
+		double totalmass=0;
 		for(i=0;i<nAtoms;i++){
-			mass+=cMass[Nz[i]];
+            double iM=1.0;
+            if(Nz[i]<cMass.length) iM=cMass[Nz[i]];
+			totalmass+=iM;
 			for(k=0;k<3;k++)
-				rc[k]+=cMass[Nz[i]]*coords[i*3+k];
+				rc[k]+=iM*coords[i*3+k];
 		}
-		for(k=0;k<3;k++) rc[k]/=mass;
+		for(k=0;k<3;k++) rc[k]/=totalmass;
 	}
 
 	public void getInertiaTensor(double[][] I){
@@ -872,19 +882,21 @@ public class Cluster implements Cloneable{
 	}
 
 	/**
-	 * @param index index of atom
+	 * @param i index of atom
 	 * @return true if atom is hydrogen
 	 */
 	public boolean IsHydrogen(int i){
-		return Nz[i]==1;
+        boolean answer=false;
+        if((Nz[i]==1)||(Nz[i]==120)||(Nz[i]==121)||(Nz[i]==122)||(Nz[i]==123)) answer=true;
+		return answer;
 	}
 
 	/**
-	 * @param index index of atom
+	 * @param i index of atom
 	 * @return true if atom is not hydrogen
 	 */
 	public boolean IsNonHydrogen(int i){
-		return Nz[i]!=1;
+		return !IsHydrogen(i);
 	}
 
 	public String getFormula(){
@@ -1009,7 +1021,7 @@ public class Cluster implements Cloneable{
 				dmin=0.30; dmax=1.40; type=PairwiseType.HYD_NEAR;	if((d>=dmin)&&(d<=dmax))	return type;
 		}
 		else if(s.contentEquals("OH")){ dmin=0.30; dmax=1.20; type=PairwiseType.HYD_NEAR;}
-		else if(s.contentEquals("OO")){ dmin=1.00; dmax=3.20; type=PairwiseType.SINGLEBOND;}
+		else if(s.contentEquals("OO")){ dmin=2.00; dmax=3.20; type=PairwiseType.SINGLEBOND;}
 		else if(s.contentEquals("FH")){ dmin=0.20; dmax=1.4; type=PairwiseType.HYD_NEAR;}
 		else if(s.contentEquals("FF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
 		else if(s.contentEquals("FO")||s.contentEquals("OF")){ dmin=1.00; dmax=3.2; type=PairwiseType.SINGLEBOND; }
@@ -1787,6 +1799,8 @@ public class Cluster implements Cloneable{
 					WriteEPS(writer);
                 }else	if(format.contentEquals("car")){
 					WriteCAR(writer);
+                }else	if(format.contentEquals("pdb")){
+					WritePDB(writer);
 				}else{
 					WriteXYZ(writer);
 				}
@@ -2005,28 +2019,19 @@ public class Cluster implements Cloneable{
 
     protected void WritePDB(Writer writer) throws IOException{
         if(nAtoms>=1){
-//            String s1 = "TITLE     "+tag+ "\n";
-//			writer.append(s1);
-//            s1="AUTHOR NGUYEN QUOC CHINH\n";
-//                    //"CRYST1    ";
-//           // for(i=0;i<DGR;i++)	os<<setw(8)<<setprecision(3)<<left<<fixed<<a[i]<<" ";
-//            //for(i=0;i<DGR;i++)	os<<setw(6)<<setprecision(2)<<left<<fixed<<alpha[i]*180.0/M_PI<<" ";
-//            //s1="  P 1           1\n";   writer.append(s1);
-//            s1+="MODEL        1\n"; writer.append(s1);
-//
-//            for(int i=0;i<nAtoms;i++){
-//                s1=String.format("ATOM %6d",i);
-//                if(Nz[i]==O)
-//                    switch(k){
-//                        case 0:os<<"  "<<Elements[inv.Nz[k]]<<"W  SOL     "<<i+1<<"    ";break;
-//                        default:os<<"  "<<Elements[inv.Nz[k]]<<"W"<<k<<" SOL     "<<i+1<<"    ";break;
-//                    }
-//                    for(j=0;j<DGR;j++)	os<<format("%7.3lf ")%inv.x[k*DGR+j];
-//                    os<<" 1.00  0.00"<<endl;
-//                }
-//            }
-//            os<<"TER"<<endl;
-//            os<<"ENDMDL"<<endl;
+            String s1 = "TITLE     "+tag+ "\n";
+			//writer.append(s1);
+           // s1="AUTHOR nqcmol\n";
+            //s1="  P 1           1\n";   writer.append(s1);
+           // s1+="MODEL        1\n"; writer.append(s1);
+            int nMol=0;
+            for(int i=0;i<nAtoms;i++){
+                s1=String.format("ATOM  %5d",i+1);
+                if(IsNonHydrogen(i)) nMol++;
+                s1+=String.format(" %4s SOL  %4d    %8.3f%8.3f%8.3f  1.00  0.00\n",cElements[Nz[i]],nMol,coords[i*3],coords[i*3+1],coords[i*3+2]);
+                writer.append(s1);
+            }
+            writer.append("END\n");
         }
     }
 
