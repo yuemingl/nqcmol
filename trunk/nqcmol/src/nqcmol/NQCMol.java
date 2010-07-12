@@ -169,6 +169,11 @@ public class NQCMol {
 			calc.Execute(args);			return;
 		}
 
+        else if(sTask.contentEquals(TaskTest.Option)){
+			Task calc=new TaskTest();
+			calc.Execute(args);			return;
+		}
+
 
 		else if(isHelp){
 			System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");

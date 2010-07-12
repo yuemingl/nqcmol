@@ -19,11 +19,15 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class TaskGenerateCluster extends Task {	
-	@Option(name = "-num", usage = "Number of sampling configurations along each direction", metaVar = "INTEGER")
+	@Option(name = "-num", usage = "Number of sampling configurations along each direction. [3]", metaVar = "INTEGER")
 	int num=3;
 
-	@Option(name = "-deltaX", usage = "Maximum displacement along one direction (in Angstrom)", metaVar = "DOUBLE")
+	@Option(name = "-deltaX", usage = "Maximum displacement along one direction (in Angstrom). [0.2]", metaVar = "DOUBLE")
 	double deltaX=0.2;
+
+
+    @Option(name = "-level", usage = "Level of combination. [1]", metaVar = "INTEGER")
+	int level=1;
 
 //    @Option(name = "-header", usage = "Header file for Gaussian input", metaVar = "DOUBLE")
 //	double deltaX=0.2;
@@ -43,12 +47,14 @@ public class TaskGenerateCluster extends Task {
 		try {			
 			xmllog.writeAttribute("deltaX", Double.toString(deltaX));
 			xmllog.writeAttribute("num", Integer.toString(num));
+            xmllog.writeAttribute("level", Integer.toString(level));
 
             Cluster cluster=new Cluster();
 
             while(cluster.Read(fileIn, "g03")){
 				xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
-				GenFromNormalModes(cluster);
+				int no=GenFromNormalModes(cluster);
+                xmllog.writeAttribute("NoOfStruct", Integer.toString(no));
 				xmllog.endEntity().flush();
 			}
 		} catch (IOException ex) {
@@ -57,26 +63,30 @@ public class TaskGenerateCluster extends Task {
 			
 	}	
 	
-	void GenFromNormalModes(Cluster cluster){
+	int GenFromNormalModes(Cluster cluster){
+        int no=0;
         //creating direction vectors
         double[][] lCART=cluster.getNormalModeVectors();
         double[] x0=cluster.getCoords();
         
         Vector<double[]> dirList=new Vector<double[]>();
+        double[] dir;
 
         for(int m1=0;m1<lCART.length;m1++){
-            //if(level==1){
-            double[] dir=lCART[m1].clone();
-            dirList.add(dir);
-    //		}else	for(int m2=m1+1;m2<k.nFreq;m2++)
-    //					if(level==2){
-    //						VEC_PLUS_VEC(vec,k.lCART[m1],k.lCART[m2],k.nAtom*DGR,1.0,1.0);
-    //						vecList.push_back(vec);
-    //					}else	for(int m3=m2+1;m3<k.nFreq;m3++){
-    //								VEC_PLUS_VEC(vec,k.lCART[m1],k.lCART[m2],k.nAtom*DGR,1.0,1.0);
-    //								VEC_PLUS_VEC(vec,vec,k.lCART[m3],k.nAtom*DGR,1.0,1.0);
-    //								vecList.push_back(vec);
-    //							}
+            if(level==1){
+                dir=lCART[m1].clone();
+                dirList.add(dir);
+    		}else	for(int m2=m1+1;m2<lCART.length;m2++)
+    					if(level==2){
+                            dir=new double[lCART[m1].length];
+    						MTools.VEC_PLUS_VEC(dir,lCART[m1],lCART[m2],1.0,1.0);
+    						dirList.add(dir);
+    					}else	for(int m3=m2+1;m3<lCART.length;m3++){
+                                    dir=new double[lCART[m1].length];
+    								MTools.VEC_PLUS_VEC(dir,lCART[m1],lCART[m2],1.0,1.0);
+    								MTools.VEC_PLUS_VEC(dir,dir,lCART[m3],1.0,1.0);
+    								dirList.add(dir);
+    							}
         }
 
        Cluster newCluster=(Cluster) cluster.clone();
@@ -98,8 +108,10 @@ public class TaskGenerateCluster extends Task {
 
                 if (fileOut != null) {
                     newCluster.Write(fileOut, sFormatOut);
+                    no++;
                 }
             }
         }
-        }
+       return no;
+      }
 }

@@ -33,6 +33,9 @@ public class TaskFitPotential extends TaskCalculate {
 
     @Option(name="-random",usage="Randomize the input parameters withing the range")
 	boolean isRandom=false;
+
+    @Option(name="-nOpts",usage="Maximum number of iterations in local optimization. [0]",metaVar="INTEGER")
+	int nOpts=0;
 		
 	final int cParamMax=100;
 
@@ -162,7 +165,7 @@ public class TaskFitPotential extends TaskCalculate {
 						xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
 						xmllog.writeAttribute("Weight", Double.toString(weight.get(i)));
 						xmllog.writeAttribute("ObservedBE", Double.toString(target[i]));
-						xmllog.writeAttribute("CalcEnergy", Double.toString(ener));
+						xmllog.writeAttribute("CalcE", Double.toString(ener));
 						xmllog.writeAttribute("CalcBE", Double.toString(y[i]));
 						xmllog.writeAttribute("DeltaE", Double.toString(dE));
 						xmllog.endEntity().flush();
