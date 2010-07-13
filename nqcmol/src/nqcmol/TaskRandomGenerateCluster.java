@@ -239,9 +239,9 @@ public class TaskRandomGenerateCluster extends Task {
 
         switch(shape){
             case BOX:
-                x[0]=a1 * gen.nextDouble();
-                x[1]=a2 * gen.nextDouble();
-                x[2]=a3 * gen.nextDouble();
+                x[0]=a1 * (gen.nextDouble()-0.5);
+                x[1]=a2 * (gen.nextDouble()-0.5);
+                x[2]=a3 * (gen.nextDouble()-0.5);
             case SPHERE:
                 radius=a1 * gen.nextDouble();
                 MTools.generateRandomVector(x, gen, radius);
@@ -250,8 +250,9 @@ public class TaskRandomGenerateCluster extends Task {
                 radius=a1 * gen.nextDouble();
                 phi=gen.nextDouble()*2*Math.PI;
                 //MTools.generateRandomVector(tmp, gen, radius);
-                x[0]=radius*Math.cos(phi);x[1]=radius*Math.sin(phi);
-                x[2]=a2 * gen.nextDouble();                
+                x[0]=radius*Math.cos(phi);
+                x[1]=radius*Math.sin(phi);
+                x[2]=a2 * (gen.nextDouble()-0.5);
             break;
         }
     }
