@@ -1677,7 +1677,8 @@ public class Cluster implements Cloneable{
 
 				while(scanner.hasNext()){
 					substr=scanner.nextLine();//getline(is,s);	sscanf(s.c_str(), "Frc consts  --  %lf ",&(dtmp[0]));
-					if(substr.contains("Atom AN")) break;
+					if( substr.contains("Atom AN") || substr.contains("Atom  AN") ) break;
+                    //System.err.printf("%s\n",substr);
 				}
 
 				//while(s.find("Atom")!=0) getline(fin,s);
@@ -1690,7 +1691,7 @@ public class Cluster implements Cloneable{
                     for(int m=0;m<nToken;m++)
                         for(int j=0;j<3;j++)
                             v1[m][k*3+j]=Double.parseDouble(token.nextToken());
-						//System.err.printf("%f\n", v1[k*3+j]);		
+					
 					
 				}
 

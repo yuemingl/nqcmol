@@ -32,6 +32,9 @@ public class TaskRemoveDuplicateCluster extends Task{
     @Option(name="-sortatom",usage="Sort atoms in descending order respect to atomic number.")
     boolean isSortAtom=false;
 
+    @Option(name="-prefix",usage="Sort atoms in descending order respect to atomic number.",metaVar="STRING")
+    String prefix="";
+
 	@Override
 	public String getName(){
 		return "RemoveDuplicateCluster";
@@ -48,7 +51,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 		xmllog.writeAttribute("deltaE", Double.toString(deltaE));
         xmllog.writeAttribute("spanE", Double.toString(spanE));
         xmllog.writeAttribute("reTag", Boolean.toString(isReTag));
-        xmllog.writeAttribute("SortAtom", Boolean.toString(isSortAtom));
+        xmllog.writeAttribute("SortAtom", Boolean.toString(isSortAtom));        
 	}
 
 	@Override
@@ -117,6 +120,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 							//if(Integer.parseInt(pop.get(i).getTag())==0)
 							if(isReTag)	pop.get(i).setTag(Integer.toString(count));
                             if(isSortAtom) pop.get(i).CorrectOrder();
+                            if(!prefix.isEmpty()) pop.get(i).setTag(prefix+"-"+i);
 							//System.err.print(pop.get(i).getNAtoms());
                             if( ((spanE>0)&&(pop.get(i).getEnergy()<minE+spanE)) || (spanE<0)) {
                                 pop.get(i).Write(fileOut,MTools.getExtension(sFileOut));                                

@@ -29,6 +29,10 @@ public class TaskGenerateCluster extends Task {
     @Option(name = "-level", usage = "Level of combination. [1]", metaVar = "INTEGER")
 	int level=1;
 
+    @Option(name = "-m", usage = "Specify a particular normal mode for translating. Count from 0. Disable if < 0. [-1]", metaVar = "INTEGER")
+	int mode=-1;
+
+
 //    @Option(name = "-header", usage = "Header file for Gaussian input", metaVar = "DOUBLE")
 //	double deltaX=0.2;
 
@@ -72,6 +76,7 @@ public class TaskGenerateCluster extends Task {
         Vector<double[]> dirList=new Vector<double[]>();
         double[] dir;
 
+        if(mode<0)
         for(int m1=0;m1<lCART.length;m1++){
             if(level==1){
                 dir=lCART[m1].clone();
@@ -87,6 +92,10 @@ public class TaskGenerateCluster extends Task {
     								MTools.VEC_PLUS_VEC(dir,dir,lCART[m3],1.0,1.0);
     								dirList.add(dir);
     							}
+        }
+        else{
+            dir=lCART[mode].clone();
+            dirList.add(dir);
         }
 
        Cluster newCluster=(Cluster) cluster.clone();
