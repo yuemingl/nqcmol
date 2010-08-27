@@ -56,6 +56,10 @@ public class MolExtra {
 			pot=new KJPotential();
 		}
 
+         else if(sPotential.contentEquals("KKY")){
+			pot=new KKYPotential();
+		}
+
 		else if(sPotential.contentEquals("g03")){
 			pot=new GaussianInterfacePotential();
 			GaussianInterfacePotential gauss=(GaussianInterfacePotential)pot;
