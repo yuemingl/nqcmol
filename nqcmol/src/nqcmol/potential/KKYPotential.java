@@ -231,6 +231,14 @@ public class KKYPotential extends Potential{
         return answer;
     }
 
+    void getAllParam1(int i,Double a,Double b, Double c, Double z){        
+        String query=cluster.getAtomicSymbol(i)+"_";
+        a=params.get(query+"a");
+        b=params.get(query+"b");
+        c=params.get(query+"c");
+        z=params.get(query+"z");
+    }
+
     double getParam2(int i,int j,String key){
         double answer=0;
         String query=cluster.getAtomicSymbol(i)+"-"+cluster.getAtomicSymbol(j)+"_"+key;
@@ -245,19 +253,7 @@ public class KKYPotential extends Potential{
         return answer;
     }
 
-    double getParam2(String symbol,String key){
-        double answer=0;
-        String query=symbol+"_"+key;
-        Double val= params.get(query);
-        if(val!=null) answer=val.doubleValue();
-        else{
-            query=symbol+"_"+key;
-            val= params.get(query);
-            if(val!=null) answer=val.doubleValue();
-        }
-        //System.out.println("Key="+query+ " Value="+answer);
-        return answer;
-    }
+    
 
      double getParam3(int i,int j,int k,String key){
         double answer=0;
@@ -288,11 +284,13 @@ public class KKYPotential extends Potential{
         //final double kCoulomb=1389.354678;//=from OSS2 potential
 
         for (int i = 0; i < nAtom; i += 1){
-            double p_zi,p_ai,p_bi,p_ci;
-            p_zi=getParam1(i,"z");
-            p_ai=getParam1(i,"a");
-            p_bi=getParam1(i,"b");
-            p_ci=getParam1(i,"c");
+            Double p_ai=null,p_bi=null,p_ci=null,p_zi=null;
+            getAllParam1(i,p_ai,p_bi,p_ci,p_zi);
+            System.out.println("Test = "+p_ai);
+//            p_zi=getParam1(i,"z");
+//            p_ai=getParam1(i,"a");
+//            p_bi=getParam1(i,"b");
+//            p_ci=getParam1(i,"c");
 
 
             for (int j = i+1; j < nAtom; j += 1){
