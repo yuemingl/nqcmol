@@ -284,13 +284,14 @@ public class KKYPotential extends Potential{
         //final double kCoulomb=1389.354678;//=from OSS2 potential
 
         for (int i = 0; i < nAtom; i += 1){
-            Double p_ai=null,p_bi=null,p_ci=null,p_zi=null;
-            getAllParam1(i,p_ai,p_bi,p_ci,p_zi);
-            System.out.println("Test = "+p_ai);
-//            p_zi=getParam1(i,"z");
-//            p_ai=getParam1(i,"a");
-//            p_bi=getParam1(i,"b");
-//            p_ci=getParam1(i,"c");
+            //Double p_ai=null,p_bi=null,p_ci=null,p_zi=null;
+            //getAllParam1(i,p_ai,p_bi,p_ci,p_zi);
+            //System.out.println("Test = "+p_ai);
+            double p_zi,p_ai,p_bi,p_ci;
+            p_zi=getParam1(i,"z");
+            p_ai=getParam1(i,"a");
+            p_bi=getParam1(i,"b");
+            p_ci=getParam1(i,"c");
 
 
             for (int j = i+1; j < nAtom; j += 1){
@@ -313,29 +314,29 @@ public class KKYPotential extends Potential{
                 double p_r3=getParam2(i,j,"r3");
 
 
-//                double expij   = Math.exp(( p_ai + p_aj - r[i][j])/(p_bi + p_bj));
-//                double expij_1 = Math.exp( -p_beta1*r[i][j]);
-//                double expij_2 = Math.exp( -p_beta2*r[i][j]);
-//                double expij_3 = Math.exp( -p_beta3* SQR(r[i][j] - p_r3));
+                double expij   = Math.exp(( p_ai + p_aj - r[i][j])/(p_bi + p_bj));
+                double expij_1 = Math.exp( -p_beta1*r[i][j]);
+                double expij_2 = Math.exp( -p_beta2*r[i][j]);
+                double expij_3 = Math.exp( -p_beta3* SQR(r[i][j] - p_r3));
 
-//                v_Coulomb+=kCoulomb*p_zi*p_zj / r[i][j];
-//                v_ShortRangeRepuls+= p_f0 * (p_bi + p_bj) * expij;
-//                v_VanDerWaals+= - p_ci*p_cj/Math.pow(r[i][j],6);
-//                v_CovalentBond+= p_D1 * expij_1 + p_D2 * expij_2 + p_D3 * expij_3;
-//
-//                if(isGrad){
-//                    double gd= (-kCoulomb*p_zi*p_zj / r2[i][j])
-//                         +(-p_f0 * expij)
-//                         +(6.0 * p_ci*p_cj /Math.pow(r[i][j],7))
-//                         +(-(p_D1*p_beta1)*expij_1)
-//                         +(-(p_D2*p_beta2)*expij_2)
-//                         +(2.0*p_D3*p_beta3*(p_r3 - r[i][j]))*expij_3;
-//
-//                    for (int dim = 0; dim < 3; dim += 1){
-//                        grad[i][dim] +=  gd*dr[i][j][dim];
-//                        grad[j][dim] += -gd*dr[i][j][dim];
-//                    }
-//                }
+                v_Coulomb+=kCoulomb*p_zi*p_zj / r[i][j];
+                v_ShortRangeRepuls+= p_f0 * (p_bi + p_bj) * expij;
+                v_VanDerWaals+= - p_ci*p_cj/Math.pow(r[i][j],6);
+                v_CovalentBond+= p_D1 * expij_1 + p_D2 * expij_2 + p_D3 * expij_3;
+
+                if(isGrad){
+                    double gd= (-kCoulomb*p_zi*p_zj / r2[i][j])
+                         +(-p_f0 * expij)
+                         +(6.0 * p_ci*p_cj /Math.pow(r[i][j],7))
+                         +(-(p_D1*p_beta1)*expij_1)
+                         +(-(p_D2*p_beta2)*expij_2)
+                         +(2.0*p_D3*p_beta3*(p_r3 - r[i][j]))*expij_3;
+
+                    for (int dim = 0; dim < 3; dim += 1){
+                        grad[i][dim] +=  gd*dr[i][j][dim];
+                        grad[j][dim] += -gd*dr[i][j][dim];
+                    }
+                }
             }
         }
       
