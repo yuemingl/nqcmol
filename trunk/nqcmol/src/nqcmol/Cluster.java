@@ -1599,7 +1599,7 @@ public class Cluster implements Cloneable{
 
 		while(scanner.hasNext()){
 			String s=scanner.nextLine();
-			//cout<<s<<endl;
+			//System.out.println(s);
 			//read atomic number and coordinates
 
 			//if( (s.contains("Input orientation")|| s.contains("Standard orientation") && (flag==0) )){

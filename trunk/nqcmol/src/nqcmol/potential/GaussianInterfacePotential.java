@@ -6,6 +6,7 @@
 package nqcmol.potential;
 
 import java.io.*;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -129,29 +130,27 @@ public class GaussianInterfacePotential extends Potential{
 		if (_p.length <= 3) return 0;
 		//System.out.print(" Size of vec = "+	Integer.toString(_p.length));
        
-		   int nAtoms=_p.length/3;
-		   int nO=nAtoms/3;
-		   
-		   String input="";
+       int nAtoms=_p.length/3;
+       String input="";
 
-		   input+="%mem=1GB \n%nproc=1 \n";
-			input+="#p "+basisSet+"\n";
-			input+="\nSingle energy calculation \n\n";
-			
-			input+=chargeAndMultiplicity+"\n";//Charge and multiplicity
+       input+="%mem=1GB \n%nproc=1 \n";
+        input+="#p "+basisSet+"\n";
+        input+="\nSingle energy calculation \n\n";
 
-			for(int i=0;i<cluster.getNAtoms();i++){
-				input+=cluster.getAtomicSymbol(i)+" ";
-				if(i!=nAtoms-1)
-					input+=String.format("%12.8f %12.8f %12.8f\n",_p[i*3+0],_p[i*3+1],_p[i*3+2]);
-				else
-					input+=String.format("%12.8f %12.8f %12.8f\n\n ",_p[i*3],_p[i*3+1],_p[i*3+2]);
-			}
-			
-			//System.err.println(input);
-			double[] energies=getEnergies(input);
-			if(energies!=null) energy=energies[energies.length-1];
-			else energy=0;
+        input+=chargeAndMultiplicity+"\n";//Charge and multiplicity
+
+        for(int i=0;i<cluster.getNAtoms();i++){
+            input+=cluster.getAtomicSymbol(i)+" ";
+            if(i!=nAtoms-1)
+                input+=String.format("%12.8f %12.8f %12.8f\n",_p[i*3+0],_p[i*3+1],_p[i*3+2]);
+            else
+                input+=String.format("%12.8f %12.8f %12.8f\n\n ",_p[i*3],_p[i*3+1],_p[i*3+2]);
+        }
+
+        //System.err.println(input);
+        double[] energies=getEnergies(input);
+        if(energies!=null) energy=energies[energies.length-1];
+        else energy=0;
 
 
 		energy=ConvertUnit(energy,nativeUnit,unit);
@@ -234,20 +233,21 @@ public class GaussianInterfacePotential extends Potential{
 			while ((s = in.readLine()) != null) {
 				//System.err.println("Test = "+s);
 				double energy=0;
-				if(s.contains("E(")){
-					int pos1=s.indexOf("=")+1;
-					int pos2=s.indexOf("A.U.");
-					String substr=s.substring(pos1,pos2);
-					energy=Double.parseDouble(substr);
-					vecEnergyDFT.add(energy);
-				}
+                if(s.contains("E(")&&s.contains("SCF Done")){
+                    int pos1=s.indexOf("=")+1;
+                    int pos2=s.indexOf("A.U.");
+                    String substr=s.substring(pos1,pos2);
+                    energy=Double.parseDouble(substr);
+                    vecEnergyDFT.add(energy);
+                }
 
-				if ( s.contains("EUMP2")  ){	// wow, energy
-					String substr=s.substring(s.indexOf("EUMP2 =")+6);
-					substr.replace('D','E');
-					energy=Double.parseDouble(substr);
-					vecEnergyMP2.add(energy);
-				}
+                if ( s.contains("EUMP2 =")  ){	// wow, energy
+                    String substr=s.substring(s.indexOf("EUMP2 =")+7);
+                    substr=substr.replace('D','E');
+                    //System.out.println(substr);
+                    energy=Double.parseDouble(substr);
+                    vecEnergyMP2.add(energy);
+                }
 			}
 
 			try {
@@ -275,6 +275,40 @@ public class GaussianInterfacePotential extends Potential{
 
 		return energies;
 	}
+
+    @Override
+    public boolean Optimize() {
+        try {
+            if (cluster.getNAtoms() <= 1) {
+                return true;
+                //System.out.print(" Size of vec = "+	Integer.toString(_p.length));
+            }
+            String sGaussianInput = "";
+            sGaussianInput += "%mem=1GB \n%nproc=1 \n";
+            sGaussianInput += "#opt " + basisSet + "\n";
+            sGaussianInput += "\nSingle energy calculation \n\n";
+            sGaussianInput += chargeAndMultiplicity + "\n"; //Charge and multiplicity
+            double[] _p = cluster.getCoords();
+            for (int i = 0; i < cluster.getNAtoms(); i++) {
+                sGaussianInput += cluster.getAtomicSymbol(i) + " ";
+                sGaussianInput += String.format("%12.8f %12.8f %12.8f\n", _p[i * 3 + 0], _p[i * 3 + 1], _p[i * 3 + 2]);
+                if (i == cluster.getNAtoms() - 1) {
+                    sGaussianInput += "\n";
+                }
+            }
+            String command = "echo -e \"" + sGaussianInput + "\" | g03 ";
+            System.err.print(command);
+            Runtime r = Runtime.getRuntime();
+            Process p = r.exec(new String[]{"/bin/bash", "-c", command});
+            // Query the results of the process
+            //BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            cluster.Read(new Scanner(p.getInputStream()),"g03");
+        } catch (IOException ex) {
+            Logger.getLogger(GaussianInterfacePotential.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return true;
+    }
+
 
 
 }
