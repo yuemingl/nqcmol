@@ -6,6 +6,8 @@
 package nqcmol;
 
 //import com.thoughtworks.xstream.XStream;
+import nqcmol.cluster.Cluster;
+import nqcmol.cluster.MolExtra;
 import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,13 +56,8 @@ public class TaskCalculate extends Task{
 	@Override
 	protected void Initialize() {
 		super.Initialize();
-		try {			
-			pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
-			xmllog.writeNormalText(pot.Info(1));
-
-		} catch (IOException ex) {
-			Logger.getLogger(TaskCalculateEnergy.class.getName()).log(Level.SEVERE, null, ex);
-		}
+        pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
+        xmllog.writeNormalText(pot.Info(1));
 	}
 	
 }

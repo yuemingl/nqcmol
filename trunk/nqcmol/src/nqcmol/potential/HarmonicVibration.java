@@ -5,7 +5,7 @@
 
 package nqcmol.potential;
 
-import nqcmol.Cluster;
+import nqcmol.cluster.Cluster;
 import nqcmol.tools.MTools;
 
 /**

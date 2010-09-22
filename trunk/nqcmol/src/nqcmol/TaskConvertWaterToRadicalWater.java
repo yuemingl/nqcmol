@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Scanner;
 
@@ -47,7 +48,7 @@ public class TaskConvertWaterToRadicalWater extends Task{
 				
 				mol.Read(scanner, sFormatIn);
 				
-				if(mol.nAtoms<=0) break;
+				if(mol.getNAtoms()<=0) break;
 
                 xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("id", Integer.toString(i));

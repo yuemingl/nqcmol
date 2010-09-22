@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,18 +35,13 @@ public class TaskDetectEquivalentAtoms extends Task{
 
 	@Override
 	protected void Initialize() {
-		super.Initialize();
-		try {
-			decimalToRoundOff=(int) Math.round(Math.abs(Math.log10(tol)));
-			xmllog.writeAttribute("Tolerance",Double.toString(tol));
-			xmllog.writeAttribute("DecimalToRoundOff",Integer.toString(decimalToRoundOff));
-			xmllog.writeEntity("Note");
-			xmllog.writeText("Detect topologically equivalent atoms in clusters using the algorithm described in J. Chem. Inf. Comput. Sci., Vol 37, No 1, 1997.\n");
-			xmllog.endEntity();
-			
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRemoveDuplicateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		super.Initialize();		
+        decimalToRoundOff=(int) Math.round(Math.abs(Math.log10(tol)));
+        xmllog.writeAttribute("Tolerance",Double.toString(tol));
+        xmllog.writeAttribute("DecimalToRoundOff",Integer.toString(decimalToRoundOff));
+        xmllog.writeEntity("Note");
+        xmllog.writeText("Detect topologically equivalent atoms in clusters using the algorithm described in J. Chem. Inf. Comput. Sci., Vol 37, No 1, 1997.\n");
+        xmllog.endEntity();
 	}
 
 	@Override

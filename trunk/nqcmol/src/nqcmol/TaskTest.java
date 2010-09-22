@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
+import nqcmol.cluster.MolExtra;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
@@ -134,7 +136,6 @@ public class TaskTest extends TaskCalculate {
 
 	double Evaluate(double[] p,double[] calcBE,int verbose){
         double rms=0;
-        try {
 			double[] alpha=new double[nparam_inp];
 			ConvertParam(p,alpha);
 			pot.setParam(alpha);
@@ -221,9 +222,7 @@ public class TaskTest extends TaskCalculate {
                 xmllog.endEntity().flush();
 			}
 
-        } catch (IOException ex) {
-                Logger.getLogger(TaskTest.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        
         return rms;
     }
 
@@ -485,9 +484,7 @@ public class TaskTest extends TaskCalculate {
 
 		} catch (IllegalArgumentException ex) {
 			Logger.getLogger(TaskTest.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (IOException ex) {
-			Logger.getLogger(TaskTest.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		} 
 	}
 
      //=================== for APACHE fitting
@@ -729,9 +726,7 @@ public class TaskTest extends TaskCalculate {
                     DoubleGene gene = (DoubleGene)bestSolutionSoFar.getGene(i);
                     param[i]=gene.doubleValue();
             }
-        } catch (IOException ex) {
-            Logger.getLogger(TaskTest.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InvalidConfigurationException ex) {
+        }  catch (InvalidConfigurationException ex) {
             Logger.getLogger(TaskTest.class.getName()).log(Level.SEVERE, null, ex);
         }
               

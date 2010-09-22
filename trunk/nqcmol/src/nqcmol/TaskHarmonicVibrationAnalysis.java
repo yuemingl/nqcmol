@@ -27,40 +27,36 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 
 
 	@Override
-	protected void Process() {
-		try {
-			int i = 0;
-			while (mol.Read(fileIn, sFormatIn))
-            if(mol.getNAtoms()>2){
-				//mol.Write(System.err, "xyz");
-				//calculate Hessian
+	protected void Process() {		
+        int i = 0;
+        while (mol.Read(fileIn, sFormatIn))
+        if(mol.getNAtoms()>2){
+            //mol.Write(System.err, "xyz");
+            //calculate Hessian
 //				pot.getGradient(mol);
 //				System.err.printf("Gradient \n");
 //				MTools.PrintArray(mol.getGradient());
-				pot.getNumericalHessian(mol, 1e-5);
+            pot.getNumericalHessian(mol, 1e-5);
 //				System.err.printf("Hessian \n");
 //				MTools.PrintArray(mol.getHessian());
-				HarmonicVibration vib = new HarmonicVibration(mol);
-				vib.CalcFreq(); //calculate frequencies of molecule
-				//mol.Write(System.err, "xyz");
-				//write a report
-				xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
-				xmllog.writeAttribute("nAtom", Integer.toString(mol.getNAtoms()));
-				xmllog.writeAttribute("SmallestFreq", Double.toString(mol.getFreqs(0)));
-				xmllog.writeAttribute("LargestFreq", Double.toString(mol.getFreqs(mol.getFreqs().length - 1)));
-				xmllog.endEntity();
-				xmllog.flush();
+            HarmonicVibration vib = new HarmonicVibration(mol);
+            vib.CalcFreq(); //calculate frequencies of molecule
+            //mol.Write(System.err, "xyz");
+            //write a report
+            xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
+            xmllog.writeAttribute("nAtom", Integer.toString(mol.getNAtoms()));
+            xmllog.writeAttribute("SmallestFreq", Double.toString(mol.getFreqs(0)));
+            xmllog.writeAttribute("LargestFreq", Double.toString(mol.getFreqs(mol.getFreqs().length - 1)));
+            xmllog.endEntity();
+            xmllog.flush();
 
-                if ((fileOut!=null)&& !mol.isNAN()) {
-					mol.Write(fileOut, sFormatOut);
-				}
-				i++;
+            if ((fileOut!=null)&& !mol.isNAN()) {
+                mol.Write(fileOut, sFormatOut);
+            }
+            i++;
 
-			}
-			fileIn.close();
-		} catch (IOException ex) {
-			Logger.getLogger(TaskHarmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
-		}
+        }
+        fileIn.close();
 	}
 
 	

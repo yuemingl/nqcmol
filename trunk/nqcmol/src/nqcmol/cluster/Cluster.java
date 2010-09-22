@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package nqcmol;
+package nqcmol.cluster;
 
 import java.io.*;
 import java.util.Scanner;
@@ -483,7 +483,7 @@ public class Cluster implements Cloneable{
 	//double USRsig[12];	//for USR
 	//int iCorType; //direct or fractional coordinates	
 	
-	int[] nType=new int[cTypeMax];
+	protected int[] nType=new int[cTypeMax];
 
 	/**
 	 * @return Total mass of clusters
@@ -1100,7 +1100,7 @@ public class Cluster implements Cloneable{
 			int count=getCoordNum(i);
 			
 			if(count> coordNumCount.length){
-				//logger.log(Level.SEVERE,String.format(" A strange structure appears ! Coordination number %d is too large! ",count));
+				logger.warning(String.format(" A strange structure appears ! Coordination number %d is too large! ",count));
 			}else coordNumCount[count]++;
 		}
 
@@ -1372,7 +1372,7 @@ public class Cluster implements Cloneable{
 
 		if(!scanner.hasNextInt()) return false;
 		int nAtoms_=scanner.nextInt();
-		//System.err.printf(" Here nAtoms = %d \n",nAtoms_);
+		logger.finest(String.format(" Here nAtoms = %d \n",nAtoms_));
 		if (nAtoms_ <= 0) {	return false; }
 		setNAtoms(nAtoms_);
 
@@ -1402,17 +1402,11 @@ public class Cluster implements Cloneable{
 				info= token.nextToken();     	tag=info;//energy = Double.parseDouble(info);
 			}
 
-
-
-			//System.err.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad);
-
-
-			//System.out.printf(" Here tag=%d Energy = %f rmsGrad=%f\n",Nz[0],energy,rmsGrad);
+			logger.finest(String.format("Tag=%s Energy = %f rmsGrad=%f\n",tag,energy,rmsGrad));
 
 			//gradient=new double[nAtoms*3];
 			for (int i = 0; i < nAtoms; i++) {
 				line = scanner.nextLine();
-				//System.out.printf(" Here %s nAtoms = %d \n",line,nAtoms_);
 				if (line == null) return false;
 
 				if (line.startsWith("#") && line.length() > 1) {
@@ -1435,7 +1429,7 @@ public class Cluster implements Cloneable{
 						coords[i*3+0] = Double.parseDouble(token.nextToken());
 						coords[i*3+1] = Double.parseDouble(token.nextToken());
 						coords[i*3+2] =  Double.parseDouble(token.nextToken());
-						//System.err.printf(" Here index=%d Nz=%d x = %f y= %f z=%f\n",index,Nz[index],coords[index*3+0],coords[index*3+1],coords[index*3+2]);
+						logger.finest(String.format("Index=%d Nz=%d x = %f y= %f z=%f\n",i,Nz[i],coords[i*3+0],coords[i*3+1],coords[i*3+2]));
 						if (fields >= 7){
 							gradient[i*3+0] = Double.parseDouble(token.nextToken());
 							gradient[i*3+1] = Double.parseDouble(token.nextToken());
@@ -1807,7 +1801,7 @@ public class Cluster implements Cloneable{
 				}
 				writer.flush();
 			} catch (IOException ex) {
-				Logger.getLogger(Cluster.class.getName()).log(Level.SEVERE, null, ex);
+                logger.severe("Cannot output to Writer");
 			} 
 		}
 	}

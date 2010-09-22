@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;

@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package nqcmol;
+package nqcmol.cluster;
 import java.util.Random;
 import nqcmol.tools.MTools;
 

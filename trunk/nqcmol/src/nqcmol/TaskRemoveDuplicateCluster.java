@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import nqcmol.cluster.WaterCluster;
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Scanner;
 import java.util.Vector;
@@ -70,7 +72,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 				Cluster mol = new WaterCluster();
 				mol.Read(scanner, sFormatIn);
 				
-				if(mol.nAtoms<=0) break;
+				if(mol.getNAtoms()<=0) break;
                 minE=Math.min(mol.getEnergy(),minE);
 				mol.CalcUSRsignature();
 				pop.add(mol);

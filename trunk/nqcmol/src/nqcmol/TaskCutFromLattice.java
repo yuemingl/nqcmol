@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Crystal;
 import java.io.*;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,8 +56,7 @@ public class TaskCutFromLattice extends Task {
 
 	
 	@Override
-	protected void Process() {			
-		try {
+	protected void Process() {	
 			xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
 			xmllog.writeAttribute("ConfinedRadius", Double.toString(radius));
 			xmllog.writeAttribute("DMin", Double.toString(DMin));
@@ -72,11 +72,7 @@ public class TaskCutFromLattice extends Task {
 
 				
 				xmllog.endEntity().flush();
-			}
-		} catch (IOException ex) {
-			Logger.getLogger(TaskCutFromLattice.class.getName()).log(Level.SEVERE, null, ex);
-		}
-			
+			}			
 	}
 	
 }

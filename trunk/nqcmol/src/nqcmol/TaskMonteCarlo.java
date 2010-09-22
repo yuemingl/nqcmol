@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import nqcmol.cluster.ClusterOperation;
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -90,37 +92,33 @@ public class TaskMonteCarlo extends TaskCalculate {
     //int arvCheckFreq;
 
 
-	int LoadEnvParam(){
-        try {            
-            //seed=inp.getLong("seed");	if(pr.seed==0) pr.seed=time(0);
-            //ranBoltz.SetSeed_(pr.seed);
-            pot.setEnergyTol(ftol);
-            pot.setGradientTol(gtol);
-            pot.setMaxStepSize(mstep);
-            pot.setMaxEvals(nOpts);
+	int LoadEnvParam(){                 
+        //seed=inp.getLong("seed");	if(pr.seed==0) pr.seed=time(0);
+        //ranBoltz.SetSeed_(pr.seed);
+        pot.setEnergyTol(ftol);
+        pot.setGradientTol(gtol);
+        pot.setMaxStepSize(mstep);
+        pot.setMaxEvals(nOpts);
 
-            int i=0;
-            while(mol.Read(fileIn, sFormatIn)){
-                if(i==iN) break;
-                i++;
-            }
-			fileIn.close();
-            if(pot.getUnit().contentEquals("Hartree")) kB=3.16682968e-6;//Hartree*K^-1
-            if(pot.getUnit().contentEquals("kcal/mol")) kB=0.1986e-3;//kcal/mol*K^-1
-            if(pot.getUnit().contentEquals("kJ/mol")) kB=8.309424e-4;//kJ/mol*K^-1
-
-            kBT=kB*T;
-
-            xmllog.writeEntity("Setting");
-            xmllog.writeAttribute("nRuns",Integer.toString(nRuns));
-            xmllog.writeAttribute("nLogRate",Double.toString(nLogRate));
-            xmllog.writeAttribute("WallTime",Long.toString(WallTime));
-            xmllog.writeAttribute("Temperature",Double.toString(T));
-            xmllog.writeAttribute("kBT",Double.toString(kBT));
-            xmllog.endEntity().flush();
-        } catch (IOException ex) {
-            Logger.getLogger(TaskMonteCarlo.class.getName()).log(Level.SEVERE, null, ex);
+        int i=0;
+        while(mol.Read(fileIn, sFormatIn)){
+            if(i==iN) break;
+            i++;
         }
+        fileIn.close();
+        if(pot.getUnit().contentEquals("Hartree")) kB=3.16682968e-6;//Hartree*K^-1
+        if(pot.getUnit().contentEquals("kcal/mol")) kB=0.1986e-3;//kcal/mol*K^-1
+        if(pot.getUnit().contentEquals("kJ/mol")) kB=8.309424e-4;//kJ/mol*K^-1
+
+        kBT=kB*T;
+
+        xmllog.writeEntity("Setting");
+        xmllog.writeAttribute("nRuns",Integer.toString(nRuns));
+        xmllog.writeAttribute("nLogRate",Double.toString(nLogRate));
+        xmllog.writeAttribute("WallTime",Long.toString(WallTime));
+        xmllog.writeAttribute("Temperature",Double.toString(T));
+        xmllog.writeAttribute("kBT",Double.toString(kBT));
+        xmllog.endEntity().flush();
 		//string sTmp=str(format("[nRuns=%d] [WallTime=%d] [ETarget=%lf] [nLogRate=%1.3lf]") %pr.nRuns %pr.WallTime %pr.ETarget %pr.nLogRate);
 		//sTmp+=str(format("[seed=%d]") %pr.seed);
 
@@ -161,8 +159,7 @@ public class TaskMonteCarlo extends TaskCalculate {
 		return 0;
 	}
 
-	void Logging(){
-        try {
+	void Logging(){       
             xmllog.writeEntity("MCStep");
             xmllog.writeAttribute("id", Long.toString(rateAccept.getN()));
             xmllog.writeAttribute("CurrentE", Double.toString(mol.getEnergy()));
@@ -175,10 +172,7 @@ public class TaskMonteCarlo extends TaskCalculate {
             xmllog.writeAttribute("IncorrectR", String.format("%1.2f",nIncorrect_arv.getMean()));
             xmllog.writeAttribute("LargeR", String.format("%1.2f",nLargeRMS_arv.getMean()));
             //xmllog.writeAttribute("NegFreq", String.format("%1.2f",nNegativeFreq_arv.getMean()));
-            xmllog.endEntity().flush();
-        } catch (IOException ex) {
-            Logger.getLogger(TaskMonteCarlo.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            xmllog.endEntity().flush();        
 	}
 
     void IncreaseCounter(int d){        
@@ -219,8 +213,7 @@ public class TaskMonteCarlo extends TaskCalculate {
 	return 0;
 }
 
-	void Work(){
-        try {
+	void Work(){       
             //Individual tmp;
             fDump = new File(fnDump);   if (fDump.exists()) {       fDump.delete(); }
             fDead = new File(fnDead);   if (fDead.exists()) {       fDead.delete(); }
@@ -309,10 +302,7 @@ public class TaskMonteCarlo extends TaskCalculate {
             xmllog.endEntity();
             xmllog.endEntity().flush();
 
-            WriteArchive();
-        } catch (IOException ex) {
-            Logger.getLogger(TaskMonteCarlo.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            WriteArchive();        
 	}
 
     private void WriteArchive() {

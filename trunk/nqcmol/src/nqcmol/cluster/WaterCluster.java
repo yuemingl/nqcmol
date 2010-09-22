@@ -3,7 +3,9 @@
  * and open the template in the editor.
  */
 
-package nqcmol;
+package nqcmol.cluster;
+
+import nqcmol.cluster.Cluster;
 
 /**
  *

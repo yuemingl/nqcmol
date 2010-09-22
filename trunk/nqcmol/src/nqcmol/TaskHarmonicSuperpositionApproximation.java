@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
+import nqcmol.cluster.MolExtra;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -15,9 +17,6 @@ import nqcmol.symmetry.PointGroup;
 import nqcmol.symmetry.Symmetry;
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
-
-
-
 
 
 /**
@@ -63,19 +62,15 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 	final double cBetaPlanck=1.43877513515753; //cm*K
 
 	@Override
-	protected void Initialize() {
-		try {
-			super.Initialize();
-			xmllog.writeAttribute("Unit", sUnit);
-			xmllog.writeAttribute("Regime", regime.toString());
-			xmllog.writeAttribute("Ecutoff", Double.toString(Ecutoff));
-			xmllog.writeEntity("Note");
-			xmllog.writeText("Harmonic superposition approximation calculation\n");
-			xmllog.endEntity();
-			ReadInputs();
-		} catch (IOException ex) {
-			Logger.getLogger(TaskHarmonicSuperpositionApproximation.class.getName()).log(Level.SEVERE, null, ex);
-		}			
+	protected void Initialize() {		
+        super.Initialize();
+        xmllog.writeAttribute("Unit", sUnit);
+        xmllog.writeAttribute("Regime", regime.toString());
+        xmllog.writeAttribute("Ecutoff", Double.toString(Ecutoff));
+        xmllog.writeEntity("Note");
+        xmllog.writeText("Harmonic superposition approximation calculation\n");
+        xmllog.endEntity();
+        ReadInputs();
 	}
 		
 	public void ReadInputs() {
@@ -388,7 +383,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 
 			double Na=Math.log(2.0)-Math.log(mi);
 			for(int i=0;i<cTypeMax;i++)
-				for(int j=1;j<nType[i];j++)	Na+=Math.log(j);
+				for(int j=1;j<this.nType[i];j++)	Na+=Math.log(j);
 
 			double E_part=0,Freq_part=0;
 			calcZeroE();

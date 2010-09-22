@@ -35,7 +35,5 @@ public class TaskValidateGradient extends TaskCalculate {
 				i++;
 			}
 			fileIn.close();				
-	}
-
-	
+	}	
 }
