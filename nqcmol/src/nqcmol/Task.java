@@ -4,6 +4,7 @@
  */
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -37,6 +38,8 @@ public class Task {
 	FileWriter fileOut=null;
 
 	String[] args=null;
+
+    protected static Logger logger=Logger.getLogger(Task.class.getName());
 
 	public void ParseArguments(String[] args) {
 		this.args=args;
@@ -80,9 +83,9 @@ public class Task {
 			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
 
 		} catch (IOException ex) {
-			Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+			logger.severe(ex.getMessage());
 		} catch (CmdLineException ex) {
-			Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+			logger.severe(ex.getMessage());
 		}
 
 	}
@@ -105,7 +108,7 @@ public class Task {
 				xmllog.close();
 				stdwriter.close();
 			} catch (IOException ex) {
-				Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+				logger.severe(ex.getMessage());
 			}
 		}
 	}
@@ -129,7 +132,7 @@ public class Task {
 			if(fileIn!=null) fileIn.close();
 			if(fileOut!=null) fileOut.close();
 		} catch (IOException ex) {
-			Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+			logger.severe(ex.getMessage());
 		}
 	}
 }

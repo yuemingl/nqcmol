@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -32,7 +33,6 @@ public class TaskGenerateCluster extends Task {
     @Option(name = "-m", usage = "Specify a particular normal mode for translating. Count from 0. Disable if < 0. [-1]", metaVar = "INTEGER")
 	int mode=-1;
 
-
 //    @Option(name = "-header", usage = "Header file for Gaussian input", metaVar = "DOUBLE")
 //	double deltaX=0.2;
 
@@ -42,29 +42,24 @@ public class TaskGenerateCluster extends Task {
 		return "GenerateCluster";
 	}
 
-    static final public String Option="alongVib";
+    static final public String Option="aVib";
 
-    static final public String Descriptions="\t "+Option+" \t - "+ "Generate clusters by translating along vibrational normal modes\n";
+    static final public String Descriptions="\t "+Option+" \t - "+ "Generate clusters by translating along vibrational normal modes of Gaussian output files\n";
 	
 	@Override
-	protected void Process() {			
-		try {			
-			xmllog.writeAttribute("deltaX", Double.toString(deltaX));
-			xmllog.writeAttribute("num", Integer.toString(num));
-            xmllog.writeAttribute("level", Integer.toString(level));
+	protected void Process() {				
+        xmllog.writeAttribute("deltaX", Double.toString(deltaX));
+        xmllog.writeAttribute("num", Integer.toString(num));
+        xmllog.writeAttribute("level", Integer.toString(level));
 
-            Cluster cluster=new Cluster();
+        Cluster cluster=new Cluster();
 
-            while(cluster.Read(fileIn, "g03")){
-				xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
-				int no=GenFromNormalModes(cluster);
-                xmllog.writeAttribute("NoOfStruct", Integer.toString(no));
-				xmllog.endEntity().flush();
-			}
-		} catch (IOException ex) {
-			Logger.getLogger(TaskGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
-			
+        while(cluster.Read(fileIn, "g03")){
+            xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
+            int no=GenFromNormalModes(cluster);
+            xmllog.writeAttribute("NoOfStruct", Integer.toString(no));
+            xmllog.endEntity().flush();
+        }
 	}	
 	
 	int GenFromNormalModes(Cluster cluster){

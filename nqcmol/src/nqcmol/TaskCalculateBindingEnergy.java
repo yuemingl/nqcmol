@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
+import nqcmol.cluster.MolExtra;
 import java.io.*;
 import java.util.Scanner;
 import java.util.Vector;
@@ -107,7 +109,7 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 				//break;
 			}
 		} catch (IOException ex) {
-			Logger.getLogger(TaskCalculate.class.getName()).log(Level.SEVERE, null, ex);
+			logger.severe(ex.getMessage());
 		}
 	}	
 }

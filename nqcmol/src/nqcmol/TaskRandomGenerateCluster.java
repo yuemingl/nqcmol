@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,34 +98,30 @@ public class TaskRandomGenerateCluster extends Task {
 	}
 
 	@Override
-	protected void Process() {			
-		try {
-			xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
-			xmllog.writeAttribute("a1",  String.format("%1.3f",a1));
-            xmllog.writeAttribute("a2",  String.format("%1.3f",a2));
-            xmllog.writeAttribute("a3",  String.format("%1.3f",a3));
-			xmllog.writeAttribute("DMin", String.format("%1.3f",DMin));
-			xmllog.writeAttribute("DMax",  String.format("%1.3f",DMax));
-			ConstructLibrary();
-			AnalyzeFormula();
+	protected void Process() {	
+        xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
+        xmllog.writeAttribute("a1",  String.format("%1.3f",a1));
+        xmllog.writeAttribute("a2",  String.format("%1.3f",a2));
+        xmllog.writeAttribute("a3",  String.format("%1.3f",a3));
+        xmllog.writeAttribute("DMin", String.format("%1.3f",DMin));
+        xmllog.writeAttribute("DMax",  String.format("%1.3f",DMax));
+        ConstructLibrary();
+        AnalyzeFormula();
 
 
-			for(int i=0;i<num;i++){
-				xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
-				///shuffer the positions
-					if(listMol.size()>=1){
-						//for(String s :listMol)
-						//	System.out.printf("%s \n",s);
+        for(int i=0;i<num;i++){
+            xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
+            ///shuffer the positions
+                if(listMol.size()>=1){
+                    //for(String s :listMol)
+                    //	System.out.printf("%s \n",s);
 
-						Collections.shuffle(listMol);
-						GenerateMolecularPositions();
-						PlaceMoleculesAndDumpOut();
-					}
-				xmllog.endEntity().flush();
-			}
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
+                    Collections.shuffle(listMol);
+                    GenerateMolecularPositions();
+                    PlaceMoleculesAndDumpOut();
+                }
+            xmllog.endEntity().flush();
+        }
 			
 	}
 	
@@ -184,7 +181,6 @@ public class TaskRandomGenerateCluster extends Task {
 	Vector<String> listMol;
 
 	private void AnalyzeFormula(){
-		try {
 			int start = 0;
 			int c = 0;
 			int c1 = 0;
@@ -222,9 +218,7 @@ public class TaskRandomGenerateCluster extends Task {
 //			for(int i=0;i<listMol.size();i++){
 //				System.out.printf("%s\n",listMol.elementAt(i));
 //			}
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		
 	}
 
 	/**
@@ -261,90 +255,81 @@ public class TaskRandomGenerateCluster extends Task {
 	 * Generate random coordinates of each molecule in cluster. Output to molCoords
 	 */
 	private void GenerateMolecularPositions(){
-		
-		try {
-			///generate random positions of molecules
-			Cluster molTest=new Cluster();
-			molTest.setNAtoms(listMol.size());
-			double[] p=molTest.getCoords();
-			p[0] = 0;		p[1] = 0;		p[2] = 0;
+        ///generate random positions of molecules
+        Cluster molTest=new Cluster();
+        molTest.setNAtoms(listMol.size());
+        double[] p=molTest.getCoords();
+        p[0] = 0;		p[1] = 0;		p[2] = 0;
 //		
-			xmllog.writeEntity("GenerateMolecularPositions");
-			for (int i = 1; i < listMol.size(); i++) {
-				double dmin = 1000;
-				double[] x=new double[3];
-				do {
-                    GenerateVectorInsideContainer(x);
-					dmin = 1000;
-					for (int j = 0; j < i; j++) {
-						//double molName = sqrt(v.distSq(vlib[j]));
-						double d = molTest.distance(j, x);
-						dmin = Math.min(d, dmin);
-						//cout<<i<<" ++ "<<v<<" "<<vlib[j]<<molName<<" "<<dmin<<" "<<ranLength<<endl;
-					}
-				} while (!((dmin < DMax) && (dmin > DMin)));
-				//cout<<format("%2d   %6.3lf ")%i%dmin<<" : "<<v<<endl;
-				p[i*3+0]=x[0];
-				p[i*3+1]=x[1];
-				p[i*3+2]=x[2];
+        xmllog.writeEntity("GenerateMolecularPositions");
+        for (int i = 1; i < listMol.size(); i++) {
+            double dmin = 1000;
+            double[] x=new double[3];
+            do {
+                GenerateVectorInsideContainer(x);
+                dmin = 1000;
+                for (int j = 0; j < i; j++) {
+                    //double molName = sqrt(v.distSq(vlib[j]));
+                    double d = molTest.distance(j, x);
+                    dmin = Math.min(d, dmin);
+                    //cout<<i<<" ++ "<<v<<" "<<vlib[j]<<molName<<" "<<dmin<<" "<<ranLength<<endl;
+                }
+            } while (!((dmin < DMax) && (dmin > DMin)));
+            //cout<<format("%2d   %6.3lf ")%i%dmin<<" : "<<v<<endl;
+            p[i*3+0]=x[0];
+            p[i*3+1]=x[1];
+            p[i*3+2]=x[2];
 
-				xmllog.writeEntity("Molecule").writeAttribute("Type",listMol.get(i));
-				xmllog.writeAttribute("Dmin", String.format("%1.3f", dmin));
-				xmllog.writeAttribute("x", Double.toString(x[0]));
-				xmllog.writeAttribute("y", Double.toString(x[0]));
-				xmllog.writeAttribute("z", Double.toString(x[0]));
-				xmllog.endEntity();
-			}
+            xmllog.writeEntity("Molecule").writeAttribute("Type",listMol.get(i));
+            xmllog.writeAttribute("Dmin", String.format("%1.3f", dmin));
+            xmllog.writeAttribute("x", Double.toString(x[0]));
+            xmllog.writeAttribute("y", Double.toString(x[0]));
+            xmllog.writeAttribute("z", Double.toString(x[0]));
+            xmllog.endEntity();
+        }
 
-			xmllog.endEntity();
+        xmllog.endEntity();
 
-			molCoords=p.clone();
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
+        molCoords=p.clone();
 	}
 
 	/**
 	 * Place molecules at calculated coordinates and dumpt out the results.
 	 */
 	private void PlaceMoleculesAndDumpOut(){
-                int c=0;
-		try {
-			Cluster result = new Cluster();
-			result.setNAtoms(nAtoms);
-                        result.setTag(Integer.toString(c));
-                        c++;
-			xmllog.writeEntity("PlaceMoleculesAndDumpOut");
-			int pos = 0;
-			for (int i = 0; i < listMol.size(); i++) {
-				Cluster mol = (Cluster) molLib.get(listMol.get(i)).clone();
-				//mol.Write(System.err, "xyz");
-				//randomly rotate
-                double[] axis={gen.nextDouble(), gen.nextDouble(), gen.nextDouble()};
-                if(!bNoFlip){
-                    double angle = 2.0 * Math.PI * gen.nextDouble();
-                    mol.RotateAxis(angle, axis);
-                }
+        int c=0;
+        Cluster result = new Cluster();
+        result.setNAtoms(nAtoms);
+                    result.setTag(Integer.toString(c));
+                    c++;
+        xmllog.writeEntity("PlaceMoleculesAndDumpOut");
+        int pos = 0;
+        for (int i = 0; i < listMol.size(); i++) {
+            Cluster mol = (Cluster) molLib.get(listMol.get(i)).clone();
+            //mol.Write(System.err, "xyz");
+            //randomly rotate
+            double[] axis={gen.nextDouble(), gen.nextDouble(), gen.nextDouble()};
+            if(!bNoFlip){
+                double angle = 2.0 * Math.PI * gen.nextDouble();
+                mol.RotateAxis(angle, axis);
+            }
 
-                axis[0] = molCoords[i * 3 + 0];
-                axis[1] = molCoords[i * 3 + 1];
-                axis[2] = molCoords[i * 3 + 2];
+            axis[0] = molCoords[i * 3 + 0];
+            axis[1] = molCoords[i * 3 + 1];
+            axis[2] = molCoords[i * 3 + 2];
 
-				mol.Translate(axis, 1);
-				result.replaceMolecule(pos, mol);
-				pos += mol.getNAtoms();
-			}
+            mol.Translate(axis, 1);
+            result.replaceMolecule(pos, mol);
+            pos += mol.getNAtoms();
+        }
 
-			xmllog.endEntity();
-			
-			if(!bNoCenter) result.Center();
-            
-			if (fileOut != null) {				
-				result.Write(fileOut, sFormatOut);
-			}
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
+        xmllog.endEntity();
+
+        if(!bNoCenter) result.Center();
+
+        if (fileOut != null) {
+            result.Write(fileOut, sFormatOut);
+        }
 	}
 }
 

@@ -10,7 +10,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import nqcmol.Cluster;
+import nqcmol.cluster.Cluster;
 import nqcmol.tools.MTools;
 
 /**
@@ -41,9 +41,9 @@ public class OSS2Potential extends Potential{
 	}
 
 	@Override
-	public void setParam(double[] param) {
-		assert alpha.length<param.length;
-		System.arraycopy(param,0,alpha,0,alpha.length);
+	public void setParam(double[] p) {
+		assert param.length<p.length;
+		System.arraycopy(p,0,param,0,param.length);
 		ParseParameters();
 	}
 
@@ -52,8 +52,8 @@ public class OSS2Potential extends Potential{
 		if(!filename.isEmpty()){
 		try {
 			Scanner scanner = new Scanner(new File(filename));
-			for(int i=0;i<alpha.length;i++){
-				alpha[i]=scanner.nextDouble();
+			for(int i=0;i<param.length;i++){
+				param[i]=scanner.nextDouble();
 				scanner.nextLine();
 			}
 		} catch (FileNotFoundException ex) {
@@ -195,55 +195,55 @@ public class OSS2Potential extends Potential{
 	double[] p_m=new double[4];
 	double p_alpha;
 
-	double[] alpha={0.9614,	1.81733805,	1.73089134,	0.29575999,	332.2852922, 2.84683483,	1.0956864,	0.00000204,	0.00575558,	2.6425374,	1.1274385, 3.3255655,	0.07847734,	40.4858734,	1.3290955,	-41.7260608, 1.3509491, 0.0629396,	6.77909903,	1.8117836,	-0.0420073,	0.16488265,	-0.02509795, -0.37814525, -0.31667595, -0.0114672, 0.06061075, 0.528281, 1.1617627, 0.0765232, -0.21208835, -0.1025385, -0.0762216, -0.228694, 0, -0.029092, 6.25, 0.00377233,	6.25, 1.444 };
+	double[] param={0.9614,	1.81733805,	1.73089134,	0.29575999,	332.2852922, 2.84683483,	1.0956864,	0.00000204,	0.00575558,	2.6425374,	1.1274385, 3.3255655,	0.07847734,	40.4858734,	1.3290955,	-41.7260608, 1.3509491, 0.0629396,	6.77909903,	1.8117836,	-0.0420073,	0.16488265,	-0.02509795, -0.37814525, -0.31667595, -0.0114672, 0.06061075, 0.528281, 1.1617627, 0.0765232, -0.21208835, -0.1025385, -0.0762216, -0.228694, 0, -0.029092, 6.25, 0.00377233,	6.25, 1.444 };
 
 
 	private void ParseParameters(){
-		 p_r0= alpha[0];
-		p_theta0= alpha[1];
-		 p_a[1]= alpha[2];
-		 p_a[2]= alpha[3];
-		 p_b[1]= alpha[4];
-		 p_b[2]= alpha[5];
-		 p_c[1]= alpha[6];
-		 p_c[2]= alpha[7];
+		 p_r0= param[0];
+		 p_theta0= param[1];
+		 p_a[1]= param[2];
+		 p_a[2]= param[3];
+		 p_b[1]= param[4];
+		 p_b[2]= param[5];
+		 p_c[1]= param[6];
+		 p_c[2]= param[7];
 
-		 p_h[1]= alpha[8];
-		 p_h[2]= alpha[9];
-		 p_h[3]= alpha[10];
-		 p_h[4]= alpha[11];
-		 p_h[5]= alpha[12];
+		 p_h[1]= param[8];
+		 p_h[2]= param[9];
+		 p_h[3]= param[10];
+		 p_h[4]= param[11];
+		 p_h[5]= param[12];
 
-		 p_o[1]= alpha[13];
-		 p_o[2]= alpha[14];
-		 p_o[3]= alpha[15];
-		 p_o[4]= alpha[16];
-		 p_o[5]= alpha[17];
-		 p_o[6]= alpha[18];
-		 p_o[7]= alpha[19];
+		 p_o[1]= param[13];
+		 p_o[2]= param[14];
+		 p_o[3]= param[15];
+		 p_o[4]= param[16];
+		 p_o[5]= param[17];
+		 p_o[6]= param[18];
+		 p_o[7]= param[19];
 
-		 p_k[1]= alpha[20];
-		 p_k[2]= alpha[21];
-		 p_k[3]= alpha[22];
-		 p_k[4]= alpha[23];
-		 p_k[5]= alpha[24];
-		 p_k[6]= alpha[25];
-		 p_k[7]= alpha[26];
-		 p_k[8]= alpha[27];
-		 p_k[9]= alpha[28];
-		 p_k[10]= alpha[29];
-		 p_k[11]= alpha[30];
-		 p_k[12]= alpha[31];
-		 p_k[13]= alpha[32];
-		 p_k[14]= alpha[33];
-		 p_k[15]= alpha[34];
-		 p_k[16]= alpha[35];
+		 p_k[1]= param[20];
+		 p_k[2]= param[21];
+		 p_k[3]= param[22];
+		 p_k[4]= param[23];
+		 p_k[5]= param[24];
+		 p_k[6]= param[25];
+		 p_k[7]= param[26];
+		 p_k[8]= param[27];
+		 p_k[9]= param[28];
+		 p_k[10]= param[29];
+		 p_k[11]= param[30];
+		 p_k[12]= param[31];
+		 p_k[13]= param[32];
+		 p_k[14]= param[33];
+		 p_k[15]= param[34];
+		 p_k[16]= param[35];
 
-		 p_m[1]= alpha[36];
-		 p_m[2]= alpha[37];
-		 p_m[3]= alpha[38];
+		 p_m[1]= param[36];
+		 p_m[2]= param[37];
+		 p_m[3]= param[38];
 
-		 p_alpha= alpha[39];
+		 p_alpha= param[39];
 		//for(int i=0;i<40;i++) System.out.printf(" a[%d] =%f\n", i,alpha[i]);
 	}
 

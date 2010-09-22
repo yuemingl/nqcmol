@@ -11,8 +11,8 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import nqcmol.Cluster;
-import nqcmol.MolExtra;
+import nqcmol.cluster.Cluster;
+import nqcmol.cluster.MolExtra;
 import nqcmol.tools.XmlWriter;
 
 /**
@@ -297,7 +297,7 @@ public class GaussianInterfacePotential extends Potential{
                 }
             }
             String command = "echo -e \"" + sGaussianInput + "\" | g03 ";
-            System.err.print(command);
+            //System.err.print(command);
             Runtime r = Runtime.getRuntime();
             Process p = r.exec(new String[]{"/bin/bash", "-c", command});
             // Query the results of the process

@@ -35,7 +35,7 @@ package nqcmol.symmetry;
 //
 //import joelib2.io.BasicIOType;
 
-import nqcmol.Cluster;
+import nqcmol.cluster.Cluster;
 //import org.apache.log4j.Category;
 
 //import joelib2.io.BasicIOTypeHolder;

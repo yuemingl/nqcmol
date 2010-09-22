@@ -10,7 +10,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import nqcmol.Cluster;
+import nqcmol.cluster.Cluster;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

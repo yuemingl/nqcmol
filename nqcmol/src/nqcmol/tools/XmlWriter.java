@@ -3,6 +3,8 @@ package nqcmol.tools;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -33,32 +35,44 @@ public class XmlWriter {
      *
      * @param String name of entity.
      */
-    public XmlWriter writeEntity(String name) throws IOException  {
+    public XmlWriter writeEntity(String name)  {
+        try {
             closeOpeningTag();
             this.closed = false;
             this.writer.write("<");
             this.writer.write(name);
             stack.add(name);
             this.empty = true;
-            return this;
-        
+            
+        } catch (IOException ex) {
+            Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this;
     }
 
     // close off the opening tag
-    private void closeOpeningTag() throws IOException {
+    private void closeOpeningTag() {
         if (!this.closed) {
-            writeAttributes();
-            this.closed = true;
-            this.writer.write(">\n");
+            try {
+                writeAttributes();
+                this.closed = true;
+                this.writer.write(">\n");
+            } catch (IOException ex) {
+                Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 
     // write out all current attributes
-    private void writeAttributes() throws IOException {
+    private void writeAttributes() {
         if (this.attrs != null) {
-            this.writer.write(this.attrs.toString());
-            this.attrs.setLength(0);
-            this.empty = false;
+            try {
+                this.writer.write(this.attrs.toString());
+                this.attrs.setLength(0);
+                this.empty = false;
+            } catch (IOException ex) {
+                Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 
@@ -88,10 +102,12 @@ public class XmlWriter {
      * if it is called when there is not a currently open 
      * entity.
      */
-    public XmlWriter endEntity() throws IOException {
-       
+    public XmlWriter endEntity(){
+        try {
             if(this.stack.empty()) {
+
                 throw new IOException("Called endEntity too many times. ");
+
             }
             String name = (String)this.stack.pop();
             if (name != null) {
@@ -108,7 +124,10 @@ public class XmlWriter {
                 this.empty = false;
                 this.closed = true;
             }
-            return this;        
+        } catch (IOException ex) {
+            Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this;
     }
 
     /**
@@ -126,26 +145,39 @@ public class XmlWriter {
     /**
      * Output body text. Any xml characters are escaped. 
      */
-    public XmlWriter writeText(String text) throws IOException {
+    public XmlWriter writeText(String text)  {
+        try {
             closeOpeningTag();
             this.empty = false;
-            this.writer.write(escapeXml(text));
-            return this;
+            this.writer.write(escapeXml(text));            
+        } catch (IOException ex) {
+            Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this;
     }
 
 	/**
      * Output body text. Any xml characters are escaped.
      */
-    public XmlWriter writeNormalText(String text) throws IOException {
+    public XmlWriter writeNormalText(String text)  {
+        try {
             closeOpeningTag();
             this.empty = false;
             this.writer.write(text);
-            return this;
+           
+        } catch (IOException ex) {
+            Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+         return this;
     }
 
-	 public XmlWriter flush() throws IOException {
+	 public XmlWriter flush(){
+        try {
             this.writer.flush();
-            return this;
+        } catch (IOException ex) {
+            Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return this;
     }
 
     // Static functions lifted from generationjava helper classes

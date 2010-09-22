@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package nqcmol;
+package nqcmol.cluster;
 
 //import com.sun.xml.internal.txw2.output.XMLWriter;
 //import java.io.StringReader;

@@ -5,6 +5,7 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Collections;
 import java.util.Comparator;
@@ -53,7 +54,7 @@ public class TaskSortCluster extends Task{
 				Cluster mol = new Cluster();
 				mol.Read(scanner, sFormatIn);
 				
-				if(mol.nAtoms<=0) break;
+				if(mol.getNAtoms()<=0) break;
 				pop.add(mol);
 				//if(i>2)pop.get(i-1).Write(System.err,MTools.getExtension(sFileOut));
 				i++;

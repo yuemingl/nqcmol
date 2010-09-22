@@ -7,10 +7,10 @@ package nqcmol.potential;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import nqcmol.Cluster;
+import nqcmol.cluster.Cluster;
 
 /**
  *
@@ -44,7 +44,7 @@ public class KKYPotential extends Potential{
         params.put("H-O-H_f",69.253);
         params.put("H-O-H_theta",99.5);
         params.put("H-O-H_rm",1.43);
-        params.put("H-O-H_gr",9.20);  
+        params.put("H-O-H_gr",9.20);
 	};
 
 	@Override
@@ -52,7 +52,7 @@ public class KKYPotential extends Potential{
 		String equation="KKY";
 		return equation;
 	}
-	
+
 	@Override
 	public boolean HasAnalyticalGradients() {
 		return true;
@@ -62,33 +62,73 @@ public class KKYPotential extends Potential{
 	public boolean isValidSetup() {
 		return true;
 	}
-	
+
 	@Override
 	public void setParam(String filename) {
-		if(!filename.isEmpty()){
-		try {
+		if(filename.isEmpty()) return;
+        try {
             params.clear();
-			Scanner scanner = new Scanner(new File(filename));
-            while(scanner.hasNext()){
-                String key=scanner.next();
-                String sValue=scanner.next();
-                Double val=Double.valueOf(sValue);
+            Scanner scanner = new Scanner(new File(filename));
+            while(scanner.hasNext()){                
+                Double val=Double.valueOf(scanner.next());
+                String key=scanner.next();    scanner.nextLine();
                 params.put(key, val);
             }
-
-//            Set set = params.entrySet();
-//            Iterator i = set.iterator();
-//            System.out.println("Parameters:" );
-//            while(i.hasNext()){
-//              Map.Entry me = (Map.Entry)i.next();
-//              System.out.println(me.getKey() + " = " + me.getValue() );
-//            }
             
-		} catch (FileNotFoundException ex) {
-			Logger.getLogger(KKYPotential.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		}
+            Set set = params.entrySet();
+            Iterator i = set.iterator();
+            logger.finest("Parameters of KKY:" );
+            while(i.hasNext()){
+              Map.Entry me = (Map.Entry)i.next();
+              logger.finest(me.getKey() + " = " + me.getValue() );
+            }
+
+        } catch (FileNotFoundException ex) {
+            logger.severe("Cannot read "+filename);
+        }
 	}
+
+    @Override
+    public void setParam(double[] p) {
+        int c=0;
+        param=p.clone();
+        Set set = params.entrySet();
+        Iterator i = set.iterator();       
+        while(i.hasNext()){
+          Map.Entry me = (Map.Entry)i.next();
+          params.put((String) me.getKey(),new Double(p[c]));
+          c++;
+        }
+    }
+
+
+    @Override
+    public double[] getParam() {
+        int c=0;
+        param=new double[params.size()];
+        Set set = params.entrySet();
+        Iterator i = set.iterator();
+        //System.out.println("Parameters:" );
+        while(i.hasNext()){
+          Map.Entry me = (Map.Entry)i.next();
+          param[c]=(Double)(me.getValue());
+          c++;
+          //System.out.println(me.getKey() + " = " + me.getValue() );
+        }
+        return param;
+    }
+
+    @Override
+    public void writeParam(Writer out) throws IOException {
+        Set set = params.entrySet();
+        Iterator i = set.iterator();
+        while(i.hasNext()){
+          Map.Entry me = (Map.Entry)i.next();
+          out.append(me.getKey() + " " + me.getValue() + "\n");
+        }
+    }
+
+
 
 	@Override
 	public void setCluster(Cluster cluster_) {
@@ -101,7 +141,7 @@ public class KKYPotential extends Potential{
 	protected double Energy_(double[] _p){
 		double energy=0;
 		if(_p.length<=3) return 0;
-		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
+		logger.finest(" Size of vec = "+ _p.length);
 		AllocatePrivateVariables(_p.length/3);
 
 		CalcDistanceAndCharge(_p,false);
@@ -111,14 +151,14 @@ public class KKYPotential extends Potential{
 
 		energy=V_2body + V_3body;
 
-//	   System.out.println("Summary ");
-//       System.out.println("     1. v_Coulomb         ="+v_Coulomb);
-//       System.out.println("     2. v_ShortRangeRepuls="+v_ShortRangeRepuls);
-//       System.out.println("     3. v_VanDerWaals     ="+v_VanDerWaals);
-//       System.out.println("     4. v_CovalentBond    ="+v_CovalentBond);
-//	   System.out.println(" 5. V_2body (1+2+3+4) = "+V_2body);
-//       System.out.println(" 6. V_3body           = "+V_3body);
-//	   System.out.println(" 7. Energy (5+6)      = "+energy);
+        logger.fine("Summary ");
+        logger.fine("     1. v_Coulomb         ="+v_Coulomb);
+        logger.fine("     2. v_ShortRangeRepuls="+v_ShortRangeRepuls);
+        logger.fine("     3. v_VanDerWaals     ="+v_VanDerWaals);
+        logger.fine("     4. v_CovalentBond    ="+v_CovalentBond);
+        logger.fine(" 5. V_2body (1+2+3+4) = "+V_2body);
+        logger.fine(" 6. V_3body           = "+V_3body);
+        logger.fine(" 7. Energy (5+6)      = "+energy);
 
 		energy=ConvertUnit(energy,nativeUnit,unit);
 
@@ -130,7 +170,7 @@ public class KKYPotential extends Potential{
 	protected void Gradient_(double[] _p, double[] gradient) {
 		//System.out.print(" Size of vec = "+ Integer.toString(_p.length));
 		if(_p.length<=3) return ;
-		
+
 		AllocatePrivateVariables(_p.length/3);
 
 		CalcDistanceAndCharge(_p,true);
@@ -147,9 +187,9 @@ public class KKYPotential extends Potential{
 		nEvals+=3;
 	}
 
-	
 
-	//========================== implement OSS2
+
+	//========================== implement KKY
 	int nAtom,nO;
 	double[][] r,x,r2;
 
@@ -159,9 +199,9 @@ public class KKYPotential extends Potential{
 	double[][] grad;
 
     //parameters
-    HashMap<String,Double> params = new HashMap<String,Double>();   
-        
-	
+    LinkedHashMap<String,Double> params = new LinkedHashMap<String,Double>();
+
+
 
 	double SQR(double x){
 		return x*x;
@@ -179,7 +219,7 @@ public class KKYPotential extends Potential{
 				rv=new double[nAtom][nAtom][3];
 				dr=new double[nAtom][nAtom][3];
 				//clear gradient vector
-				
+
 			//}
 		}
 
@@ -195,7 +235,7 @@ public class KKYPotential extends Potential{
 			x[i][2]= _p[i*3+2];
 			//System.out.printf(" x[%d] = %f %f %f \n",i,x[i][0],x[i][1],x[i][2]);
 		}
-        
+
         // distance vectors, euclidian distances and their derivations
         for (int i = 0; i < nAtom; i += 1){
             for (int j = i+1; j < nAtom; j += 1){
@@ -208,7 +248,7 @@ public class KKYPotential extends Potential{
                 }
                 r2[j][i]=r2[i][j];
                 r[i][j] = r[j][i] = Math.sqrt(r2[i][j]);
-                              
+
 
                 if(isGrad){
                     for (int dim = 0; dim < 3; dim += 1){
@@ -218,11 +258,11 @@ public class KKYPotential extends Potential{
                 }
             }
         }
-		
+
 	}
 
     double getParam1(int i,String key){
-        double answer=0;        
+        double answer=0;
         String query=cluster.getAtomicSymbol(i)+"_"+key;
         Double val= params.get(query);
         if(val!=null) answer=val.doubleValue();
@@ -231,7 +271,7 @@ public class KKYPotential extends Potential{
         return answer;
     }
 
-    void getAllParam1(int i,Double a,Double b, Double c, Double z){        
+    void getAllParam1(int i,Double a,Double b, Double c, Double z){
         String query=cluster.getAtomicSymbol(i)+"_";
         a=params.get(query+"a");
         b=params.get(query+"b");
@@ -248,19 +288,19 @@ public class KKYPotential extends Potential{
             query=cluster.getAtomicSymbol(j)+"-"+cluster.getAtomicSymbol(i)+"_"+key;
             val= params.get(query);
             if(val!=null) answer=val.doubleValue();
-        }        
+        }
         //System.out.println("Key="+query+ " Value="+answer);
         return answer;
     }
 
-    
+
 
      double getParam3(int i,int j,int k,String key){
         double answer=0;
         String query=cluster.getAtomicSymbol(i)+"-"+cluster.getAtomicSymbol(j)+"-"+cluster.getAtomicSymbol(k)+"_"+key;
         Double val= params.get(query);
         if(val!=null){
-            answer=val.doubleValue();           
+            answer=val.doubleValue();
         }else answer=Double.NaN;
         //System.out.println("Key="+query+ " Value="+answer);
 
@@ -278,7 +318,7 @@ public class KKYPotential extends Potential{
         v_ShortRangeRepuls=0;
         v_VanDerWaals=0;
         v_CovalentBond=0;
-        
+
         final double p_f0=41.865*0.1; //constant parameters
         final double kCoulomb=1389.35444;//= 8.9875517873681764e9*(1.60217646e-19)^2/1e-10 * 0.001*6.0221415e23
         //final double kCoulomb=1389.354678;//=from OSS2 potential
@@ -288,18 +328,21 @@ public class KKYPotential extends Potential{
             //getAllParam1(i,p_ai,p_bi,p_ci,p_zi);
             //System.out.println("Test = "+p_ai);
             double p_zi,p_ai,p_bi,p_ci;
-            p_zi=getParam1(i,"z");
-            p_ai=getParam1(i,"a");
-            p_bi=getParam1(i,"b");
-            p_ci=getParam1(i,"c");
+            double p_zj,p_aj,p_bj,p_cj;
+
+            p_zj=p_zi=getParam1(i,"z");
+            p_aj=p_ai=getParam1(i,"a");
+            p_bj=p_bi=getParam1(i,"b");
+            p_cj=p_ci=getParam1(i,"c");
 
 
             for (int j = i+1; j < nAtom; j += 1){
-                double p_zj,p_aj,p_bj,p_cj;
-                p_zj=getParam1(j,"z");
-                p_aj=getParam1(j,"a");
-                p_bj=getParam1(j,"b");
-                p_cj=getParam1(j,"c");
+                if(cluster.getAtomicNumber(i)!=cluster.getAtomicNumber(j)){
+                    p_zj=getParam1(j,"z");
+                    p_aj=getParam1(j,"a");
+                    p_bj=getParam1(j,"b");
+                    p_cj=getParam1(j,"c");
+                }
 
                 double p_D1,p_D2,p_D3;
                 p_D1=getParam2(i,j,"D1");
@@ -312,7 +355,6 @@ public class KKYPotential extends Potential{
                 p_beta3=getParam2(i,j,"beta3");
 
                 double p_r3=getParam2(i,j,"r3");
-
 
                 double expij   = Math.exp(( p_ai + p_aj - r[i][j])/(p_bi + p_bj));
                 double expij_1 = Math.exp( -p_beta1*r[i][j]);
@@ -339,12 +381,12 @@ public class KKYPotential extends Potential{
                 }
             }
         }
-      
+
 
        V_pair+=v_Coulomb +  v_ShortRangeRepuls +  v_VanDerWaals + v_CovalentBond;
 
         return V_pair;
-	}	
+	}
 
 	double ThreeBodyInteraction(boolean isGrad){
 		double V_3b = 0;
@@ -354,11 +396,11 @@ public class KKYPotential extends Potential{
                 for(int k = j+1; k < nAtom; k += 1){
 
                     //boolean isExist1 = false, isExist2=false, isExist3=false, isExist4=false;
-                    
+
                     double p_f=getParam3(j,i,k,"f");
                     double p_theta=getParam3(j,i,k,"theta");
                     double p_rm=getParam3(j,i,k,"rm");
-                    double p_gr=getParam3(j,i,k,"gr");                                     
+                    double p_gr=getParam3(j,i,k,"gr");
 
                     if(!Double.isNaN(p_f) && !Double.isNaN(p_theta) && !Double.isNaN(p_rm) && !Double.isNaN(p_gr)){ //if parameters exist
                         double cost = (r2[i][j] + r2[i][k] - r2[j][k]) / (2.0*r[i][j]*r[i][k]);
@@ -405,6 +447,6 @@ public class KKYPotential extends Potential{
         return V_3b;
 	}
 
-	
+
 	//================== for gradient
 }

@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import nqcmol.cluster.Cluster;
+import nqcmol.cluster.MolExtra;
 import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,28 +63,24 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
     static final public String Descriptions="\t "+Option+" \t - "+ "anharmonic vibration analysis\n";
 
    	@Override
-	protected void Initialize() {
-		try {
-			super.Initialize();
-            if(!sFormatIn.contentEquals("xml")){
-                pot = MolExtra.SetupPotential("g03", sFileParam, "Hartree", "");
-                assert (pot.getEquation().contains("Gaussian"));
-                gau = (GaussianInterfacePotential) pot;
-                xmllog.writeNormalText(gau.Info(1));
-                basisSet = gau.getBasisSet();
-                chargeAndMultiplicity = gau.getChargeAndMultiplicity();
+	protected void Initialize() {		
+        super.Initialize();
+        if(!sFormatIn.contentEquals("xml")){
+            pot = MolExtra.SetupPotential("g03", sFileParam, "Hartree", "");
+            assert (pot.getEquation().contains("Gaussian"));
+            gau = (GaussianInterfacePotential) pot;
+            xmllog.writeNormalText(gau.Info(1));
+            basisSet = gau.getBasisSet();
+            chargeAndMultiplicity = gau.getChargeAndMultiplicity();
 
-               int dot = sFileIn.lastIndexOf('.');
-              // String ext=sFileIn.substring(dot + 1);
-               int sep = sFileIn.lastIndexOf('/');
-               sFileCheckPoint=sFileIn.substring(sep + 1, dot);
-            }
-			//String filename = (new File(sFileIn)).getName();
-			//String ext = (filename.lastIndexOf(".") == -1) ? "" : filename.substring(filename.lastIndexOf(".") + 1, filename.length());
-			//sFileCheckPoint = filename.replace("." + ext, "");
-		} catch (IOException ex) {
-			Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
-		}
+           int dot = sFileIn.lastIndexOf('.');
+          // String ext=sFileIn.substring(dot + 1);
+           int sep = sFileIn.lastIndexOf('/');
+           sFileCheckPoint=sFileIn.substring(sep + 1, dot);
+        }
+        //String filename = (new File(sFileIn)).getName();
+        //String ext = (filename.lastIndexOf(".") == -1) ? "" : filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+        //sFileCheckPoint = filename.replace("." + ext, "");
 	}
    
 

@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import nqcmol.Cluster;
+import nqcmol.cluster.Cluster;
 import nqcmol.tools.MTools;
 import nqcmol.tools.XmlWriter;
 import org.apache.commons.math.FunctionEvaluationException;
@@ -31,6 +31,8 @@ public class Potential {
 		setCluster(cluster);
 		isValidSetup=false;
 	}
+
+    protected static Logger logger=Logger.getLogger(Potential.class.getName());
 
 
 	// general variables
@@ -146,11 +148,22 @@ public class Potential {
 	}
 
 	/**
-	 * Set the value of param
+	 * Set the value of param by reading a file
 	 *
 	 * @param param new value of param
 	 */
 	public void setParam(String filename) {
+	}
+
+
+    /**
+	 * Set the value of param
+	 *
+	 * @param param new value of param
+	 */
+	public void writeParam(Writer out) throws IOException {
+        for(int i=0;i<param.length;i++)
+           out.append(String.format("%f\n", param[i]));           
 	}
 
 
