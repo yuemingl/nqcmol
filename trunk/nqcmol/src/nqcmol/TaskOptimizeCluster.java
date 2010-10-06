@@ -7,12 +7,7 @@ package nqcmol;
 
 import nqcmol.cluster.Cluster;
 import java.io.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.kohsuke.args4j.*;
-
-
 
 /**
  *
@@ -39,6 +34,10 @@ public class TaskOptimizeCluster extends TaskCalculate {
     static final public String Option="opt";
 
     static final public String Descriptions="\t "+Option+" \t - "+ "optimize clusters\n";
+
+    public static void main(String[] args) throws IOException  {
+        new TaskOptimizeCluster().Execute(args);
+	}
 
 	@Override
 	protected void Process() {				

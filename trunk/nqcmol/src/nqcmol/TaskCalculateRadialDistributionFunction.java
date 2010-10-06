@@ -43,6 +43,10 @@ public class TaskCalculateRadialDistributionFunction extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Calculate RDF function\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskCalculateRadialDistributionFunction().Execute(args);
+	}
+
     private double peakWidth=0;
 
     int binsToFillOnEachSide ;

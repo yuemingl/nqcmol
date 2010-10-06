@@ -18,10 +18,10 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class TaskCalculateEnergy extends TaskCalculate {
-	@Option(name="-nRuns",usage=" number of interations",metaVar="INTNUM")
+	@Option(name="-nRuns",usage=" number of interations",metaVar="INTEGER")
     int nRuns=1;
 
-	@Option(name="-nScale",usage=" number of interations",metaVar="INTNUM")
+	@Option(name="-nScale",usage=" number of interations",metaVar="INTEGER")
     int nScale=0;
 
 	@Option(name="-grad",usage="Benchmark gradients or not.")
@@ -35,6 +35,10 @@ public class TaskCalculateEnergy extends TaskCalculate {
     static final public String Option="ener";
 
     static final public String Descriptions="\t "+Option+" \t - "+ "calculate energy\n";
+
+    public static void main(String[] args) throws IOException  {
+        new TaskCalculateEnergy().Execute(args);
+	}
 
 	@Override
 	protected void Process() {

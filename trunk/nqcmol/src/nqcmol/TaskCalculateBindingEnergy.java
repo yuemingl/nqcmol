@@ -34,6 +34,10 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Calculate binding energies\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskCalculateBindingEnergy().Execute(args);
+	}
+
 	@Override
 	protected void Process() {
 			try {

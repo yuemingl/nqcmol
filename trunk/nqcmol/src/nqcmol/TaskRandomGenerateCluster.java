@@ -66,6 +66,10 @@ public class TaskRandomGenerateCluster extends Task {
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Randomly generate clusters\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskRandomGenerateCluster().Execute(args);
+	}
+
 	@Override
 	public void ParseArguments(String[] args) {
 		try {

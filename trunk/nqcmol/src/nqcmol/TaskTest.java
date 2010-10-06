@@ -8,9 +8,12 @@ package nqcmol;
 import nqcmol.cluster.Cluster;
 import nqcmol.cluster.MolExtra;
 import java.io.*;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import mpi.MPI;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.DifferentiableMultivariateVectorialFunction;
 import org.apache.commons.math.analysis.MultivariateMatrixFunction;
@@ -27,9 +30,132 @@ import org.jgap.impl.*;
  *
  * @author nqc
  */
-public class TaskTest extends TaskCalculate {
-	
+public class TaskTest extends Task {
 
+    @Override
+	public String getName() {
+		return "Test";
+	}
+
+    static final public String Option="test";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Fit potential by using GA\n";
+    
+    public static void main(String[] args){
+       //try {
+                   // MPI.Initialized();
+                   // if(1==0){
+
+//        MPI.Init(args);
+//        int me = MPI.COMM_WORLD.Rank();
+//        int size = MPI.COMM_WORLD.Size();
+//        System.out.println("Hi from <>"+me);
+//        MPI.Finalize();
+        new TaskTest().Execute(args);
+                        
+                   // }
+//            getClassesForPackage("nqcmol.potential");
+//        } catch (ClassNotFoundException ex) {
+//            Logger.getLogger(TaskTest.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+    }
+
+    double[] a=new double[]{12};
+    double[] b=new double[]{3};
+
+    @Override
+    public void Execute(String[] args) {
+            String[] newargs=MPI.Init(args);
+            int me = MPI.COMM_WORLD.Rank();
+            int size = MPI.COMM_WORLD.Size();
+            System.out.println("Hi from <>"+me);
+            ParseArguments(newargs);
+            this.parser.printUsage(System.out);
+           
+            if(me==0){
+                MPI.COMM_WORLD.Send(a,0, 1,MPI.DOUBLE,1,0);
+                System.out.println(me+" I am sending "+a[0]);
+            }else{
+                a[0]=1233;
+                MPI.COMM_WORLD.Recv(b,0, 1,MPI.DOUBLE, 0, 0);
+                System.out.println(me+" I am receiving "+b[0]);
+            }
+
+            MPI.COMM_WORLD.Barrier();
+
+            System.out.println(me+": a="+a[0]+" b="+b[0]);
+
+
+            Initialize();
+            MPI.Finalize();
+
+    }
+
+    @Override
+    protected void Process() {
+        super.Process();
+    }
+
+
+
+
+
+     /**
+     * Attempts to list all the classes in the specified package as determined
+     * by the context class loader
+     *
+     * @param pckgname
+     *            the package name to search
+     * @return a list of classes that exist within that package
+     * @throws ClassNotFoundException
+     *             if something went wrong
+     */
+    public static List<Class> getClassesForPackage(String pckgname) throws ClassNotFoundException {
+        // This will hold a list of directories matching the pckgname. There may be more than one if a package is split over multiple jars/paths
+        ArrayList<File> directories = new ArrayList<File>();
+        try {
+            ClassLoader cld = Thread.currentThread().getContextClassLoader();
+            if (cld == null) {
+                throw new ClassNotFoundException("Can't get class loader.");
+            }
+            String path = pckgname.replace('.', '/');
+            // Ask for all resources for the path
+            Enumeration<URL> resources = cld.getResources(path);
+            while (resources.hasMoreElements()) {
+                directories.add(new File(URLDecoder.decode(resources.nextElement().getPath(), "UTF-8")));
+                //System.out.println(" First " +resources.nextElement().getFile());
+            }
+        } catch (NullPointerException x) {
+            throw new ClassNotFoundException(pckgname + " does not appear to be a valid package (Null pointer exception)");
+        } catch (UnsupportedEncodingException encex) {
+            throw new ClassNotFoundException(pckgname + " does not appear to be a valid package (Unsupported encoding)");
+        } catch (IOException ioex) {
+            throw new ClassNotFoundException("IOException was thrown when trying to get all resources for " + pckgname);
+        }
+
+        ArrayList<Class> classes = new ArrayList<Class>();
+        // For every directory identified capture all the .class files
+        for (File directory : directories) {
+            if (directory.exists()) {
+                // Get the list of the files contained in the package
+                String[] files = directory.list();
+                for (String file : files) {
+                    // we are only interested in .class files
+                    if (file.endsWith(".class")) {
+                        // removes the .class extension
+                        classes.add(Class.forName(pckgname + '.' + file.substring(0, file.length() - 6)));
+                    }
+                    System.out.println(file);
+                }
+            } else {
+                throw new ClassNotFoundException(pckgname + " (" + directory.getPath() + ") does not appear to be a valid package");
+            }
+        }
+        return classes;
+    }
+
+	
+/*
 	@Option(name="-ref",usage="to calculate binding energies. It MUST be in F_XYZ format and in the following order: neutral, protonated, deprotonated. ",metaVar="FILE")
 	String sFileRef="";
 
@@ -64,14 +190,7 @@ public class TaskTest extends TaskCalculate {
 	Vector<String> datafile=new Vector<String>();
 	Vector<Double> dataWeight=new Vector<Double>();
 
-    @Override
-	public String getName() {
-		return "FitPotential";
-	}
-
-    static final public String Option="test";
-
-    static final public String Descriptions="\t "+Option+" \t - "+ "Fit potential by using GA\n";
+    
 	
 	void ProcessData(){
         double[] ener_ref={molRef.get(0).getEnergy(),molRef.get(1).getEnergy(),molRef.get(2).getEnergy()};
@@ -576,7 +695,6 @@ public class TaskTest extends TaskCalculate {
         }
     }
 
-    /*/=================== for LMA fitting
     public class LMAObjectiveFunction extends LMAMultiDimFunction {
         @Override
         public double getY(double[] x, double[] a) {
@@ -647,6 +765,7 @@ public class TaskTest extends TaskCalculate {
     */
 
     //=================== for GA fitting
+    /*
     public class GAFitnessFunction  extends FitnessFunction{
         @Override
         protected double evaluate(IChromosome indv) {
@@ -731,5 +850,7 @@ public class TaskTest extends TaskCalculate {
         }
               
     }
+     *
+     */
 }
 

@@ -32,6 +32,10 @@ public class TaskSortCluster extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "sort clusters according to energies\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskSortCluster().Execute(args);
+	}
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();		

@@ -5,6 +5,8 @@
 
 package nqcmol;
 
+import java.io.IOException;
+
 
 /**
  *
@@ -19,6 +21,10 @@ public class TaskValidateGradient extends TaskCalculate {
     static final public String Option="grad";
 
     static final public String Descriptions="\t "+Option+" \t - "+ "validate gradients. Perform both analytical (if applicant) and numerical gradients.\n";
+
+    public static void main(String[] args) throws IOException  {
+        new TaskValidateGradient().Execute(args);
+	}
 
 	@Override
 	protected void Process() {		

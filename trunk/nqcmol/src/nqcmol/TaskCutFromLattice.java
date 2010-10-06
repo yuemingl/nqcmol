@@ -5,14 +5,8 @@
 
 package nqcmol;
 
+import java.io.IOException;
 import nqcmol.cluster.Crystal;
-import java.io.*;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Random;
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.kohsuke.args4j.*;
 
@@ -54,6 +48,9 @@ public class TaskCutFromLattice extends Task {
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Generate clusters by cutting from lattice\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskCutFromLattice().Execute(args);
+	}
 	
 	@Override
 	protected void Process() {	

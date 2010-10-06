@@ -61,6 +61,10 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 	final double cPlanck[]={4.55633500389233e-06,0.00285914300348446,0.0119626543265790};//for hartree,kcal/mol, kJ/mol
 	final double cBetaPlanck=1.43877513515753; //cm*K
 
+    public static void main(String[] args) throws IOException  {
+        new TaskHarmonicSuperpositionApproximation().Execute(args);
+	}
+
 	@Override
 	protected void Initialize() {		
         super.Initialize();

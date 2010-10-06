@@ -41,6 +41,10 @@ public class TaskCalculateSymmetryPointGroup extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Calculate symmetry point group based on brute-force algorithm\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskCalculateSymmetryPointGroup().Execute(args);
+	}
+
 	@Override
 	protected void Process() {				
         //System.out.println("What the fuck!"+sFileIn);
