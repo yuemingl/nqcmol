@@ -33,7 +33,7 @@ public class TaskGenerateCluster extends Task {
     @Option(name = "-m", usage = "Specify a particular normal mode for translating. Count from 0. Disable if < 0. [-1]", metaVar = "INTEGER")
 	int mode=-1;
 
-//    @Option(name = "-header", usage = "Header file for Gaussian input", metaVar = "DOUBLE")
+//   @Option(name = "-header", usage = "Header file for Gaussian input", metaVar = "DOUBLE")
 //	double deltaX=0.2;
 
 
@@ -45,7 +45,11 @@ public class TaskGenerateCluster extends Task {
     static final public String Option="aVib";
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Generate clusters by translating along vibrational normal modes of Gaussian output files\n";
-	
+
+    public static void main(String[] args) throws IOException  {
+        new TaskGenerateCluster().Execute(args);
+	}
+
 	@Override
 	protected void Process() {				
         xmllog.writeAttribute("deltaX", Double.toString(deltaX));

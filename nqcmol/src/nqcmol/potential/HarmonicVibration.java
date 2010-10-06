@@ -306,12 +306,13 @@ public class HarmonicVibration {
 			}
 		}
 
+        //MTools.PrintArray(I_vect);
 		//change to the new base -- unit vector
-		for (int i = 0; i<3; i++){
-			for (int j = 0; j<3; j++){
-				I_vect[i][j] = (i==j)?1:0;
-			}
-		}
+//		for (int i = 0; i<3; i++){
+//			for (int j = 0; j<3; j++){
+//				I_vect[i][j] = (i==j)?1:0;
+//			}
+//		}
 
 		//the translation and rotation matrix
 		int k = 0;

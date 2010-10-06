@@ -23,6 +23,10 @@ public class TaskConvertWaterToRadicalWater extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskConvertWaterToRadicalWater().Execute(args);
+	}
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();		

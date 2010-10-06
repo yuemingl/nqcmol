@@ -25,6 +25,9 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Harmonic Vibration Analysis\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskHarmonicVibrationAnalysis().Execute(args);
+	}
 
 	@Override
 	protected void Process() {		

@@ -12,6 +12,7 @@ import org.kohsuke.args4j.*;
 /**
  *
  * @author nqc
+ * Obsolete
  */
 public class NQCMol {
 	@Option(name="-t",usage="Please choose one of those operations\n" +
@@ -56,7 +57,7 @@ public class NQCMol {
 			// if there's a problem in the command line, you'll get this exception. this will report an error message.
             System.err.println(e.getMessage());            
             // print the list of available options
-            parser.printUsage(System.err);
+            //parser.printUsage(System.err);
             System.err.println();
 
             return;

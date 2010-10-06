@@ -124,7 +124,7 @@ public class KKYPotential extends Potential{
         Iterator i = set.iterator();
         while(i.hasNext()){
           Map.Entry me = (Map.Entry)i.next();
-          out.append(me.getKey() + " " + me.getValue() + "\n");
+          out.append( me.getValue()  + " " + me.getKey()+"\n");
         }
     }
 
@@ -201,8 +201,6 @@ public class KKYPotential extends Potential{
     //parameters
     LinkedHashMap<String,Double> params = new LinkedHashMap<String,Double>();
 
-
-
 	double SQR(double x){
 		return x*x;
 	}
@@ -271,14 +269,14 @@ public class KKYPotential extends Potential{
         return answer;
     }
 
-    void getAllParam1(int i,Double a,Double b, Double c, Double z){
+    void getAllParam1(int i,double[] p){
         String query=cluster.getAtomicSymbol(i)+"_";
-        a=params.get(query+"a");
-        b=params.get(query+"b");
-        c=params.get(query+"c");
-        z=params.get(query+"z");
+        p[0]=params.get(query+"z");
+        p[1]=params.get(query+"a");
+        p[2]=params.get(query+"b");
+        p[3]=params.get(query+"c");
     }
-
+     
     double getParam2(int i,int j,String key){
         double answer=0;
         String query=cluster.getAtomicSymbol(i)+"-"+cluster.getAtomicSymbol(j)+"_"+key;
@@ -293,9 +291,7 @@ public class KKYPotential extends Potential{
         return answer;
     }
 
-
-
-     double getParam3(int i,int j,int k,String key){
+    double getParam3(int i,int j,int k,String key){
         double answer=0;
         String query=cluster.getAtomicSymbol(i)+"-"+cluster.getAtomicSymbol(j)+"-"+cluster.getAtomicSymbol(k)+"_"+key;
         Double val= params.get(query);
@@ -323,25 +319,38 @@ public class KKYPotential extends Potential{
         final double kCoulomb=1389.35444;//= 8.9875517873681764e9*(1.60217646e-19)^2/1e-10 * 0.001*6.0221415e23
         //final double kCoulomb=1389.354678;//=from OSS2 potential
 
+        double[] p_1=new double[4];
+        double p_zi,p_ai,p_bi,p_ci;
+        double p_zj,p_aj,p_bj,p_cj;
+
         for (int i = 0; i < nAtom; i += 1){
             //Double p_ai=null,p_bi=null,p_ci=null,p_zi=null;
             //getAllParam1(i,p_ai,p_bi,p_ci,p_zi);
             //System.out.println("Test = "+p_ai);
-            double p_zi,p_ai,p_bi,p_ci;
-            double p_zj,p_aj,p_bj,p_cj;
 
-            p_zj=p_zi=getParam1(i,"z");
-            p_aj=p_ai=getParam1(i,"a");
-            p_bj=p_bi=getParam1(i,"b");
-            p_cj=p_ci=getParam1(i,"c");
+            getAllParam1(i,p_1);
+            p_zj=p_zi=p_1[0];
+            p_aj=p_ai=p_1[1];
+            p_bj=p_bi=p_1[2];
+            p_cj=p_ci=p_1[3];
+
+//            p_zj=p_zi=getParam1(i,"z");
+//            p_aj=p_ai=getParam1(i,"a");
+//            p_bj=p_bi=getParam1(i,"b");
+//            p_cj=p_ci=getParam1(i,"c");
 
 
             for (int j = i+1; j < nAtom; j += 1){
                 if(cluster.getAtomicNumber(i)!=cluster.getAtomicNumber(j)){
-                    p_zj=getParam1(j,"z");
-                    p_aj=getParam1(j,"a");
-                    p_bj=getParam1(j,"b");
-                    p_cj=getParam1(j,"c");
+                    getAllParam1(j,p_1);
+                    p_zj=p_1[0];
+                    p_aj=p_1[1];
+                    p_bj=p_1[2];
+                    p_cj=p_1[3];
+//                    p_zj=getParam1(j,"z");
+//                    p_aj=getParam1(j,"a");
+//                    p_bj=getParam1(j,"b");
+//                    p_cj=getParam1(j,"c");
                 }
 
                 double p_D1,p_D2,p_D3;

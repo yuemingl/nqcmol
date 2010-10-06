@@ -11,6 +11,8 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import mpi.MPI;
+import nqcmol.tools.XmlWriter;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.DifferentiableMultivariateVectorialFunction;
 import org.apache.commons.math.analysis.MultivariateMatrixFunction;
@@ -27,9 +29,7 @@ import org.jgap.impl.*;
  *
  * @author nqc
  */
-public class TaskFitPotential extends TaskCalculate {		
-	
-
+public class TaskFitPotential extends TaskCalculate {	
 	@Option(name="-ref",usage="To calculate binding energies. It MUST be in F_XYZ format and in the following order: neutral, protonated, deprotonated. ",metaVar="FILE")
 	String sFileRef="";
 
@@ -37,14 +37,204 @@ public class TaskFitPotential extends TaskCalculate {
 	boolean isRandom=false;
 
     @Option(name="-nOpts",usage="Maximum number of iterations in local optimization. [0]",metaVar="INTEGER")
-	int nOpts=0;
-		
-	final int cParamMax=100;
+	int nOpts=0;		
 
-    @Option(name="-b",usage="Bound file. Each line should consist of at least tree columns: upper lower fixed.[]",metaVar="STRING")
+    @Option(name="-b",usage="Bound file. Each line should consist of at least three columns including [upper] [lower] [fixed].[]",metaVar="STRING")
 	String sFileBound="";
 
-	int nparam; //!< number of non-fixed parameters
+
+
+    //@Option(name="-mpi",usage="Using MPI to run parallel or not.[false]",metaVar="STRING")
+	boolean bMPI=false;
+
+	
+
+    @Override
+	public String getName() {
+		return "FitPotential";
+	}
+
+    static final public String Option="fit";
+
+    static final public String Descriptions="\t "+Option+" \t - "+ "Fit potential by using GA\n";
+
+    public static void main(String[] args) throws IOException  {
+        new TaskFitPotential().Execute(args);
+	}
+
+    @Override
+    public void Execute(String[] args) {
+         for(int i=0;i<args.length;i++){
+            if(args[i].contentEquals("-mpi")) bMPI=true;
+        }
+
+        if(!bMPI) super.Execute(args);
+        else{
+            String[] newargs=MPI.Init(args);
+            rank = MPI.COMM_WORLD.Rank();
+            ncpu = MPI.COMM_WORLD.Size();
+            ParseArguments(newargs);
+
+            try {
+                String sFileLog="main-t"+rank+".xml";
+                stdwriter=new BufferedWriter(new FileWriter(new File(sFileLog)));
+                xmllog = new XmlWriter(stdwriter);
+                System.out.println("Hi from <>"+rank);            
+           
+                xmllog.writeEntity(getName());
+                Initialize();
+                if(rank==MASTER) {//if u r MASTER, proceed
+                    Process();
+                }else{
+                    while(true){//if u r slaves, just waiting for the orders
+                        mpi.Status status=MPI.COMM_WORLD.Probe(MPI.ANY_SOURCE,MPI.ANY_TAG);
+                        if(status.tag==-1)                         break;
+                        if(status.tag==1){
+                            //MPI.COMM_WORLD.Recv(&a[0],mess.size, newtype,mess.destfrom,mess.tag);
+                            //return true;
+                        }
+                    }
+                }
+                Finalize();
+                xmllog.endEntity().close();
+                stdwriter.close();
+            } catch (IOException ex) {
+                logger.severe(ex.getMessage());
+            }
+            MPI.Finalize();
+        }
+    }
+
+
+	
+	@Override
+	protected void Initialize(){
+        try {
+            xmllog.writeAttribute("InputFile", sFileIn).writeAttribute("FormatInput", sFormatIn);
+            xmllog.writeAttribute("OutputFile", sFileOut).writeAttribute("FileBound", sFileBound);
+            xmllog.writeAttribute("RandomParam", Boolean.toString(isRandom));
+            xmllog.writeAttribute("Verbose", Integer.toString(verbose));
+
+            xmllog.writeEntity("Initialize");
+                pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
+                xmllog.writeNormalText(pot.Info(1));
+
+                xmllog.writeEntity("ReadBound");
+                    ReadBound();
+                xmllog.endEntity().flush();
+
+                xmllog.writeEntity("ReadReference");
+                    ReadReference();
+                xmllog.endEntity().flush();
+
+                xmllog.writeEntity("ReadData");
+                    ReadData();
+                    xmllog.writeEntity("TotalSize");
+                    xmllog.writeNormalText(Integer.toString(data.size()));
+                    xmllog.endEntity().flush();
+                xmllog.endEntity().flush();
+
+
+                xmllog.writeEntity("ProcessData");
+                    ProcessData();
+                xmllog.endEntity().flush();
+            xmllog.endEntity().flush();
+
+            } catch (IOException ex) {
+                logger.severe(ex.getMessage());
+            }
+    }
+
+
+	@Override
+	protected void Process(){
+			xmllog.writeEntity("InitialEvaluation");
+				Evaluate(param,4);
+			xmllog.endEntity().flush();
+
+			xmllog.writeEntity("Optimization").writeAttribute("Method",sMethod );
+				long duration=System.currentTimeMillis();
+
+                nEvaluations=0;
+                if(sMethod.contentEquals("GA"))
+                    FitUsingGA();
+                else
+                    FitUsingApacheLevenbergMarquardt();
+
+				duration=(System.currentTimeMillis()-duration);
+
+                 xmllog.writeEntity("ConvergenceInfo");
+                    xmllog.writeAttribute("TotalRMS", Double.toString(finalRMS));
+                    //xmllog.writeAttribute("MaxInterations", Integer.toString(fit.getMaxIterations()));
+                    //xmllog.writeAttribute("MaxEvaluations", Integer.toString(fit.getMaxEvaluations()));
+                    xmllog.writeAttribute("Iterations", Integer.toString(nIterations));
+                    xmllog.writeAttribute("Evaluations", Integer.toString(nEvaluations));
+                    xmllog.writeAttribute("Duration", Double.toString(duration/1000.0));
+                xmllog.endEntity().flush();
+			xmllog.endEntity().flush();
+
+
+			xmllog.writeEntity("FinalEvaluation");
+				Evaluate(finalParam, 4);
+			xmllog.endEntity().flush();
+
+			xmllog.writeEntity("FinalParameters");
+				WriteParam(finalParam);
+			xmllog.endEntity().flush();
+	}
+
+
+    @Override
+	public void ParseArguments(String[] args_) {
+        this.args=args_;
+		parser = new CmdLineParser(this);
+		try {
+			parser.parseArgument(args);
+			if(isHelp){
+				parser.printUsage(System.out);
+				return ;
+			}
+
+			for(int i=0;i<50;i++){
+				boolean bSet=false;
+				String opt=String.format("-i%d",i+1);
+					for(int j=0;j<args.length-1;j++)
+						if(args[j].contentEquals(opt)){
+							bSet=true;
+							datafile.add(args[j+1]);
+						}
+
+				if(bSet){
+					double t=1;
+					opt=String.format("-w%d",i+1);
+
+					for(int j=0;j<args.length-1;j++)
+						if(args[j].contentEquals(opt))
+							t=Double.parseDouble(args[j+1]);
+
+					dataWeight.add(t);
+				}
+			}
+
+			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
+
+		} catch (CmdLineException ex) {
+			logger.severe(ex.getMessage());
+		} catch (IOException ex) {
+			logger.severe(ex.getMessage());
+		}
+
+	}
+
+
+    //===============================
+    final int MASTER=0;
+
+    int rank = MASTER;
+    int ncpu = 1;
+
+
+    int nparam; //!< number of non-fixed parameters
 	double[] param; //!< non-fixed parameters
 	double[] ub;//!< non-fixed upper bounds, all fixed parameters are removed
 	double[] lb;//!< non-fixed lower bounds, all fixed parameters are removed
@@ -55,11 +245,11 @@ public class TaskFitPotential extends TaskCalculate {
 	double[] ub_inp;//=new double[cParamMax];//!< input upper and lower bounds
 	double[] lb_inp;//=new double[cParamMax];
 	int[] fixed;//=new int[cParamMax]; //!< determine wheter parameter are fixed
-	String[] label_inp=new String[cParamMax]; //!< label of parameter
+	String[] label_inp; //!< label of parameter
 
 	Vector<Cluster> molRef= new Vector<Cluster>();//!< reference clusters
 	Vector<Cluster> data=new Vector<Cluster>();//!< data/fitting clusters
-	Vector<Double> weight=new Vector<Double>();//!< weighted numbers of each clusters
+	double[] weight;//!< weighted numbers of each clusters
 
 	double[] target; //!< contain target data, in that case is binding energy +rms
 
@@ -69,24 +259,15 @@ public class TaskFitPotential extends TaskCalculate {
 
     int nIterations=0;
     int nEvaluations=0;
+    double[] finalParam;
     double finalRMS=0;
 
 
-    @Override
-	public String getName() {
-		return "FitPotential";
-	}
-
-    static final public String Option="fit";
-
-    static final public String Descriptions="\t "+Option+" \t - "+ "Fit potential by using GA\n";
-	
-	void ProcessData(){
+    void ProcessData(){
         double[] ener_ref={molRef.get(0).getEnergy(),molRef.get(1).getEnergy(),molRef.get(2).getEnergy()};
 		target=new double[data.size()];
 		for (int i=0; i< data.size(); i++){
 			Cluster m=data.get(i);
-
 			target[i]= CalcBindingEnergy(m,m.getEnergy(),ener_ref);
 			//target[i]*=1000;
 		}
@@ -104,26 +285,8 @@ public class TaskFitPotential extends TaskCalculate {
         return be;
     }
 
-
-	@Override
-	protected void Initialize(){
-	try {
-		xmllog.writeAttribute("InputFile", sFileIn).writeAttribute("FormatInput", sFormatIn);
-        xmllog.writeAttribute("OutputFile", sFileOut);
-        xmllog.writeAttribute("FileBound", sFileBound);
-        xmllog.writeAttribute("RandomParam", Boolean.toString(isRandom));
-		xmllog.writeAttribute("Verbose", Integer.toString(verbose));
-
-		xmllog.writeEntity("Initialize");
-		pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
-		xmllog.writeNormalText(pot.Info(1));
-
-		xmllog.writeEntity("ReadBound");
-        ReadBound();
-        xmllog.endEntity().flush();
-
-		xmllog.writeEntity("ReadReference");
-			Scanner scanRef = new Scanner(new File(sFileRef));
+    protected void ReadReference() throws FileNotFoundException{
+        Scanner scanRef = new Scanner(new File(sFileRef));
 			molRef.clear();
 			while (scanRef.hasNext()) {
 				Cluster tmpMol = new Cluster();
@@ -139,11 +302,12 @@ public class TaskFitPotential extends TaskCalculate {
 				xmllog.writeAttribute("Energy", Double.toString(tmpMol.getEnergy()));
 				xmllog.endEntity().flush();
 			}
-			scanRef.close();
-		xmllog.endEntity().flush();
+		scanRef.close();
+    }
 
-		xmllog.writeEntity("ReadData");
-		for (int i = 0; i < datafile.size();i++) {
+    protected void ReadData() throws FileNotFoundException{
+        Vector<Double> tmpWeight=new Vector<Double>();
+        for (int i = 0; i < datafile.size();i++) {
 			Scanner scanData = new Scanner(new File(datafile.get(i)));
 			int count=0;
 
@@ -154,7 +318,7 @@ public class TaskFitPotential extends TaskCalculate {
 				tmpMol.CorrectOrder();
 
 				data.add(tmpMol);
-				weight.add(dataWeight.get(i));
+				tmpWeight.add(dataWeight.get(i));
 				count++;
 			}
 			xmllog.writeEntity("Data");
@@ -164,111 +328,72 @@ public class TaskFitPotential extends TaskCalculate {
 			xmllog.endEntity().flush();
 			scanData.close();
 		}
-		xmllog.endEntity().flush();
-
-		xmllog.writeEntity("TotalSize");
-		xmllog.writeNormalText(Integer.toString(data.size()));
-		xmllog.endEntity().flush();
-
-
-		xmllog.writeEntity("ProcessData");
-		ProcessData();
-		xmllog.endEntity().flush();
-
-	} catch (IOException ex) {
-		logger.severe("Cannot write to xmllog");
-	}
-
-}
-
-
-	@Override
-	protected void Process(){
-		try {
-			xmllog.writeEntity("InitialEvaluation");
-				Evaluate(param,4);
-			xmllog.endEntity().flush();
-
-			xmllog.writeEntity("Optimization");
-				long duration=System.currentTimeMillis();
-
-                FitUsingApache();
-                //FitUsingGA();
-				duration=(System.currentTimeMillis()-duration);
-				
-			xmllog.endEntity().flush();
-
-            xmllog.writeEntity("ConvergenceInfo");
-                    xmllog.writeAttribute("TotalRMS", Double.toString(finalRMS));
-                    //xmllog.writeAttribute("MaxInterations", Integer.toString(fit.getMaxIterations()));
-                    //xmllog.writeAttribute("MaxEvaluations", Integer.toString(fit.getMaxEvaluations()));
-                    xmllog.writeAttribute("Iterations", Integer.toString(nIterations));
-                    xmllog.writeAttribute("Evaluations", Integer.toString(nEvaluations));
-                    xmllog.writeAttribute("Duration", Double.toString(duration/1000.0));
-            xmllog.endEntity().flush();
-
-			xmllog.writeEntity("FinalEvaluation");
-				Evaluate(param, 4);
-			xmllog.endEntity().flush();
-			
-			xmllog.writeEntity("FinalParameters");	
-				WriteParam(param);
-
-				double[] result=new double[param_inp.length];
-				ConvertParam(param,result);
-
-				
-			xmllog.endEntity().flush();
-		} catch (IllegalArgumentException ex) {
-			Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
+        
+        weight = new double[tmpWeight.size()];
+        for (int i = 0; i < weight.length; i++) {
+            weight[i] = tmpWeight.get(i);
         }
-	}
 
+    }
 
-    protected void ReadBound() throws FileNotFoundException, IOException{
-		Scanner fin = new Scanner(new File(sFileBound));
-        param_inp=pot.getParam();
-        ub_inp=new double[cParamMax];//!< input upper and lower bounds
-        lb_inp=new double[cParamMax];
-        fixed=new int[cParamMax]; //!< determine wheter parameter are fixed
+    protected void ReadBound() throws FileNotFoundException, IOException{		
+        param_inp=pot.getParam().clone();
+        ub_inp=new double[param_inp.length];//!< input upper and lower bounds
+        lb_inp=new double[param_inp.length];
+        fixed=new int[param_inp.length]; //!< determine wheter parameter are fixed
+        label_inp=new String[param_inp.length];
 
 		int nfixed = 0;
 
-        for(int i=0;i<param_inp.length;i++){
-			String line = fin.nextLine();
-			if (line.isEmpty()) break;
+        File file=new File(sFileBound);
+        
+        if(file.canRead()){//if bound file exists, read it
+            Scanner fin = new Scanner(file);
+            for(int i=0;i<param_inp.length;i++){
+                String line = fin.nextLine();
+                if (line.isEmpty()) break;
 
-			StringTokenizer tokenizer;
-			tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
-			String info;
-			//info = tokenizer.nextToken();
-			//param_inp[i] = Double.parseDouble(info);
-			info = tokenizer.nextToken();			lb_inp[i] = Double.parseDouble(info);
-			info = tokenizer.nextToken();			ub_inp[i] = Double.parseDouble(info);
-			info = tokenizer.nextToken();			fixed[i] = Integer.parseInt(info);
-			label_inp[i] = "";
-			while (tokenizer.hasMoreTokens()) {
-				label_inp[i] = tokenizer.nextToken();
-			}
-			//sscanf(line.c_str(),"%lf %lf %lf %d %line", &param_inp[param_inp.length], &lb_inp[param_inp.length], &ub_inp[param_inp.length], &fixed[param_inp.length]);
+                StringTokenizer tokenizer;
+                tokenizer = new StringTokenizer(line, "\t ,;"); //read no of atoms
+                String info;
+                //info = tokenizer.nextToken();
+                //param_inp[i] = Double.parseDouble(info);
+                info = tokenizer.nextToken();			lb_inp[i] = Double.parseDouble(info);
+                info = tokenizer.nextToken();			ub_inp[i] = Double.parseDouble(info);
+                info = tokenizer.nextToken();			fixed[i] = Integer.parseInt(info);
+                label_inp[i] = "";
+                while (tokenizer.hasMoreTokens()) {
+                    label_inp[i] = tokenizer.nextToken();
+                }
+                //sscanf(line.c_str(),"%lf %lf %lf %d %line", &param_inp[param_inp.length], &lb_inp[param_inp.length], &ub_inp[param_inp.length], &fixed[param_inp.length]);
 
-            if((isRandom)&&(fixed[i]==0)){
-                param_inp[i]=lb_inp[i]+Math.random()*(ub_inp[i]-lb_inp[i]);
+                if((isRandom)&&(fixed[i]==0)){
+                    param_inp[i]=lb_inp[i]+Math.random()*(ub_inp[i]-lb_inp[i]);
+                }
+
+                nfixed += fixed[i];
+                xmllog.writeEntity("Param").writeAttribute("id", Integer.toString(i));
+                xmllog.writeAttribute("Value", Double.toString(param_inp[i]));
+                xmllog.writeAttribute("Lower", Double.toString(lb_inp[i]));
+                xmllog.writeAttribute("Upper", Double.toString(ub_inp[i]));
+                xmllog.writeAttribute("Fixed", Integer.toString(fixed[i]));
+                xmllog.writeAttribute("Label", label_inp[i]);
+                xmllog.endEntity().flush();
+            }
+            fin.close();
+        }else{ //if not, predict from input value
+            double fluc=0.2;
+            if(!sFileBound.isEmpty()) fluc=Double.parseDouble(sFileBound);
+            for(int i=0;i<param_inp.length;i++){
+                lb_inp[i]=param_inp[i]-fluc*Math.abs(param_inp[i]);
+                ub_inp[i]=param_inp[i]+fluc*Math.abs(param_inp[i]);
+                fixed[i]=0;
+                label_inp[i] = "";
             }
 
-			nfixed += fixed[i];
-			xmllog.writeEntity("Param").writeAttribute("id", Integer.toString(i));
-			xmllog.writeAttribute("Value", Double.toString(param_inp[i]));
-			xmllog.writeAttribute("Lower", Double.toString(lb_inp[i]));
-			xmllog.writeAttribute("Upper", Double.toString(ub_inp[i]));
-			xmllog.writeAttribute("Fixed", Integer.toString(fixed[i]));
-			xmllog.writeAttribute("Label", label_inp[i]);
-			xmllog.endEntity().flush();
-		}
+        }
 
-		nparam = param_inp.length - nfixed;
-		fin.close();
-		xmllog.endEntity();
+		nparam = param_inp.length - nfixed;		
 
 		xmllog.writeEntity("ActualParam");
 		xmllog.writeAttribute("NParam", Integer.toString(nparam));
@@ -318,7 +443,6 @@ public class TaskFitPotential extends TaskCalculate {
 			}       
     }
 
-
     double Evaluate(double[] p,int verbose){
 		double[] y=new double[data.size()];
 		return Evaluate(p,y,verbose);
@@ -329,7 +453,7 @@ public class TaskFitPotential extends TaskCalculate {
         ConvertParam(p,alpha);
         pot.setParam(alpha);
 
-        if(verbose>=1){
+        if(verbose>=2){
                 xmllog.writeEntity("Alpha");
                 String s = "";
                 for (int i = 0; i < alpha.length; i++) {
@@ -348,7 +472,7 @@ public class TaskFitPotential extends TaskCalculate {
             ener_shift[i] = pot.getEnergy(m.getCoords());
         }
 
-        if (verbose>=2){
+        if (verbose>=3){
             xmllog.writeEntity("Reference");
             for (int i = 0; i < ener_shift.length; i++) {
                 Cluster m = molRef.get(i);
@@ -361,7 +485,7 @@ public class TaskFitPotential extends TaskCalculate {
             xmllog.endEntity().flush();
         }
 
-        //cout <<"\n\n@$    inputs# nAtoms Weight     Obsr.Data        Calc.Data    deltaE" << endl;
+        //omp for private(m) reduction(+:rms)
         for (int i=0; i<data.size(); i++){
             Cluster m=data.get(i);
             //calculate binding energy
@@ -371,14 +495,14 @@ public class TaskFitPotential extends TaskCalculate {
             y[i] = CalcBindingEnergy(m,ener,ener_shift);
             //y[i]*=1000;
 
-            double dE = Math.abs(y[i] - target[i])* Math.sqrt(weight.get(i));
+            double dE = Math.abs(y[i] - target[i])* Math.sqrt(weight[i]);
             rms+=dE*dE;
 
-            if(verbose>=3){
+            if(verbose>=4){
                 xmllog.writeEntity("Eval");
                 xmllog.writeAttribute("id", Integer.toString(i));
                 xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
-                xmllog.writeAttribute("Weight", Double.toString(weight.get(i)));
+                xmllog.writeAttribute("Weight", Double.toString(weight[i]));
                 xmllog.writeAttribute("ObservedBE", Double.toString(target[i]));
                 xmllog.writeAttribute("CalcE", Double.toString(ener));
                 xmllog.writeAttribute("CalcBE", Double.toString(y[i]));
@@ -390,12 +514,15 @@ public class TaskFitPotential extends TaskCalculate {
         rms=Math.sqrt(rms/data.size());
 
         if (verbose>=1){
-                xmllog.writeEntity("TotalRMS");
-                xmllog.writeNormalText(Double.toString(rms));
-                xmllog.endEntity().flush();
-
+             xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(nEvaluations));
+					xmllog.writeAttribute("RMS", Double.toString(rms));
+		     xmllog.endEntity().flush();
+//                xmllog.writeEntity("TotalRMS");
+//                xmllog.writeNormalText(Double.toString(rms));
+//                xmllog.endEntity().flush();
         }
 
+        nEvaluations++;
         return rms;
     }
 
@@ -408,47 +535,7 @@ public class TaskFitPotential extends TaskCalculate {
 			}else p[i] = param_inp[i];
 	}
 
-	@Override
-	public void ParseArguments(String[] args) {
-		parser = new CmdLineParser(this);
-		try {
-			parser.parseArgument(args);
-			if(isHelp){
-				parser.printUsage(System.out);
-				return ;
-			}
-
-			for(int i=0;i<50;i++){
-				boolean bSet=false;
-				String opt=String.format("-i%d",i+1);
-					for(int j=0;j<args.length-1;j++)
-						if(args[j].contentEquals(opt)){
-							bSet=true;
-							datafile.add(args[j+1]);
-						}
-
-				if(bSet){
-					double t=1;
-					opt=String.format("-w%d",i+1);
-
-					for(int j=0;j<args.length-1;j++)
-						if(args[j].contentEquals(opt))
-							t=Double.parseDouble(args[j+1]);
-
-					dataWeight.add(t);
-				}
-			}
-
-			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
-
-		} catch (CmdLineException ex) {
-			logger.severe(ex.getMessage());
-		} catch (IOException ex) {
-			logger.severe(ex.getMessage());
-		}
-
-	}
-
+	
 
      //=================== for APACHE fitting
     public class APACHEObjectiveFunction implements DifferentiableMultivariateVectorialFunction {//used with apache commom optimization
@@ -464,14 +551,16 @@ public class TaskFitPotential extends TaskCalculate {
 						//double delta=Math.abs(a[i])*ratio;
 						double delta=ratio;
 						double tmp=a[i];
-						a[i]+=delta;
+						a[i]+=delta;//disturb a bit
 						double[] y2=APACHEObjectiveFunction.this.value(a);
-						a[i]=tmp;
-						for(int j=0;j<result[i].length;j++)
-							result[i][j]=(y2[j]-y0[j])/(delta);
+						a[i]=tmp;//restore to original value
+						for(int j=0;j<data.size();j++)
+							result[j][i]=(y2[j]-y0[j])/(delta);
 					}
 
 					//two points jacobian
+//                    double[][] result=new double[1][a.length];
+//                    double ratio=1e-3;
 //					for(int i=0;i<a.length;i++){
 //						double delta=Math.abs(a[i])*ratio;
 //						a[i]-=delta;
@@ -479,8 +568,7 @@ public class TaskFitPotential extends TaskCalculate {
 //						a[i]+=2*delta;
 //						double[] y2=APACHEObjectiveFunction.this.value(a);
 //						a[i]-=delta;
-//						for(int j=0;j<result[i].length;j++)
-//							result[i][j]=(y2[j]-y1[j])/(2*delta);
+//						result[0][i]=(y2[0]-y1[0])/(2*delta);
 //					}
 
 
@@ -490,6 +578,17 @@ public class TaskFitPotential extends TaskCalculate {
 
 		Jacobian jacobian=new Jacobian();
 
+        double bestRMS=1e9;
+        double[] bestParam;
+
+        public double getBestRMS(){
+            return bestRMS;
+        }
+
+        public double[] getBestParam(){
+            return bestParam;
+        }
+
 		@Override
 		public MultivariateMatrixFunction jacobian() {
 			return jacobian;
@@ -498,44 +597,48 @@ public class TaskFitPotential extends TaskCalculate {
 		@Override
 		public double[] value(double[] a) throws FunctionEvaluationException, IllegalArgumentException {
 			double[] y=new double[data.size()];
-            Evaluate(a, y, 0);
+            double rms;
+            if(nEvaluations%100==0)
+                rms=Evaluate(a, y, 1);
+            else
+                rms=Evaluate(a, y, 0);
+
+            if(rms<bestRMS){
+                bestParam=a;
+                bestRMS=rms;
+            }
+            //double[] y= new double[1];
+           // y[0]=Evaluate(a,0);
 			//System.err.printf(" valuesize=%d\n", y.length);
 			return y;
 		}
 
 	}
 
-	protected void FitUsingApache(){
+	protected void FitUsingApacheLevenbergMarquardt() {
         try {
             APACHEObjectiveFunction obj = new APACHEObjectiveFunction();
             LevenbergMarquardtOptimizer fit = new LevenbergMarquardtOptimizer();
-            double[] newweight = new double[weight.size()];
-            for (int i = 0; i < newweight.length; i++) {
-                newweight[i] = weight.get(i);
-            }
             //System.err.printf("targetsize=%d \n",target.length);
             fit.setCostRelativeTolerance(1e-14);
             fit.setOrthoTolerance(1e-14);
             fit.setParRelativeTolerance(1e-14);
             fit.setMaxIterations(nOpts);
-            fit.setMaxEvaluations(100*nOpts);
+            fit.setMaxEvaluations(100 * nOpts);
             //fitting here
-            
-            VectorialPointValuePair r = fit.optimize(obj, target, newweight, param);
-            
-            param = r.getPoint(); //
-           
+            VectorialPointValuePair r = fit.optimize(obj, target, weight, param);
+            finalParam = obj.getBestParam(); //
+            finalRMS = obj.getBestRMS();
             nIterations = fit.getIterations();
-            nEvaluations = fit.getEvaluations();
-            finalRMS = fit.getRMS();
-            
-        } catch (FunctionEvaluationException ex) {            
-            logger.severe(ex.getMessage());
+        } catch (FunctionEvaluationException ex) {
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
         } catch (OptimizationException ex) {
-            logger.warning(ex.getMessage());
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IllegalArgumentException ex) {
-            logger.severe(ex.getMessage());
+            Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);
         }
+            
+            
     }
 
     /*/=================== for LMA fitting

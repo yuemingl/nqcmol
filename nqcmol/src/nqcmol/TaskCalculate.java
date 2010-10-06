@@ -34,10 +34,8 @@ public class TaskCalculate extends Task{
 	@Option(name="-u",usage="Unit of energy if applicant: Hartree, kcal/mol, kJ/mol, eV, au.",metaVar="STRING")
     String sUnit="";
 
-	@Option(name="-med",usage="Optimization methods if applicant. METHOD must be one of DFPMIN(quasi-newton), CG (conjugate gradient)",metaVar="METHOD")
-	String sMethod="DFPMIN";
-
-	
+	@Option(name="-med",usage="Optimization methods if applicant. Available values are DFPMIN(quasi-newton), CG (conjugate gradient). For fitting potential, they are LM (levenberg-marquardt), GA (genetic algorithm)",metaVar="METHOD")
+	String sMethod="DFPMIN";	
 
 	protected Potential pot;
 

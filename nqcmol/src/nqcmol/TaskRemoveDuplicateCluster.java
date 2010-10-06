@@ -46,6 +46,10 @@ public class TaskRemoveDuplicateCluster extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Remove duplicate clusters based on USR\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskRemoveDuplicateCluster().Execute(args);
+	}
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();		
@@ -142,7 +146,7 @@ public class TaskRemoveDuplicateCluster extends Task{
             xmllog.endEntity();
 
 		} catch (IOException ex) {
-			//Logger.getLogger(TaskSingleCluster.class.getName()).log(Level.SEVERE, null, ex);
+			logger.severe(ex.getMessage());
 		}
 	}
 

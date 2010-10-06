@@ -44,6 +44,10 @@ public class TaskMonteCarlo extends TaskCalculate {
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Monte Carlo simulation\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskMonteCarlo().Execute(args);
+	}
+
 	@Override
 	protected void Process() {		
             LoadEnvParam();

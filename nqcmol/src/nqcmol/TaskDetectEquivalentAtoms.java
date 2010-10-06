@@ -33,6 +33,10 @@ public class TaskDetectEquivalentAtoms extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Detect topologically equivalent atoms in clusters\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskDetectEquivalentAtoms().Execute(args);
+	}
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();		

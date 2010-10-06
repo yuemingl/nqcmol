@@ -34,6 +34,10 @@ public class TaskClassifyCluster extends Task{
 
     static final public String Descriptions="\t "+Option+" \t - "+ "Classify clusters according to topologies\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskClassifyCluster().Execute(args);
+	}
+
 	@Override
 	protected void Initialize() {
 		super.Initialize();

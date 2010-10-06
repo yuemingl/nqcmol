@@ -62,6 +62,10 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 
     static final public String Descriptions="\t "+Option+" \t - "+ "anharmonic vibration analysis\n";
 
+    public static void main(String[] args) throws IOException  {
+        new TaskAnharmonicVibrationAnalysis().Execute(args);
+	}
+
    	@Override
 	protected void Initialize() {		
         super.Initialize();

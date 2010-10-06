@@ -7,7 +7,6 @@ package nqcmol;
 import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Scanner;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.tools.XmlWriter;
 import org.kohsuke.args4j.*;
@@ -17,6 +16,8 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class Task {
+    @Option(name="-h",usage="Print out the help. Run nqcmol -t [oper] -h for the details of each operation.")
+    boolean isHelp= false;
 
 	@Option(name = "-i", usage = "Input file name. [xyz]", metaVar = "FILE")
 	String sFileIn = "";
@@ -28,8 +29,6 @@ public class Task {
 	@Option(name = "-v", usage = "Verbose level. [0]", metaVar = "INTEGER")
 	int verbose = 0;
 	
-	@Option(name = "-h", usage = "Print out the help")
-	boolean isHelp = false;
 	CmdLineParser parser = null;
 	BufferedWriter stdwriter = new BufferedWriter(new OutputStreamWriter(System.out));
 	XmlWriter xmllog = new XmlWriter(stdwriter);
@@ -40,6 +39,48 @@ public class Task {
 	String[] args=null;
 
     protected static Logger logger=Logger.getLogger(Task.class.getName());
+
+    /**
+     * @param args the command line arguments
+     * @throws IOException
+     */
+    public static void main(String[] args) throws IOException  {
+        Task task=new Task();
+        task.ParseArguments(args);
+        task.printUsage();
+	}
+
+    public void printUsage(){
+        System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");
+		System.out.println(" USAGE\n\t\t nqcmol -t [OPERATION] [OPTION]\n");
+		System.out.println(" OPERATION\n");
+        
+        String usage=" Please choose one of below operations\n" +
+		TaskOptimizeCluster.Descriptions+
+		TaskCalculateEnergy.Descriptions+
+        TaskValidateGradient.Descriptions+
+		TaskHarmonicVibrationAnalysis.Descriptions+
+        TaskAnharmonicVibrationAnalysis.Descriptions +
+		TaskCalculateBindingEnergy.Descriptions+
+		TaskSortCluster.Descriptions+
+		TaskClassifyCluster.Descriptions+
+		TaskHarmonicSuperpositionApproximation.Descriptions+
+        TaskCalculateSymmetryPointGroup.Descriptions+
+		TaskDetectEquivalentAtoms.Descriptions+
+        TaskRandomGenerateCluster.Descriptions+
+        TaskGenerateCluster.Descriptions+
+        TaskConvertWaterToRadicalWater.Descriptions+
+        TaskFitPotential.Descriptions+
+        TaskMonteCarlo.Descriptions+
+        //"\t cutLattice \t - Generate clusters by cutting from lattice\n" +
+        //"\t rdf \t - Calculate Radial Distribution Function\n" +
+		TaskRemoveDuplicateCluster.Descriptions+
+        "\n";
+
+        System.out.print(usage);
+
+        System.out.println(" If you have any questions, comments, or suggestions, please email me at chinhnguyenquoc@gmail.com.\n\n");
+    }
 
 	public void ParseArguments(String[] args) {
 		this.args=args;
@@ -79,7 +120,7 @@ public class Task {
 				//System.out.println(format+" "+sFormatIn+" and "+sFormatOut);
 			}
 
-			fileIn = new Scanner(new File(sFileIn));
+			if(!sFileIn.isEmpty()) fileIn = new Scanner(new File(sFileIn));
 			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
 
 		} catch (IOException ex) {
@@ -94,7 +135,8 @@ public class Task {
 		ParseArguments(args);
 		if (isHelp) {
 			System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");
-			//System.out.println(" USAGE\n\t\t nqcmol [OPTION]\n");
+            System.out.println(" USAGE\n\t\t nqcmol [OPTION]\n");
+            //System.out.println(" DISCRIPTION\n\t\t "+this.Option+"\n");
 			System.out.println(" OPTION\n");
 			parser.printUsage(System.out);
 			return;
@@ -104,8 +146,7 @@ public class Task {
 				Initialize();
 				Process();
 				Finalize();
-				xmllog.endEntity();
-				xmllog.close();
+				xmllog.endEntity().close();
 				stdwriter.close();
 			} catch (IOException ex) {
 				logger.severe(ex.getMessage());
@@ -135,4 +176,6 @@ public class Task {
 			logger.severe(ex.getMessage());
 		}
 	}
+
+
 }
