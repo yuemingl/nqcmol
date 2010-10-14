@@ -315,8 +315,9 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 		double hs=beta;
 		term1=2.0*(Zp[1].lnZ-Zp[0].lnZ);
 		term2=(Zp[2].lnZ-Zp[0].lnZ);
+        int nModes=pop.get(0).getVibrationData().getNModes();
 		//Cv=(indv[0].nFreq-exp(term1)+exp(term2))/indv[0].nAtom;
-		Cv=(pop.get(0).getFreqs().length/2+(-Math.exp(term1)+Math.exp(term2))*MTools.SQR(hs/T))/pop.get(0).getNAtoms();
+		Cv=(nModes/2+(-Math.exp(term1)+Math.exp(term2))*MTools.SQR(hs/T))/pop.get(0).getNAtoms();
 		//clog<<" Cvgterm1= "<<term1<<" Cvgterm2= "<<term2<<" Cv= "<<Cv<<endl;
 		//System.err.printf(" Cvgterm1= %f  Cvgterm2= %f  Cv=%f \n",term1,term2,Cv);
 		return Cv;
@@ -336,7 +337,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 		
 		for(PartFunc func : pop){
 			double tmp1=0,tmp2=0;
-			for(double freq : func.getFreqs()){
+			for(double freq : func.getVibrationData().getFreqs()){
 				double exprFreq=planck*freq/(Math.exp(cBetaPlanck*freq/T)-1.0);
 				tmp1+=exprFreq;
 				tmp2+=MTools.SQR(exprFreq)*Math.exp(cBetaPlanck*freq/T);
@@ -392,6 +393,8 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 			double E_part=0,Freq_part=0;
 			calcZeroE();
 
+            double[] freqs=this.getVibrationData().getFreqs();
+
 			switch(regime){
 				case CLASSICAL:
 					Freq_part+=-Math.log(cBetaPlanck/T)*freqs.length;
@@ -438,6 +441,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 
 		double calcZeroE(){
 			ZeroE=0;
+            double[] freqs=this.getVibrationData().getFreqs();
 			if(regime==REGIME.QUANTUM){
 				for(int i=0;i<freqs.length;i++)
 					ZeroE+=freqs[i];

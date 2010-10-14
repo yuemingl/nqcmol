@@ -31,7 +31,7 @@ public class Crystal extends Cluster{
 		//System.out.println(" Come here");
 		setHessian(src.getHessian());
 		//System.out.println(" Come here");
-		setFreqs(src.getFreqs());
+		setVibrationData(src.getVibrationData());
 		//System.out.println(" Come here");
 		setAtomicNumber(src.getAtomicNumber());
 		//System.out.println(" Come here");

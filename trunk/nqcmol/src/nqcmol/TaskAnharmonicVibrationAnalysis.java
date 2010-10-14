@@ -32,6 +32,7 @@ import javax.xml.parsers.*;
 import javax.xml.transform.*;
 import javax.xml.transform.stream.*;
 import javax.xml.transform.dom.*;
+import nqcmol.cluster.VibrationData;
 
 
 /**
@@ -101,10 +102,11 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
                     xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
                     xmllog.writeAttribute("nAtom", Integer.toString(cluster.getNAtoms()));
                     xmllog.writeAttribute("Energy", Double.toString(cluster.getEnergy()));
-                    if(cluster.getNormalModeVectors()!=null){
+                    VibrationData vib=cluster.getVibrationData();
+                    if(vib!=null){
                         int iFrom=iMode;
-                        int iTo=Math.min(iMode + nModes,cluster.getFreqs().length);
-                        if(iMode==-1){  iFrom=0; iTo=cluster.getFreqs().length;}
+                        int iTo=Math.min(iMode + nModes,vib.getFreqs().length);
+                        if(iMode==-1){  iFrom=0; iTo=vib.getFreqs().length;}
                             
                         for(int i=iFrom;i<iTo;i++)  ScanningAlongNormalModes(i);
                     }
@@ -153,19 +155,21 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 			deltaX[i]=beta;
         }
 
+        VibrationData vib=cluster.getVibrationData();
+
 		xmllog.writeEntity("NormalMode").writeAttribute("id", Integer.toString(m));
-			if((m>=cluster.getFreqs().length)||(m<0))
-				xmllog.writeText(String.format("Error. Mode %d is not valid because it is not in between [0,%d)",m,cluster.getFreqs().length));
+			if((m>=vib.getFreqs().length)||(m<0))
+				xmllog.writeText(String.format("Error. Mode %d is not valid because it is not in between [0,%d)",m,vib.getFreqs().length));
 			else{
 				long duration =  System.currentTimeMillis();
-				xmllog.writeAttribute("Freq", Double.toString(cluster.getFreqs(m)));
-				xmllog.writeAttribute("ReducedMass", Double.toString(cluster.getReducedMass(m)));                
+				xmllog.writeAttribute("Freq", Double.toString(vib.getFreqs(m)));
+				xmllog.writeAttribute("ReducedMass", Double.toString(vib.getReducedMass(m)));
 				xmllog.writeEntity("Vector");
 				for (int k = 0; k < cluster.getNAtoms(); k++) {
 					xmllog.writeEntity("Atom").writeAttribute("id", Integer.toString(k));
-					xmllog.writeAttribute("x", Double.toString(cluster.getNormalModeVectors(m)[k * 3 + 0]));
-					xmllog.writeAttribute("y", Double.toString(cluster.getNormalModeVectors(m)[k * 3 + 1]));
-					xmllog.writeAttribute("z", Double.toString(cluster.getNormalModeVectors(m)[k * 3 + 2]));
+					xmllog.writeAttribute("x", Double.toString(vib.getNormalModeVectors(m)[k * 3 + 0]));
+					xmllog.writeAttribute("y", Double.toString(vib.getNormalModeVectors(m)[k * 3 + 1]));
+					xmllog.writeAttribute("z", Double.toString(vib.getNormalModeVectors(m)[k * 3 + 2]));
 					xmllog.endEntity().flush();
 				}
 				xmllog.endEntity().flush();
@@ -560,7 +564,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 
 	String GenGaussianInputFromNormalModes(int m,double[] delta){
 		double[] coord=cluster.getCoords();
-		double[] direction=cluster.getNormalModeVectors()[m];
+		double[] direction=cluster.getVibrationData().getNormalModeVectors()[m];
 
 
 		String input="";

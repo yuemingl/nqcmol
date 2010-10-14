@@ -4,6 +4,7 @@
  */
 package nqcmol;
 
+import java.util.logging.Level;
 import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Scanner;
@@ -17,26 +18,26 @@ import org.kohsuke.args4j.*;
  */
 public class Task {
     @Option(name="-h",usage="Print out the help. Run nqcmol -t [oper] -h for the details of each operation.")
-    boolean isHelp= false;
+    protected boolean isHelp= false;
 
 	@Option(name = "-i", usage = "Input file name. [xyz]", metaVar = "FILE")
-	String sFileIn = "";
-	String sFormatIn = "xyz";
+	protected String sFileIn = "";
+	protected String sFormatIn = "xyz";
 	@Option(name = "-o", usage = "Output file name. [xyz]", metaVar = "FILE")
-	String sFileOut = "";
-	String sFormatOut = "xyz";
+	protected String sFileOut = "";
+	protected String sFormatOut = "xyz";
 	
 	@Option(name = "-v", usage = "Verbose level. [0]", metaVar = "INTEGER")
-	int verbose = 0;
+	protected int verbose = 0;
 	
-	CmdLineParser parser = null;
-	BufferedWriter stdwriter = new BufferedWriter(new OutputStreamWriter(System.out));
-	XmlWriter xmllog = new XmlWriter(stdwriter);
+	protected CmdLineParser parser = null;
+	protected BufferedWriter stdwriter = new BufferedWriter(new OutputStreamWriter(System.out));
+	protected XmlWriter xmllog = new XmlWriter(stdwriter);
 
-	Scanner fileIn=null;
-	FileWriter fileOut=null;
+	protected Scanner fileIn=null;
+	protected FileWriter fileOut=null;
 
-	String[] args=null;
+	protected String[] args=null;
 
     protected static Logger logger=Logger.getLogger(Task.class.getName());
 
@@ -83,75 +84,76 @@ public class Task {
     }
 
 	public void ParseArguments(String[] args) {
-		this.args=args;
-		parser = new CmdLineParser(this);
-		try {
-			parser.parseArgument(args);
-
-			if(isHelp){
-				//parser.printUsage(System.out);
-				return ;
-			}
-
-			String input = "";
-			String output = "";
-			for (int i = 0; i < args.length-1; i++) {
-				if(args[i].length()>=2){
-					if (args[i].substring(0, 2).contentEquals("-i")) {
-						input = args[i];
-						sFileIn = args[i + 1];
-					}
-					if (args[i].substring(0, 2).contentEquals("-o")) {
-						output = args[i];
-						sFileOut = args[i + 1];
-					}
-				}
-			}
-			//System.out.println(input+" and "+output);
-			for (int i = 0; i < Cluster.format.length; i++) {
-				String format = "-i" + Cluster.format[i];
-				if (format.contentEquals(input)) {
-					sFormatIn = Cluster.format[i];
-				}
-				format = "-o" + Cluster.format[i];
-				if (format.contentEquals(output)) {
-					sFormatOut = Cluster.format[i];
-				}
-				//System.out.println(format+" "+sFormatIn+" and "+sFormatOut);
-			}
-
-			if(!sFileIn.isEmpty()) fileIn = new Scanner(new File(sFileIn));
-			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
-
-		} catch (IOException ex) {
-			logger.severe(ex.getMessage());
-		} catch (CmdLineException ex) {
-			logger.severe(ex.getMessage());
-		}
-
+        try {
+            this.args = args;
+            parser = new CmdLineParser(this);
+            parser.parseArgument(args);
+            if (isHelp) {
+                //parser.printUsage(System.out);
+                return;
+            }
+            String input = "";
+            String output = "";
+            for (int i = 0; i < args.length - 1; i++) {
+                if (args[i].length() >= 2) {
+                    if (args[i].substring(0, 2).contentEquals("-i")) {
+                        input = args[i];
+                        sFileIn = args[i + 1];
+                    }
+                    if (args[i].substring(0, 2).contentEquals("-o")) {
+                        output = args[i];
+                        sFileOut = args[i + 1];
+                    }
+                }
+            }
+            //System.out.println(input+" and "+output);
+            for (int i = 0; i < Cluster.format.length; i++) {
+                String format = "-i" + Cluster.format[i];
+                if (format.contentEquals(input)) {
+                    sFormatIn = Cluster.format[i];
+                }
+                format = "-o" + Cluster.format[i];
+                if (format.contentEquals(output)) {
+                    sFormatOut = Cluster.format[i];
+                }
+                //System.out.println(format+" "+sFormatIn+" and "+sFormatOut);
+            }
+        } catch (CmdLineException ex) {
+            Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+        }
 	}
 
 	public void Execute(String[] args) {
-		ParseArguments(args);
-		if (isHelp) {
-			System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");
-            System.out.println(" USAGE\n\t\t nqcmol [OPTION]\n");
-            //System.out.println(" DISCRIPTION\n\t\t "+this.Option+"\n");
-			System.out.println(" OPTION\n");
-			parser.printUsage(System.out);
-			return;
-		}else{
-			try {
-				xmllog.writeEntity(getName());
-				Initialize();
-				Process();
-				Finalize();
-				xmllog.endEntity().close();
-				stdwriter.close();
-			} catch (IOException ex) {
-				logger.severe(ex.getMessage());
-			}
-		}
+        try {
+            ParseArguments(args);
+            if (!sFileIn.isEmpty()) {
+                fileIn = new Scanner(new File(sFileIn));
+            }
+            
+            if (!sFileOut.isEmpty()) {
+                    fileOut = new FileWriter(new File(sFileOut));
+            }
+            
+            if (isHelp) {
+                System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");
+                System.out.println(" USAGE\n\t\t nqcmol [OPTION]\n");
+                //System.out.println(" DISCRIPTION\n\t\t "+this.Option+"\n");
+                System.out.println(" OPTION\n");
+                parser.printUsage(System.out);
+                return;
+            } else {
+                xmllog.writeEntity(getName());
+                Initialize();
+                Process();
+                Finalize();
+                xmllog.endEntity().close();
+                stdwriter.close();
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
+        }
 	}
 
 	public String getName() {

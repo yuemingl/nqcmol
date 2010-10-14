@@ -26,7 +26,7 @@ public class Cluster implements Cloneable{
 	};
 
 	public Cluster(Cluster cluster_){
-		Get(cluster_);
+		set(cluster_);
 	}
 	
 	@Override
@@ -34,7 +34,7 @@ public class Cluster implements Cloneable{
            return new Cluster(this);           
         }
 
-	public void Get(Cluster src){
+	public void set(Cluster src){
 		//System.out.println(" Come here");
 		setNAtoms(src.getNAtoms());
 		//System.out.println(" Come here");
@@ -44,7 +44,7 @@ public class Cluster implements Cloneable{
 		//System.out.println(" Come here");
 		setHessian(src.getHessian());
 		//System.out.println(" Come here");
-		setFreqs(src.getFreqs());
+		setVibrationData(src.getVibrationData());
 		//System.out.println(" Come here");
 		setAtomicNumber(src.getAtomicNumber());
 		//System.out.println(" Come here");
@@ -260,121 +260,7 @@ public class Cluster implements Cloneable{
 			System.arraycopy(hessian_[i],0,this.hessian[i],0,ncoords);
 		}
 	}
-
-	protected double[] freqs = null;
-
-	/**
-	 * Get the value of freqs
-	 *
-	 * @return the value of freqs
-	 */
-	public double[] getFreqs() {
-		return freqs;
-	}
-
-	/**
-	 * Set the value of freqs
-	 *
-	 * @param freqs new value of freqs
-	 */
-	public void setFreqs(double[] freqs) {
-		if(freqs!=null)
-			this.freqs = freqs.clone();
-        else this.freqs=null;
-	}
-
-	/**
-	 * Get the value of freqs at specified index
-	 *
-	 * @param index
-	 * @return the value of freqs at specified index
-	 */
-	public double getFreqs(int index) {
-		return this.freqs[index];
-	}
-
-	protected double[] reducedMass = null;
-
-	/**
-	 * Get the value of reducedMass
-	 *
-	 * @return the value of reducedMass
-	 */
-	public double[] getReducedMass() {
-		return reducedMass;
-	}
-
-	/**
-	 * Set the value of reducedMass
-	 *
-	 * @param reducedMass new value of reducedMass
-	 */
-	public void setReducedMass(double[] reducedMass) {
-		this.reducedMass = reducedMass;
-	}
-
-	/**
-	 * Get the value of reducedMass at specified index
-	 *
-	 * @param index
-	 * @return the value of reducedMass at specified index
-	 */
-	public double getReducedMass(int index) {
-		return this.reducedMass[index];
-	}
-
-	/**
-	 * Set the value of reducedMass at specified index.
-	 *
-	 * @param index
-	 * @param newReducedMass new value of reducedMass at specified index
-	 */
-	public void setReducedMass(int index, double newReducedMass) {
-		this.reducedMass[index] = newReducedMass;
-	}
-
-
-	protected double[][] normalModeVectors=null;
-
-	/**
-	 * Get the value of normalModeVectors
-	 *
-	 * @return the value of normalModeVectors
-	 */
-	public double[][] getNormalModeVectors() {
-		return normalModeVectors;
-	}
-
-	/**
-	 * Set the value of normalModeVectors
-	 *
-	 * @param normalModeVectors new value of normalModeVectors
-	 */
-	public void setNormalModeVectors(double[][] normalModeVector) {
-		this.normalModeVectors = normalModeVector.clone();
-	}
-
-	/**
-	 * Get the value of normalModeVectors at specified index
-	 *
-	 * @param index
-	 * @return the value of normalModeVectors at specified index
-	 */
-	public double[] getNormalModeVectors(int index) {
-		return this.normalModeVectors[index];
-	}
-
-	/**
-	 * Set the value of normalModeVectors at specified index.
-	 *
-	 * @param index
-	 * @param newNormalModeVector new value of normalModeVectors at specified index
-	 */
-	public void setNormalModeVectors(int index, double[] newNormalModeVector) {
-		this.normalModeVectors[index] = newNormalModeVector.clone();
-	}
-
-
+	
 	protected double rmsGrad=0;
 
 	/**
@@ -415,6 +301,26 @@ public class Cluster implements Cloneable{
 	public void setTag(String tag) {
 		this.tag = tag;
 	}
+
+    protected VibrationData vib = null;
+
+    /**
+     * Get the value of vib
+     *
+     * @return the value of vib
+     */
+    public VibrationData getVibrationData() {
+        return vib;
+    }
+
+    /**
+     * Set the value of vib
+     *
+     * @param vib new value of vib
+     */
+    public void setVibrationData(VibrationData vib) {
+            this.vib = (vib!=null)? (VibrationData) vib.clone() :null;
+    }
 
 	/**
 	 * Array holds  atomic numbers. Access by atom's index
@@ -899,7 +805,7 @@ public class Cluster implements Cloneable{
 		return !IsHydrogen(i);
 	}
 
-	public String getFormula(){
+	public String formula(){
 		String answer="";
 		for(int i=nType.length-1;i>=0;i--){
 			if(nType[i]>0){
@@ -1392,7 +1298,8 @@ public class Cluster implements Cloneable{
 				while(token.hasMoreTokens()){
 					if(token.nextToken().contentEquals("@FREQ")){
 						info = token.nextToken();
-						freqs= new double[Integer.parseInt(info)];
+                        vib=new VibrationData(nAtoms);
+						double[] freqs= vib.getFreqs();
 						for(int i=0;i<freqs.length;i++){
 							info = token.nextToken();		freqs[i] = Double.parseDouble(info);
 						}
@@ -1589,6 +1496,8 @@ public class Cluster implements Cloneable{
 
 		Vector<Double> freqs_tmp=new Vector<Double>();
 		Vector<Double> reducedMass_tmp=new Vector<Double>();
+        Vector<Double> kConst_tmp=new Vector<Double>();
+        Vector<Double> intensity_tmp=new Vector<Double>();
 		Vector<double[]> normalmode_tmp=new Vector<double[]>();
 
 		while(scanner.hasNext()){
@@ -1655,22 +1564,35 @@ public class Cluster implements Cloneable{
 
 			if(flag==3){ 	flag=0;	}
 
-			if(s.contains("Frequencies --")){
+            if(s.contains("Frequencies --")){
+
 				String substr=s.substring(16);
 
-				StringTokenizer token = new StringTokenizer(substr, "\t ,;"); 
+				StringTokenizer token = new StringTokenizer(substr, "\t ,;");
                 int nToken=token.countTokens();
                 for(int m=0;m<nToken;m++)
                     freqs_tmp.add(Double.parseDouble(token.nextToken()));
 
-				substr=scanner.nextLine().substring(16);//getline(is,s);	sscanf(s.c_str(), "Red. masses  --  %lf ",&(dtmp[0]));
-				token = new StringTokenizer(substr, "\t ,;");
-                for(int m=0;m<nToken;m++)
-                    reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
-				
-
 				while(scanner.hasNext()){
 					substr=scanner.nextLine();//getline(is,s);	sscanf(s.c_str(), "Frc consts  --  %lf ",&(dtmp[0]));
+                    if( substr.contains("Red. masses")){
+                        token = new StringTokenizer(substr.substring(16), "\t ,;");
+                        for(int m=0;m<nToken;m++)
+                            reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+                    }
+
+                    if( substr.contains("Frc consts")){
+                        token = new StringTokenizer(substr.substring(16), "\t ,;");
+                        for(int m=0;m<nToken;m++)
+                            kConst_tmp.add(Double.parseDouble(token.nextToken()));
+                    }
+
+                    if( substr.contains("IR Inten")){
+                        token = new StringTokenizer(substr.substring(16), "\t ,;");
+                        for(int m=0;m<nToken;m++)
+                            intensity_tmp.add(Double.parseDouble(token.nextToken()));
+                    }
+
 					if( substr.contains("Atom AN") || substr.contains("Atom  AN") ) break;
                     //System.err.printf("%s\n",substr);
 				}
@@ -1685,23 +1607,59 @@ public class Cluster implements Cloneable{
                     for(int m=0;m<nToken;m++)
                         for(int j=0;j<3;j++)
                             v1[m][k*3+j]=Double.parseDouble(token.nextToken());
-					
-					
+
+
 				}
 
                 for(int m=0;m<nToken;m++)
                     normalmode_tmp.add(v1[m]);
 			}
+
+//			if(s.contains("Frequencies --")){
+//				String substr=s.substring(16);
+//
+//				StringTokenizer token = new StringTokenizer(substr, "\t ,;");
+//                int nToken=token.countTokens();
+//                for(int m=0;m<nToken;m++)
+//                    freqs_tmp.add(Double.parseDouble(token.nextToken()));
+//
+//				substr=scanner.nextLine().substring(16);//getline(is,s);	sscanf(s.c_str(), "Red. masses  --  %lf ",&(dtmp[0]));
+//				token = new StringTokenizer(substr, "\t ,;");
+//                for(int m=0;m<nToken;m++)
+//                    reducedMass_tmp.add(Double.parseDouble(token.nextToken()));
+//
+//
+//				while(scanner.hasNext()){
+//					substr=scanner.nextLine();//getline(is,s);	sscanf(s.c_str(), "Frc consts  --  %lf ",&(dtmp[0]));
+//					if( substr.contains("Atom AN") || substr.contains("Atom  AN") ) break;
+//                    //System.err.printf("%s\n",substr);
+//				}
+//
+//				//while(s.find("Atom")!=0) getline(fin,s);
+//				double[][] v1=new double[nToken][ncoords];
+//				for(int k=0;k<nAtoms;k++){
+//					substr=scanner.nextLine();
+//					token = new StringTokenizer(substr, "\t ,;");
+//					token.nextToken();
+//					token.nextToken();
+//                    for(int m=0;m<nToken;m++)
+//                        for(int j=0;j<3;j++)
+//                            v1[m][k*3+j]=Double.parseDouble(token.nextToken());
+//
+//
+//				}
+//
+//                for(int m=0;m<nToken;m++)
+//                    normalmode_tmp.add(v1[m]);
+//			}
 		}
 
-		if(normalmode_tmp.size()>0){
-			normalModeVectors=new double[normalmode_tmp.size()][];
-			for(int i=0;i<normalmode_tmp.size();i++)
-				normalModeVectors[i]=normalmode_tmp.get(i).clone();
-		}
+        if(vib==null) vib=new VibrationData(nAtoms);
 
-		freqs=MolExtra.ConvertToDoubleArray(freqs_tmp);
-		reducedMass=MolExtra.ConvertToDoubleArray(reducedMass_tmp);
+		vib.setNormalModeVectors(normalmode_tmp);
+		vib.setFreqs(freqs_tmp);
+        vib.setReducedMass(reducedMass_tmp);
+        vib.setFreqs(kConst_tmp);
 		return (nAtoms!=0);
 	}
 
@@ -1818,12 +1776,15 @@ public class Cluster implements Cloneable{
 			//System.out.printf(" Here %s \n",s1);
 
 			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad)+"% ";
-			if(freqs!=null)
+			if(vib!=null){
+                double[] freqs=vib.getFreqs();
 				if(freqs.length>0){
 					s1+=String.format("@FREQ %d",freqs.length);
 					for(int i=0;i<freqs.length;i++)
 						s1+=String.format(" %1.3f",freqs[i]);
 				}
+
+            }
 			s1+=" @IN\n";
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
@@ -1843,7 +1804,7 @@ public class Cluster implements Cloneable{
 		xmlwriter.writeEntity("molecule");
 		xmlwriter.writeAttribute("id","m"+tag);
 		xmlwriter.writeEntity("name");
-		xmlwriter.writeText(getFormula());
+		xmlwriter.writeText(formula());
 		xmlwriter.endEntity();
 
 		xmlwriter.writeEntity("scalar");
@@ -1875,12 +1836,14 @@ public class Cluster implements Cloneable{
 			//System.out.printf(" Here %s \n",s1);
 
 			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad);
-			if(freqs!=null)
+			if(vib!=null){
+                double[] freqs=vib.getFreqs();
 				if(freqs.length>0){
 					s1+=String.format("@FREQ %d",freqs.length);
 					for(int i=0;i<freqs.length;i++)
 						s1+=String.format(" %1.3f",freqs[i]);
 				}
+            }
 			s1+="% @IN\n";
 			writer.append(s1);
 			//System.out.printf(" Here %s \n",s1);
