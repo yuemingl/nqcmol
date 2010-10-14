@@ -33,6 +33,9 @@ public class TaskGenerateCluster extends Task {
     @Option(name = "-m", usage = "Specify a particular normal mode for translating. Count from 0. Disable if < 0. [-1]", metaVar = "INTEGER")
 	int mode=-1;
 
+//    @Option(name = "-scaleF", usage = "Scale displacement according to k constant. if scaleF > 0, d(f)=deltaX*(k/k(scaleF))^0.5 .[-1]", metaVar = "DOUBLE")
+//	double scaleF=-1;
+
 //   @Option(name = "-header", usage = "Header file for Gaussian input", metaVar = "DOUBLE")
 //	double deltaX=0.2;
 
@@ -69,7 +72,7 @@ public class TaskGenerateCluster extends Task {
 	int GenFromNormalModes(Cluster cluster){
         int no=0;
         //creating direction vectors
-        double[][] lCART=cluster.getNormalModeVectors();
+        double[][] lCART=cluster.getVibrationData().getNormalModeVectors();
         double[] x0=cluster.getCoords();
         
         Vector<double[]> dirList=new Vector<double[]>();
@@ -98,14 +101,17 @@ public class TaskGenerateCluster extends Task {
         }
 
        Cluster newCluster=(Cluster) cluster.clone();
-       newCluster.setFreqs(null);
+       newCluster.setVibrationData(null);
        double[] newCoords=newCluster.getCoords();
+       //double[] kConst=cluster.getVibration().getForceConst();
 
-        for(int m=0;m<dirList.size();m++){
+       for(int m=0;m<dirList.size();m++){
             MTools.NORMALIZE(dirList.elementAt(m));
             for(int i=0;i<num;i++){
                 //temporary scaling factor
                 double beta=(2.0*i/(num-1)-1)*deltaX;
+//                double maxDisp=deltaX*kConst[m]
+//                double beta=(2.0*i/(num-1)-1)*maxDisp;
 
                 MTools.VEC_PLUS_VEC(newCoords,x0,dirList.elementAt(m),1.0,beta);
 

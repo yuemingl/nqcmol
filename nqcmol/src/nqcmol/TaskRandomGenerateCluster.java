@@ -70,36 +70,36 @@ public class TaskRandomGenerateCluster extends Task {
         new TaskRandomGenerateCluster().Execute(args);
 	}
 
-	@Override
-	public void ParseArguments(String[] args) {
-		try {
-			parser = new CmdLineParser(this);
-			parser.parseArgument(args);
-			String output = "";
-			for (int i = 0; i < args.length-1; i++) {
-                if(args[i].length()>=2)
-				if (args[i].substring(0, 2).contentEquals("-o")) {
-					output = args[i];
-					sFileOut = args[i + 1];
-				}
-			}
-			//System.out.println(input+" and "+output);
-			for (int i = 0; i < Cluster.format.length; i++) {
-				String format = "-o" + Cluster.format[i];
-				if (format.contentEquals(output)) {
-					sFormatOut = Cluster.format[i];
-				}
-				//System.out.println(format+" "+sFormatIn+" and "+sFormatOut);
-			}
-
-			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
-			
-		} catch (IOException ex) {
-			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		} catch (CmdLineException ex) {
-			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
-		}
-	}
+//	@Override
+//	public void ParseArguments(String[] args) {
+//		try {
+//			parser = new CmdLineParser(this);
+//			parser.parseArgument(args);
+//			String output = "";
+//			for (int i = 0; i < args.length-1; i++) {
+//                if(args[i].length()>=2)
+//				if (args[i].substring(0, 2).contentEquals("-o")) {
+//					output = args[i];
+//					sFileOut = args[i + 1];
+//				}
+//			}
+//			//System.out.println(input+" and "+output);
+//			for (int i = 0; i < Cluster.format.length; i++) {
+//				String format = "-o" + Cluster.format[i];
+//				if (format.contentEquals(output)) {
+//					sFormatOut = Cluster.format[i];
+//				}
+//				//System.out.println(format+" "+sFormatIn+" and "+sFormatOut);
+//			}
+//
+//			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
+//
+//		} catch (IOException ex) {
+//			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
+//		} catch (CmdLineException ex) {
+//			Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
+//		}
+//	}
 
 	@Override
 	protected void Process() {	

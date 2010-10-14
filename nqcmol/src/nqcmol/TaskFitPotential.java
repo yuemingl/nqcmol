@@ -761,7 +761,7 @@ public class TaskFitPotential extends TaskCalculate {
             // Evolve the population. Since we don't know what the best answer
             // is going to be, we just evolve the max number of times.
             // ---------------------------------------------------------------
-            int percentEvolution = (int)Math.max(1, nOpts / 100);
+           int percentEvolution = (int)Math.max(1, nOpts / 100);
             for (int i = 0; i < nOpts; i++) {
               population.evolve();
               if (( i % percentEvolution == 0) || i==(nOpts-1)) {

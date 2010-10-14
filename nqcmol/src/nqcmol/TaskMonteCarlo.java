@@ -235,11 +235,10 @@ public class TaskMonteCarlo extends TaskCalculate {
             int iConv = 0; //iStep=1;
             long duration=System.currentTimeMillis();
 
-            mol.setFreqs(null);
-           
+            mol.setVibrationData(null);
 
             while (true) {                               
-                trialMol.Get(mol);
+                trialMol.set(mol);
                 if (iStep!=0) {
                     oper.RandomMolMove(trialMol);
                 }
@@ -255,7 +254,7 @@ public class TaskMonteCarlo extends TaskCalculate {
                 //System.out.printf("Step = %d  newE=%f  oldE=%f detalE=%f rate=%f\n",iStep, trialMol.getEnergy(),mol.getEnergy(),deltaE,Math.exp(deltaE/kBT));
                 //cout<<" dsdf 12 "<<ga.bf<<" "<<ga.bf->Dim_()<<endl;
                 if (ranBoltz.nextDouble() < Math.exp(-deltaE/kBT)) {
-                    mol.Get(trialMol);
+                    mol.set(trialMol);
                     mol.Center();
                     //mol.Write(System.out, "xyz");
                     rateAccept.addValue(1);

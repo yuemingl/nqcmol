@@ -159,7 +159,7 @@ public class HarmonicVibration {
 			//freq[i]=sign*Math.sqrt(Math.abs(TR_Hess_eig[i]))*Math.sqrt(2.6255e+29)/(2.0*M_PI*29979245800);
 			freqs[i]=sign*Math.sqrt(Math.abs(TR_Hess_eig[i]))*2.7202e+03;
 		}
-		m.setFreqs(freqs);
+		m.getVibrationData().setFreqs(freqs);
 
 //		System.err.printf("\n\nFreq\n");
 //		MTools.PrintArray(freqs);

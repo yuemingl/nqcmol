@@ -46,10 +46,11 @@ public class TaskHarmonicVibrationAnalysis extends TaskCalculate {
             vib.CalcFreq(); //calculate frequencies of molecule
             //mol.Write(System.err, "xyz");
             //write a report
+            double[] freqs=mol.getVibrationData().getFreqs();
             xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
             xmllog.writeAttribute("nAtom", Integer.toString(mol.getNAtoms()));
-            xmllog.writeAttribute("SmallestFreq", Double.toString(mol.getFreqs(0)));
-            xmllog.writeAttribute("LargestFreq", Double.toString(mol.getFreqs(mol.getFreqs().length - 1)));
+            xmllog.writeAttribute("SmallestFreq", Double.toString(freqs[0]));
+            xmllog.writeAttribute("LargestFreq", Double.toString(freqs[freqs.length - 1]));
             xmllog.endEntity();
             xmllog.flush();
 

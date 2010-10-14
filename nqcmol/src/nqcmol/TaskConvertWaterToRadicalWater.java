@@ -77,7 +77,7 @@ public class TaskConvertWaterToRadicalWater extends Task{
                                 if(fileOut!=null){
                                         //if(nC!=1){ //filter out free OH attached to 1-coordinate oxygen
                                         Cluster copyMol=new Cluster();
-                                        copyMol.Get(mol);
+                                        copyMol.set(mol);
                                         String newTag=mol.getTag();
                                         newTag=newTag+String.format("-%d", count);
                                         copyMol.setTag(newTag);
