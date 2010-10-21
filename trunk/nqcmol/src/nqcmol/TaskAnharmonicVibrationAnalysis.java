@@ -74,7 +74,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
             pot = MolExtra.SetupPotential("g03", sFileParam, "Hartree", "");
             assert (pot.getEquation().contains("Gaussian"));
             gau = (GaussianInterfacePotential) pot;
-            xmllog.writeNormalText(gau.Info(1));
+            xmllog.writeNormalText(gau.XMLInfo(1));
             basisSet = gau.getBasisSet();
             chargeAndMultiplicity = gau.getChargeAndMultiplicity();
 

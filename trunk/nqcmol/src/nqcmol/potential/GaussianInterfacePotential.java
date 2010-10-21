@@ -26,7 +26,7 @@ public class GaussianInterfacePotential extends Potential{
 	}
 
 	@Override
-	public String Info(int verbose) {
+	public String XMLInfo(int verbose) {
 		String info = "";
 		try {
 			//!< print setting parameters

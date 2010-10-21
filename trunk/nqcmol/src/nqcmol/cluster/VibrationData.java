@@ -243,6 +243,15 @@ public class VibrationData implements Cloneable{
     }
 
     /**
+	 * Set the value of kConst
+	 *
+	 * @param kConst new value of reducedMass
+	 */
+	public void setForceConst(Vector<Double> kConst) {
+       this.reducedMass = MolExtra.ConvertToDoubleArray(kConst);
+	}
+
+    /**
      * Get the value of kConst at specified index
      *
      * @param index

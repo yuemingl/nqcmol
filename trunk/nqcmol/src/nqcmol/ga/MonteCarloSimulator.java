@@ -5,12 +5,15 @@
 
 package nqcmol.ga;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Random;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.cluster.Cluster;
 import nqcmol.cluster.MolExtra;
 import nqcmol.potential.Potential;
-import nqcmol.tools.MTools;
+import nqcmol.tools.XmlWriter;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.kohsuke.args4j.*;
 
@@ -18,7 +21,7 @@ import org.kohsuke.args4j.*;
  *
  * @author chinh
  */
-public class MonteCarloSimulation {
+public class MonteCarloSimulator {
 
     @Option(name="-ff",usage="Potential model. [LJ}",metaVar="POTENTIAL")
     String sPotential="LJ";
@@ -68,29 +71,29 @@ public class MonteCarloSimulation {
     }
 
     public void setTemperature(double T) {
-        kBT=T*getkB();
+        beta=1.0/(T*getkB());
         this.T = T;
     }
 
-    double kBT=0;
+    double beta=0;
 
     double kB=0;//!< Boltzmann constants
 
-
     double getkB(){//!< get Boltzmann constant
-        if(kB==0){
-            String unit=pot.getUnit();
-            if(unit.contentEquals("Hartree")) kB=3.16681536e-6;
-            else if(unit.contentEquals("kcal/mol")) kB=1.98587767e-4;
-            else if(unit.contentEquals("kJ/mol")) kB=3.16681536e-6;
-            else if(unit.contentEquals("eV")) kB=3.16681536e-6;
-            else kB=1.0;
-        }
         return kB;
     }
 
     void Initialize(String[] args,long seedMov,long seedBoltz){//!< initilize based on control file
         pot=MolExtra.SetupPotential(sPotential, sFileParam, sUnit, "DFPMIN");
+        
+        String unit=pot.getUnit();
+        if(unit.contentEquals("Hartree")) kB=3.16681536e-6;
+        else if(unit.contentEquals("kcal/mol")) kB=1.98587767e-4;
+        else if(unit.contentEquals("kJ/mol")) kB=3.16681536e-6;
+        else if(unit.contentEquals("eV")) kB=3.16681536e-6;
+        else kB=1.0;
+
+
         ScaleParam(ScalingBase,ScalingIndex);//tune the parameter according to temperature
         ranMov.setSeed(seedMov);
         ranBoltz.setSeed(seedBoltz);
@@ -142,7 +145,7 @@ public class MonteCarloSimulation {
 
     void CalcTherProp(){
         meanE=hist.getMean();
-        Cv=hist.getVariance()/(ens.getNAtoms()*kBT*kBT);
+        Cv=beta*beta*hist.getVariance()/ens.getNAtoms();
     }
 
     double CalcEnergy(Cluster p){ //calculate energy of individual
@@ -160,6 +163,81 @@ public class MonteCarloSimulation {
     public void setCurrentEnsemble(Cluster ens) {
         this.ens = ens;
     }
+
+    //=======================
+    /**
+	 * Return info of this class in xml format
+	 * @param verbose =1: equation name and unit, 2= setting info, 3= status
+	 */
+    public String XMLInfo(int verbose){
+        String info = "";
+        try {
+            //!< print setting parameters
+            Writer writer = new java.io.StringWriter();
+            XmlWriter xmlwriter = new XmlWriter(writer);
+            xmlwriter.writeEntity("MonteCarloSimulator");
+            if ((verbose & 1) != 0) {
+                // current thermodynamic properties
+            }
+            
+            if ((verbose & 2) != 0) {
+                //setting parameter
+                xmlwriter.writeAttribute("Temperature", Double.toString(T));
+                xmlwriter.writeAttribute("kB", Double.toString(getkB()));
+                xmlwriter.writeAttribute("beta", Double.toString(beta));
+                xmlwriter.writeAttribute("ScalingBase", Double.toString(ScalingBase));
+                xmlwriter.writeAttribute("ScalingIndex", Double.toString(ScalingIndex));
+                xmlwriter.writeAttribute("AtomdR", Double.toString(AtomdR));
+                xmlwriter.writeAttribute("MoldR", Double.toString(MoldR));
+                xmlwriter.writeAttribute("MoldPhi", Double.toString(MoldPhi));
+                xmlwriter.writeNormalText(pot.XMLInfo(1));
+            }
+
+//             if ((verbose & 4) != 0) {
+//                //setting parameter
+//                xmlwriter.writeNormalText(pot.XMLInfo(1));
+//                xmlwriter.writeAttribute("Temperature", Double.toString(T));
+//                xmlwriter.writeAttribute("kB", Double.toString(kB));
+//                xmlwriter.writeAttribute("ScalingBase", Double.toString(kBT));
+//                xmlwriter.writeAttribute("ScalingIndex_A", Double.toString(kBT));
+//                xmlwriter.writeAttribute("ScalingIndex_M", Double.toString(kBT));
+//                xmlwriter.writeAttribute("beta", Double.toString(kBT));
+//            }
+
+
+            xmlwriter.endEntity().close();
+            info = writer.toString();
+            
+            //	info+="[name="+name+"] ";
+            //	if(level&1){ // current thermodynamic properties
+            //		info+=str(format("[E=%1.6f] [Cv=%1.6lf] " ) % ens.GetEnergy()  %Cv);
+            //		info+=hist.Info(1);
+            //	}
+            //
+            //	if(level&2){		//setting parameter
+            //		info+=str(format("[T=%1.2lf] [kB=%1.15lf] [beta=%1.15lf] ")% T %kB %beta);
+            //		info+=str(format("[ScalingBase=%lf] [ScalingIndex_A=%1.2lf] [ScalingIndex_M=%1.2lf] ") %ScalingBase %ScalingIndex_A%ScalingIndex_M);
+            //		info+=str(format("[ConfinedRadius=%1.2lf] ") %ConfinedRadius);
+            //		info+=str(format("[bMolMove=%d] [bAtomMov=%d] ")% bMolMove %bAtomMove);
+            //		info+=hist.Info(2);
+            //		//info+=str(format(" [SampleRate=%lf]") %SampleRate);
+            //		info+=oper.Info();
+            //
+            //	}
+            //
+            //	if(level&4){ // statistical properties
+            //		info+=str(format("[meanDeltaE=%1.6lf] [meanRate=%1.6lf] ")%meanDeltaE%exp(-meanDeltaE*beta));
+            //		info+=str(format("[allMovR=%4.2lf %4.2lf %4.2lf] ")%(AcceptR)%(RejectR)%(DisR));
+            //		if(bAtomMove)
+            //		info+=str(format("[AtomMovR=%4.2lf %4.2lf %4.2lf] ")%(AtomAcceptR)%(AtomRejectR)%(AtomDisR));
+            //		if(bMolMove)
+            //		info+=str(format("[MolMovR=%4.2lf %4.2lf %4.2lf] ")%(MolAcceptR)%(MolRejectR)%(MolDisR));
+            //	}
+        } catch (IOException ex) {
+            Logger.getLogger(MonteCarloSimulator.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return info;
+}
 
 
     int nMCperPass(){ return ens.getNAtoms();} //!< number MC moves/ pass = atomic moves + molecular moves

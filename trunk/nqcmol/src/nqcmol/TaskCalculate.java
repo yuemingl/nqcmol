@@ -8,10 +8,6 @@ package nqcmol;
 //import com.thoughtworks.xstream.XStream;
 import nqcmol.cluster.Cluster;
 import nqcmol.cluster.MolExtra;
-import java.io.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.kohsuke.args4j.*;
 
 
@@ -55,7 +51,7 @@ public class TaskCalculate extends Task{
 	protected void Initialize() {
 		super.Initialize();
         pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
-        xmllog.writeNormalText(pot.Info(1));
+        xmllog.writeNormalText(pot.XMLInfo(1));
 	}
 	
 }
