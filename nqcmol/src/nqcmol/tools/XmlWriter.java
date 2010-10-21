@@ -157,7 +157,7 @@ public class XmlWriter {
     }
 
 	/**
-     * Output body text. Any xml characters are escaped.
+     * Output body text
      */
     public XmlWriter writeNormalText(String text)  {
         try {

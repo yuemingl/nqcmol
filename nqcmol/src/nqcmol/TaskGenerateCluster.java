@@ -8,8 +8,6 @@ package nqcmol;
 import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
@@ -81,18 +79,18 @@ public class TaskGenerateCluster extends Task {
         if(mode<0)
         for(int m1=0;m1<lCART.length;m1++){
             if(level==1){
-                dir=lCART[m1].clone();
+                dir=lCART[m1].clone();  MTools.NORMALIZE(dir);
                 dirList.add(dir);
     		}else	for(int m2=m1+1;m2<lCART.length;m2++)
     					if(level==2){
                             dir=new double[lCART[m1].length];
     						MTools.VEC_PLUS_VEC(dir,lCART[m1],lCART[m2],1.0,1.0);
-    						dirList.add(dir);
+    						dirList.add(dir);   MTools.NORMALIZE(dir);
     					}else	for(int m3=m2+1;m3<lCART.length;m3++){
                                     dir=new double[lCART[m1].length];
     								MTools.VEC_PLUS_VEC(dir,lCART[m1],lCART[m2],1.0,1.0);
     								MTools.VEC_PLUS_VEC(dir,dir,lCART[m3],1.0,1.0);
-    								dirList.add(dir);
+    								dirList.add(dir);   MTools.NORMALIZE(dir);
     							}
         }
         else{

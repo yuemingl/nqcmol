@@ -46,11 +46,8 @@ public class TaskCalculateEnergy extends TaskCalculate {
         xmllog.writeText(" Time is measured in seconds");
         xmllog.endEntity();
 
-        //System.out.println("What the fuck!"+sFileIn);
         int i = 0;
-        //JSONArray jsChild2=new JSONArray();
         while (mol.Read(fileIn, sFormatIn)) {
-            //mol.Write(System.out,"xyz");
             int myruns = (int) ((nScale>0)?nRuns*Math.pow((double)nScale/mol.getNAtoms(),2):nRuns);
             myruns = Math.max(myruns, 1);
             double energy = 0;

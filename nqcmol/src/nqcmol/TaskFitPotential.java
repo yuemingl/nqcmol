@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import mpi.MPI;
+import nqcmol.potential.Potential;
 import nqcmol.tools.XmlWriter;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.DifferentiableMultivariateVectorialFunction;
@@ -62,48 +63,48 @@ public class TaskFitPotential extends TaskCalculate {
         new TaskFitPotential().Execute(args);
 	}
 
-    @Override
-    public void Execute(String[] args) {
-         for(int i=0;i<args.length;i++){
-            if(args[i].contentEquals("-mpi")) bMPI=true;
-        }
-
-        if(!bMPI) super.Execute(args);
-        else{
-            String[] newargs=MPI.Init(args);
-            rank = MPI.COMM_WORLD.Rank();
-            ncpu = MPI.COMM_WORLD.Size();
-            ParseArguments(newargs);
-
-            try {
-                String sFileLog="main-t"+rank+".xml";
-                stdwriter=new BufferedWriter(new FileWriter(new File(sFileLog)));
-                xmllog = new XmlWriter(stdwriter);
-                System.out.println("Hi from <>"+rank);            
-           
-                xmllog.writeEntity(getName());
-                Initialize();
-                if(rank==MASTER) {//if u r MASTER, proceed
-                    Process();
-                }else{
-                    while(true){//if u r slaves, just waiting for the orders
-                        mpi.Status status=MPI.COMM_WORLD.Probe(MPI.ANY_SOURCE,MPI.ANY_TAG);
-                        if(status.tag==-1)                         break;
-                        if(status.tag==1){
-                            //MPI.COMM_WORLD.Recv(&a[0],mess.size, newtype,mess.destfrom,mess.tag);
-                            //return true;
-                        }
-                    }
-                }
-                Finalize();
-                xmllog.endEntity().close();
-                stdwriter.close();
-            } catch (IOException ex) {
-                logger.severe(ex.getMessage());
-            }
-            MPI.Finalize();
-        }
-    }
+//    @Override
+//    public void Execute(String[] args) {
+//         for(int i=0;i<args.length;i++){
+//            if(args[i].contentEquals("-mpi")) bMPI=true;
+//        }
+//
+//        if(!bMPI) super.Execute(args);
+//        else{
+//            String[] newargs=MPI.Init(args);
+//            rank = MPI.COMM_WORLD.Rank();
+//            ncpu = MPI.COMM_WORLD.Size();
+//            ParseArguments(newargs);
+//
+//            try {
+//                String sFileLog="main-t"+rank+".xml";
+//                stdwriter=new BufferedWriter(new FileWriter(new File(sFileLog)));
+//                xmllog = new XmlWriter(stdwriter);
+//                System.out.println("Hi from <>"+rank);
+//
+//                xmllog.writeEntity(getName());
+//                Initialize();
+//                if(rank==MASTER) {//if u r MASTER, proceed
+//                    Process();
+//                }else{
+//                    while(true){//if u r slaves, just waiting for the orders
+//                        mpi.Status status=MPI.COMM_WORLD.Probe(MPI.ANY_SOURCE,MPI.ANY_TAG);
+//                        if(status.tag==-1)                         break;
+//                        if(status.tag==1){
+//                            //MPI.COMM_WORLD.Recv(&a[0],mess.size, newtype,mess.destfrom,mess.tag);
+//                            //return true;
+//                        }
+//                    }
+//                }
+//                Finalize();
+//                xmllog.endEntity().close();
+//                stdwriter.close();
+//            } catch (IOException ex) {
+//                logger.severe(ex.getMessage());
+//            }
+//            MPI.Finalize();
+//        }
+//    }
 
 
 	
@@ -117,7 +118,9 @@ public class TaskFitPotential extends TaskCalculate {
 
             xmllog.writeEntity("Initialize");
                 pot = MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
-                xmllog.writeNormalText(pot.Info(1));
+                potpool=new Potential[ncpu];
+                for(int i=0;i<ncpu;i++) potpool[i]=MolExtra.SetupPotential(sPotential, sFileParam, sUnit,sMethod);
+                xmllog.writeNormalText(pot.XMLInfo(1));
 
                 xmllog.writeEntity("ReadBound");
                     ReadBound();
@@ -156,10 +159,11 @@ public class TaskFitPotential extends TaskCalculate {
 				long duration=System.currentTimeMillis();
 
                 nEvaluations=0;
-                if(sMethod.contentEquals("GA"))
-                    FitUsingGA();
-                else
-                    FitUsingApacheLevenbergMarquardt();
+                if(nOpts>0)
+                    if(sMethod.contentEquals("GA"))
+                        FitUsingGeneticAlgorithm();
+                    else
+                        FitUsingApacheLevenbergMarquardt();
 
 				duration=(System.currentTimeMillis()-duration);
 
@@ -174,13 +178,15 @@ public class TaskFitPotential extends TaskCalculate {
 			xmllog.endEntity().flush();
 
 
-			xmllog.writeEntity("FinalEvaluation");
-				Evaluate(finalParam, 4);
-			xmllog.endEntity().flush();
+            if(finalParam!=null){
+                xmllog.writeEntity("FinalEvaluation");
+                    Evaluate(finalParam, 4);
+                xmllog.endEntity().flush();
 
-			xmllog.writeEntity("FinalParameters");
-				WriteParam(finalParam);
-			xmllog.endEntity().flush();
+                xmllog.writeEntity("FinalParameters");
+                    WriteParam(finalParam);
+                xmllog.endEntity().flush();
+            }
 	}
 
 
@@ -231,7 +237,8 @@ public class TaskFitPotential extends TaskCalculate {
     final int MASTER=0;
 
     int rank = MASTER;
-    int ncpu = 1;
+    int ncpu = 2;
+    Potential[] potpool;
 
 
     int nparam; //!< number of non-fixed parameters
@@ -443,12 +450,145 @@ public class TaskFitPotential extends TaskCalculate {
 			}       
     }
 
+    class ThreadEvaluate extends Thread{
+        private double[] calcEner;
+        private int iFrom=0;
+        private int iTo=0;
+        private Potential pot;
+
+        public void setRange(int iFrom,int iTo){
+            this.iFrom=iFrom;
+            this.iTo=iTo;
+        }
+
+        public void setCalcEner(double[] a){
+            this.calcEner=a;
+        }
+
+        public void setPotential(Potential pot){
+            this.pot=pot;
+        }
+
+
+        @Override
+        public void run() {
+			for (int i=iFrom; i<iTo; i++){
+				Cluster m=data.get(i);
+				//calculate binding energy
+				this.pot.setCluster(m);
+				this.calcEner[i] = this.pot.getEnergy(m.getCoords());
+                //System.out.println(Thread.currentThread().getName()+" id = "+i+" e="+this.calcEner[i]);//
+			}
+        }
+
+    }
+
     double Evaluate(double[] p,int verbose){
 		double[] y=new double[data.size()];
 		return Evaluate(p,y,verbose);
 	}
 
-	double Evaluate(double[] p,double[] y,int verbose){
+    double Evaluate(double[] p,double[] y,int verbose){
+        double[] alpha=new double[param_inp.length];
+        ConvertParam(p,alpha);
+        pot.setParam(alpha);
+
+        if(verbose>=2){
+                xmllog.writeEntity("Alpha");
+                String s = "";
+                for (int i = 0; i < alpha.length; i++) {
+                    s += String.format("%f ", alpha[i]);
+                }
+                xmllog.writeNormalText(s);
+                xmllog.endEntity().flush();
+        }
+        //calculate
+        double[] ener_shift=new double[molRef.size()];
+        double rms=0;
+
+        for(int i=0; i<molRef.size(); i++){
+            Cluster m=molRef.get(i);
+            pot.setCluster(m);
+            ener_shift[i] = pot.getEnergy(m.getCoords());
+        }
+
+        if (verbose>=3){
+            xmllog.writeEntity("Reference");
+            for (int i = 0; i < ener_shift.length; i++) {
+                Cluster m = molRef.get(i);
+                xmllog.writeEntity("Cluster");
+                xmllog.writeAttribute("id", Integer.toString(i));
+                xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
+                xmllog.writeAttribute("Energy", Double.toString(ener_shift[i]));
+                xmllog.endEntity().flush();
+            }
+            xmllog.endEntity().flush();
+        }
+
+        //calculate y here
+        double[] calcEner=new double[data.size()];
+        //calculate y here
+        ThreadEvaluate[] threads=new ThreadEvaluate[ncpu];
+        
+        for(int i=0;i<threads.length;i++){
+            System.out.println("Iniatialize " + i);
+            threads[i] = new ThreadEvaluate();
+            threads[i].setCalcEner(calcEner);
+            threads[i].setPotential(potpool[i]);
+            int nCalcs=(int)(data.size()/ncpu)+1;
+            if(i!=threads.length-1) threads[i].setRange(nCalcs*i,nCalcs*(i+1));
+            else threads[i].setRange(nCalcs*i,data.size());
+        }
+
+        for(int i=0;i<threads.length;i++){
+            threads[i].start();
+        }
+
+        for (int i = 0; i < threads.length; i++) {
+           System.out.println("Join " + i);
+           try {
+              threads[i].join();
+           } catch (InterruptedException ignore) {
+           }
+       }
+
+
+        for (int i=0; i<data.size(); i++){
+            Cluster m=data.get(i);
+            //calculate binding energy
+            double ener=calcEner[i];
+            y[i] = CalcBindingEnergy(m,ener,ener_shift);
+
+            double dE = Math.abs(y[i] - target[i])* Math.sqrt(weight[i]);
+            rms+=dE*dE;
+
+            if(verbose>=4){
+                xmllog.writeEntity("Eval");
+                xmllog.writeAttribute("id", Integer.toString(i));
+                xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
+                xmllog.writeAttribute("Weight", Double.toString(weight[i]));
+                xmllog.writeAttribute("ObservedBE", Double.toString(target[i]));
+                xmllog.writeAttribute("CalcE", Double.toString(ener));
+                xmllog.writeAttribute("CalcBE", Double.toString(y[i]));
+                xmllog.writeAttribute("DeltaE", Double.toString(dE));
+                xmllog.endEntity().flush();
+            }
+        }
+
+        rms=Math.sqrt(rms/data.size());
+
+        if (verbose>=1){
+             xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(nEvaluations));
+					xmllog.writeAttribute("RMS", Double.toString(rms));
+		     xmllog.endEntity().flush();
+        }
+
+        nEvaluations++;
+        return rms;
+    }
+
+
+	double Evaluate_old(double[] p,double[] y,int verbose){
         double[] alpha=new double[param_inp.length];
         ConvertParam(p,alpha);
         pot.setParam(alpha);
@@ -726,7 +866,7 @@ public class TaskFitPotential extends TaskCalculate {
         }
     }
 
-    protected void FitUsingGA(){      
+    protected void FitUsingGeneticAlgorithm(){
         try {
             Configuration conf = new DefaultConfiguration();
             FitnessFunction myFunc =   new GAFitnessFunction();
@@ -762,34 +902,36 @@ public class TaskFitPotential extends TaskCalculate {
             // is going to be, we just evolve the max number of times.
             // ---------------------------------------------------------------
            int percentEvolution = (int)Math.max(1, nOpts / 100);
-            for (int i = 0; i < nOpts; i++) {
+
+           for (int i = 0; i < nOpts; i++) {
               population.evolve();
               if (( i % percentEvolution == 0) || i==(nOpts-1)) {
-                  IChromosome fittest = population.getFittestChromosome();
-                  double fitness = fittest.getFitnessValue();
+                  IChromosome bestSolutionSoFar = population.getFittestChromosome();
+                  double fitness = bestSolutionSoFar.getFitnessValue();
 
                   xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(i));
 					xmllog.writeAttribute("RMS", Double.toString(1.0/fitness));
 				  xmllog.endEntity().flush();
 
                   //System.out.println(" size ="+ fittest.size());
-                  double[] currentParam=new double[fittest.size()];
-                  for (int k = 0; k < fittest.size(); k++) {
-                    DoubleGene gene = (DoubleGene)fittest.getGene(k);
-                    currentParam[k]=gene.doubleValue();
+                  double[] currentBestParam=new double[bestSolutionSoFar.size()];
+                  for (int k = 0; k < bestSolutionSoFar.size(); k++) {
+                    DoubleGene gene = (DoubleGene)bestSolutionSoFar.getGene(k);
+                    currentBestParam[k]=gene.doubleValue();
                    // System.out.println(" param ="+ currentParam[k]);
                   }
-                  WriteParam(currentParam);
+                  WriteParam(currentBestParam);
                 }
             }
             
 
            IChromosome bestSolutionSoFar = population.getFittestChromosome();
            finalRMS=1.0/bestSolutionSoFar.getFitnessValue();
-                     
+
+           finalParam=new double[bestSolutionSoFar.size()];
            for (int i = 0; i < bestSolutionSoFar.size(); i++) {
                     DoubleGene gene = (DoubleGene)bestSolutionSoFar.getGene(i);
-                    param[i]=gene.doubleValue();
+                    finalParam[i]=gene.doubleValue();
             }
         } catch (InvalidConfigurationException ex) {
             Logger.getLogger(TaskFitPotential.class.getName()).log(Level.SEVERE, null, ex);

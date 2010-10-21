@@ -573,7 +573,7 @@ public class Potential {
 	 * Return info of potential in xml format
 	 * @param verbose =1: equation name and unit, 2= setting info, 3= status
 	 */
-	public String Info(int verbose){//!< print setting parameters
+	public String XMLInfo(int verbose){//!< print setting parameters
 		String info = "";
 		try {
 			//!< print setting parameters
