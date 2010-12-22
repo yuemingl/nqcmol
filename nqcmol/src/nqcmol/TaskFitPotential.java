@@ -11,9 +11,7 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import mpi.MPI;
 import nqcmol.potential.Potential;
-import nqcmol.tools.XmlWriter;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.DifferentiableMultivariateVectorialFunction;
 import org.apache.commons.math.analysis.MultivariateMatrixFunction;
@@ -221,15 +219,9 @@ public class TaskFitPotential extends TaskCalculate {
 					dataWeight.add(t);
 				}
 			}
-
-			if(!sFileOut.isEmpty()) fileOut=new FileWriter(new File(sFileOut));
-
 		} catch (CmdLineException ex) {
 			logger.severe(ex.getMessage());
-		} catch (IOException ex) {
-			logger.severe(ex.getMessage());
-		}
-
+		} 
 	}
 
 
@@ -430,12 +422,12 @@ public class TaskFitPotential extends TaskCalculate {
 
             if (!sFileOut.isEmpty()) {
                   try {
-                        fileOut = new FileWriter(new File(sFileOut));
+                        FileWriter fileOut = new FileWriter(new File(sFileOut));
                         pot.setParam(result);
                         pot.writeParam(fileOut);
                         fileOut.close();
                    } catch (IOException ex) {
-                       logger.severe("Cannot write to "+sFileOut);
+                       logger.log(Level.SEVERE, "Cannot write to {0}", sFileOut);
                     }
             }
 

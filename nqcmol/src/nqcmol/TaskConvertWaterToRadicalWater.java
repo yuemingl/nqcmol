@@ -41,17 +41,17 @@ public class TaskConvertWaterToRadicalWater extends Task{
 			xmllog.writeText("Convert neutral water clusters to radical water clustesr by chopping off a dangling hydrogen bond\n");
 			xmllog.endEntity();
 
-			Scanner scanner = new Scanner(new File(sFileIn));
+
+            FileWriter fileOut=null;
             if(!sFileOut.isEmpty()){
 				fileOut=new FileWriter(new File(sFileOut));
 			}
 
 			int i = 0;
             Cluster mol = new Cluster();
-			while (scanner.hasNext()) {
-				
-				mol.Read(scanner, sFormatIn);
-				
+
+			Scanner fileIn = new Scanner(new File(sFileIn));
+			while (mol.Read(fileIn, sFormatIn)) {
 				if(mol.getNAtoms()<=0) break;
 
                 xmllog.writeEntity("Cluster");
@@ -94,10 +94,9 @@ public class TaskConvertWaterToRadicalWater extends Task{
 				
 				//if(i>2)pop.get(i-1).Write(System.err,MTools.getExtension(sFileOut));
 				i++;				
-			}			
-
+			}
 		} catch (IOException ex) {
-			//Logger.getLogger(TaskSingleCluster.class.getName()).log(Level.SEVERE, null, ex);
+			logger.severe(ex.getMessage());
 		}
 	}
 

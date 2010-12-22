@@ -8,9 +8,9 @@ package nqcmol;
 import nqcmol.cluster.Cluster;
 import nqcmol.cluster.MolExtra;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
-import java.util.Vector;
 import java.util.logging.*;
 import nqcmol.potential.Potential;
 import nqcmol.symmetry.PointGroup;
@@ -199,6 +199,11 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 			xmllog.writeAttribute("Erange", Double.toString(Emax-Emin));
 			xmllog.writeAttribute("ErangeInKelvin", Double.toString((Emax-Emin)*beta));
 
+            FileWriter fileOut=null;
+             if (!sFileOut.isEmpty()) {
+                 fileOut = new FileWriter(new File(sFileOut));
+            }
+
 			for(double T=Tmin;T<=Tmax;T+=dT){
 					ScanLnZ(T);
 					calcZp_all(2);
@@ -231,7 +236,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 		
 	}
 
-	Vector<PartFunc> pop=new Vector<PartFunc>();
+	ArrayList<PartFunc> pop=new ArrayList<PartFunc>();
 	HashMap<String,Double> group=new HashMap<String,Double>();
 	Zp_str[] Zp={new Zp_str(),new Zp_str(),new Zp_str(),new Zp_str(),new Zp_str()};
 
@@ -264,7 +269,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 		int i;
 		//double hs=cBeta[unit];
 		Zp1.order=order_;
-		if(pop.size()==0) return;
+		if(pop.isEmpty()) return;
 
 		Zp1.Z=0;
 		for(PartFunc func : pop ){
@@ -330,7 +335,7 @@ public class TaskHarmonicSuperpositionApproximation extends Task{
 		Zp_str Z11=new Zp_str();
 		Zp_str Z02=new Zp_str();
 
-		if(pop.size()==0) return 0;
+		if(pop.isEmpty()) return 0;
 
 		Z01.Z=Z11.Z=Z02.Z=0;
 

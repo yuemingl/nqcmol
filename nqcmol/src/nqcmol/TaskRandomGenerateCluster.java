@@ -5,14 +5,14 @@
 
 package nqcmol;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nqcmol.cluster.Cluster;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Random;
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
@@ -103,28 +103,42 @@ public class TaskRandomGenerateCluster extends Task {
 
 	@Override
 	protected void Process() {	
-        xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
-        xmllog.writeAttribute("a1",  String.format("%1.3f",a1));
-        xmllog.writeAttribute("a2",  String.format("%1.3f",a2));
-        xmllog.writeAttribute("a3",  String.format("%1.3f",a3));
-        xmllog.writeAttribute("DMin", String.format("%1.3f",DMin));
-        xmllog.writeAttribute("DMax",  String.format("%1.3f",DMax));
-        ConstructLibrary();
-        AnalyzeFormula();
+        FileWriter fileOut = null;
+        try {
+            xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
+            xmllog.writeAttribute("a1", String.format("%1.3f", a1));
+            xmllog.writeAttribute("a2", String.format("%1.3f", a2));
+            xmllog.writeAttribute("a3", String.format("%1.3f", a3));
+            xmllog.writeAttribute("DMin", String.format("%1.3f", DMin));
+            xmllog.writeAttribute("DMax", String.format("%1.3f", DMax));
 
+            ConstructLibrary();
+            AnalyzeFormula();
 
-        for(int i=0;i<num;i++){
-            xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
-            ///shuffer the positions
-                if(listMol.size()>=1){
+            if(!sFileOut.isEmpty())
+                fileOut = new FileWriter(new File(sFileOut));
+
+            for (int i = 0; i < num; i++) {
+                xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
+                ///shuffer the positions
+                if (listMol.size() >= 1) {
                     //for(String s :listMol)
                     //	System.out.printf("%s \n",s);
-
                     Collections.shuffle(listMol);
                     GenerateMolecularPositions();
-                    PlaceMoleculesAndDumpOut();
+                    PlaceMoleculesAndDumpOut(fileOut);
                 }
-            xmllog.endEntity().flush();
+                xmllog.endEntity().flush();
+            }
+            fileOut.close();
+        } catch (IOException ex) {
+            Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                fileOut.close();
+            } catch (IOException ex) {
+                Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
 			
 	}
@@ -182,13 +196,13 @@ public class TaskRandomGenerateCluster extends Task {
 	}
 
 	int nAtoms=0;
-	Vector<String> listMol;
+	ArrayList<String> listMol;
 
 	private void AnalyzeFormula(){
 			int start = 0;
 			int c = 0;
 			int c1 = 0;
-			listMol = new Vector<String>();
+			listMol = new ArrayList<String>();
 			nAtoms = 0;
 			String s1 = "";
 			String s = sFormula + "(";
@@ -300,7 +314,7 @@ public class TaskRandomGenerateCluster extends Task {
 	/**
 	 * Place molecules at calculated coordinates and dumpt out the results.
 	 */
-	private void PlaceMoleculesAndDumpOut(){
+	private void PlaceMoleculesAndDumpOut(Writer out){
         int c=0;
         Cluster result = new Cluster();
         result.setNAtoms(nAtoms);
@@ -331,8 +345,8 @@ public class TaskRandomGenerateCluster extends Task {
 
         if(!bNoCenter) result.Center();
 
-        if (fileOut != null) {
-            result.Write(fileOut, sFormatOut);
+        if (out != null) {
+            result.Write(out, sFormatOut);
         }
 	}
 }

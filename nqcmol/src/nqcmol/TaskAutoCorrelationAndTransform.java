@@ -39,7 +39,8 @@ public class TaskAutoCorrelationAndTransform extends Task{
 
 	@Override
 	protected void Process() {
-		try {			
+		try {
+            FileWriter fileOut=null;
 			if (!sFileOut.isEmpty()) {
 				fileOut = new FileWriter(new File(sFileOut));
 			}
@@ -62,6 +63,8 @@ public class TaskAutoCorrelationAndTransform extends Task{
 //					xmllog.writeAttribute("Tag", mol.getTag());
 //
 //				xmllog.endEntity().flush();
+
+            fileOut.close();
 					
 		} catch (IOException ex) {
 			Logger.getLogger(TaskAutoCorrelationAndTransform.class.getName()).log(Level.SEVERE, null, ex);

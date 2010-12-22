@@ -35,7 +35,7 @@ public class TaskCalculate extends Task{
 
 	protected Potential pot;
 
-	Cluster mol = new Cluster();
+	//Cluster mol = new Cluster();
 
 //	@Override
 //	public void ParseArguments(String[] args){

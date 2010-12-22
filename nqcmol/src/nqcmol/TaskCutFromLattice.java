@@ -5,7 +5,12 @@
 
 package nqcmol;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nqcmol.cluster.Crystal;
 
 import org.kohsuke.args4j.*;
@@ -54,22 +59,22 @@ public class TaskCutFromLattice extends Task {
 	
 	@Override
 	protected void Process() {	
-			xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
-			xmllog.writeAttribute("ConfinedRadius", Double.toString(radius));
-			xmllog.writeAttribute("DMin", Double.toString(DMin));
-			xmllog.writeAttribute("DMax", Double.toString(DMax));
-
-            Crystal lat=new Crystal();
+        try {
+            xmllog.writeAttribute("Formula", sFormula).writeAttribute("NumOfClusters", Integer.toString(num));
+            xmllog.writeAttribute("ConfinedRadius", Double.toString(radius));
+            xmllog.writeAttribute("DMin", Double.toString(DMin));
+            xmllog.writeAttribute("DMax", Double.toString(DMax));
+            Crystal lat = new Crystal();
+            Scanner fileIn = new Scanner(new File(sFileIn));
             lat.Read(fileIn, sFormatIn);
-            lat.Write(System.out, "car");
-		
-			for(int i=0;i<num;i++){
-				xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
-
-
-				
-				xmllog.endEntity().flush();
-			}			
+            //lat.Write(System.out, "car");
+            for (int i = 0; i < num; i++) {
+                xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
+                xmllog.endEntity().flush();
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(TaskCutFromLattice.class.getName()).log(Level.SEVERE, null, ex);
+        }
 	}
 	
 }

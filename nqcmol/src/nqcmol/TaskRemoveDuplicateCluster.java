@@ -8,6 +8,7 @@ package nqcmol;
 import nqcmol.cluster.WaterCluster;
 import nqcmol.cluster.Cluster;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Vector;
 import nqcmol.tools.MTools;
@@ -67,14 +68,14 @@ public class TaskRemoveDuplicateCluster extends Task{
 			xmllog.writeText(getName());
 			xmllog.endEntity();
 
-			Scanner scanner = new Scanner(new File(sFileIn));
+			Scanner fileIn = new Scanner(new File(sFileIn));
 
 			int i = 0;
-			Vector<Cluster> pop=new Vector<Cluster>();
+			ArrayList<Cluster> pop=new ArrayList<Cluster>();
             double minE=1e100;
-			while (scanner.hasNext()) {
+			while (fileIn.hasNext()) {
 				Cluster mol = new WaterCluster();
-				mol.Read(scanner, sFormatIn);
+				mol.Read(fileIn, sFormatIn);
 				
 				if(mol.getNAtoms()<=0) break;
                 minE=Math.min(mol.getEnergy(),minE);
@@ -83,7 +84,9 @@ public class TaskRemoveDuplicateCluster extends Task{
 				//if(i>2)pop.get(i-1).Write(System.err,MTools.getExtension(sFileOut));
 				i++;
 				
-			}			
+			}
+            fileIn.close();
+
 			xmllog.writeEntity("NumOfInputClusters").writeText(Integer.toString(pop.size())).endEntity();
 
 			boolean[] bb=new boolean[pop.size()];
@@ -113,6 +116,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 				//cout<<t<<". "<<i<<" "<<c1<<endl;
 			}
 
+            FileWriter fileOut=null;
 			if(!sFileOut.isEmpty()){
 				fileOut=new FileWriter(new File(sFileOut));
 			}
@@ -140,6 +144,8 @@ public class TaskRemoveDuplicateCluster extends Task{
 //							pop[i].Write(odup,outmode);
 //						}
 					}
+            
+            fileOut.close();
 			xmllog.writeEntity("Summary");
                 xmllog.writeAttribute("NumOfDistincClusters",Integer.toString(count));
                 xmllog.writeAttribute("NumOfOutOfRange",Integer.toString(countOutOfRange));

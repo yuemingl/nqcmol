@@ -5,9 +5,12 @@
 
 package nqcmol;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nqcmol.cluster.Cluster;
 import java.io.*;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
@@ -53,77 +56,93 @@ public class TaskGenerateCluster extends Task {
 
 	@Override
 	protected void Process() {				
-        xmllog.writeAttribute("deltaX", Double.toString(deltaX));
-        xmllog.writeAttribute("num", Integer.toString(num));
-        xmllog.writeAttribute("level", Integer.toString(level));
+        try {
+            xmllog.writeAttribute("deltaX", Double.toString(deltaX));
+            xmllog.writeAttribute("num", Integer.toString(num));
+            xmllog.writeAttribute("level", Integer.toString(level));
 
-        Cluster cluster=new Cluster();
-
-        while(cluster.Read(fileIn, "g03")){
-            xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
-            int no=GenFromNormalModes(cluster);
-            xmllog.writeAttribute("NoOfStruct", Integer.toString(no));
-            xmllog.endEntity().flush();
+            Cluster cluster = new Cluster();
+            Scanner fileIn = new Scanner(new File(sFileIn));
+            while (cluster.Read(fileIn, "g03")) {
+                xmllog.writeEntity("Cluster").writeAttribute("Tag", cluster.getTag());
+                int no = GenFromNormalModes(cluster);
+                xmllog.writeAttribute("NoOfStruct", Integer.toString(no));
+                xmllog.endEntity().flush();
+            }
+            fileIn.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(TaskGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
         }
 	}	
 	
 	int GenFromNormalModes(Cluster cluster){
-        int no=0;
-        //creating direction vectors
-        double[][] lCART=cluster.getVibrationData().getNormalModeVectors();
-        double[] x0=cluster.getCoords();
-        
-        Vector<double[]> dirList=new Vector<double[]>();
-        double[] dir;
-
-        if(mode<0)
-        for(int m1=0;m1<lCART.length;m1++){
-            if(level==1){
-                dir=lCART[m1].clone();  MTools.NORMALIZE(dir);
+        int no = 0;
+        try {
+            //creating direction vectors
+            double[][] lCART = cluster.getVibrationData().getNormalModeVectors();
+            double[] x0 = cluster.getCoords();
+            ArrayList<double[]> dirList = new ArrayList<double[]>();
+            double[] dir;
+            if (mode < 0) {
+                for (int m1 = 0; m1 < lCART.length; m1++) {
+                    if (level == 1) {
+                        dir = lCART[m1].clone();
+                        MTools.NORMALIZE(dir);
+                        dirList.add(dir);
+                    } else {
+                        for (int m2 = m1 + 1; m2 < lCART.length; m2++) {
+                            if (level == 2) {
+                                dir = new double[lCART[m1].length];
+                                MTools.VEC_PLUS_VEC(dir, lCART[m1], lCART[m2], 1.0, 1.0);
+                                dirList.add(dir);
+                                MTools.NORMALIZE(dir);
+                            } else {
+                                for (int m3 = m2 + 1; m3 < lCART.length; m3++) {
+                                    dir = new double[lCART[m1].length];
+                                    MTools.VEC_PLUS_VEC(dir, lCART[m1], lCART[m2], 1.0, 1.0);
+                                    MTools.VEC_PLUS_VEC(dir, dir, lCART[m3], 1.0, 1.0);
+                                    dirList.add(dir);
+                                    MTools.NORMALIZE(dir);
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                dir = lCART[mode].clone();
                 dirList.add(dir);
-    		}else	for(int m2=m1+1;m2<lCART.length;m2++)
-    					if(level==2){
-                            dir=new double[lCART[m1].length];
-    						MTools.VEC_PLUS_VEC(dir,lCART[m1],lCART[m2],1.0,1.0);
-    						dirList.add(dir);   MTools.NORMALIZE(dir);
-    					}else	for(int m3=m2+1;m3<lCART.length;m3++){
-                                    dir=new double[lCART[m1].length];
-    								MTools.VEC_PLUS_VEC(dir,lCART[m1],lCART[m2],1.0,1.0);
-    								MTools.VEC_PLUS_VEC(dir,dir,lCART[m3],1.0,1.0);
-    								dirList.add(dir);   MTools.NORMALIZE(dir);
-    							}
-        }
-        else{
-            dir=lCART[mode].clone();
-            dirList.add(dir);
-        }
+            }
+            Cluster newCluster = (Cluster) cluster.clone();
+            newCluster.setVibrationData(null);
+            double[] newCoords = newCluster.getCoords();
+            //double[] kConst=cluster.getVibration().getForceConst();
+            FileWriter fileOut = null;
+            if (!sFileOut.isEmpty()) {
+                fileOut = new FileWriter(new File(sFileOut));
+            }
 
-       Cluster newCluster=(Cluster) cluster.clone();
-       newCluster.setVibrationData(null);
-       double[] newCoords=newCluster.getCoords();
-       //double[] kConst=cluster.getVibration().getForceConst();
-
-       for(int m=0;m<dirList.size();m++){
-            MTools.NORMALIZE(dirList.elementAt(m));
-            for(int i=0;i<num;i++){
-                //temporary scaling factor
-                double beta=(2.0*i/(num-1)-1)*deltaX;
-//                double maxDisp=deltaX*kConst[m]
-//                double beta=(2.0*i/(num-1)-1)*maxDisp;
-
-                MTools.VEC_PLUS_VEC(newCoords,x0,dirList.elementAt(m),1.0,beta);
-
-                String tag=cluster.getTag()+String.format("-M=%d-beta=%1.5f",m,beta);
-
-                newCluster.setTag(tag);
-
-
-                if (fileOut != null) {
-                    newCluster.Write(fileOut, sFormatOut);
-                    no++;
+            for (int m = 0; m < dirList.size(); m++) {
+                MTools.NORMALIZE(dirList.get(m));
+                for (int i = 0; i < num; i++) {
+                    //temporary scaling factor
+                    double beta = (2.0 * i / (num - 1) - 1) * deltaX;
+                    //                double maxDisp=deltaX*kConst[m]
+                    //                double beta=(2.0*i/(num-1)-1)*maxDisp;
+                    MTools.VEC_PLUS_VEC(newCoords, x0, dirList.get(m), 1.0, beta);
+                    String tag = cluster.getTag() + String.format("-M=%d-beta=%1.5f", m, beta);
+                    newCluster.setTag(tag);
+                    if (fileOut != null) {
+                        newCluster.Write(fileOut, sFormatOut);
+                        no++;
+                    }
                 }
             }
+            fileOut.close();
+
+        } catch (IOException ex) {
+            Logger.getLogger(TaskGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
         }
-       return no;
+
+        return no;
       }
 }

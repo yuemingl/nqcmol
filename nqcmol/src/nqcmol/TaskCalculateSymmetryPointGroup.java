@@ -7,8 +7,7 @@ package nqcmol;
 
 import nqcmol.cluster.Cluster;
 import java.io.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Scanner;
 
 
 
@@ -47,33 +46,36 @@ public class TaskCalculateSymmetryPointGroup extends Task{
 
 	@Override
 	protected void Process() {				
-        //System.out.println("What the fuck!"+sFileIn);
-        int i = 0;
-        Cluster mol=new Cluster();
-        while (mol.Read(fileIn, sFormatIn)) {
-            Symmetry sym=new Symmetry();
-            sym.setToleranceFinal(tolFinal);
-            sym.setTolerancePrimary(tolInitial);
-            sym.setToleranceSame(tolSame);
-            Symmetry.CalculateSymmetry(sym, mol,verbose);
-
-            xmllog.writeEntity("Cluster");
-            xmllog.writeAttribute("id", Integer.toString(i));
-            xmllog.writeAttribute("nAtoms", Integer.toString(mol.getNAtoms()));
-            xmllog.writeAttribute("SymmetryCode", sym.getSymmetryCode());
-            PointGroup pg=sym.identifyPointGroup();
-            if(pg!=null)
-                xmllog.writeAttribute("PointGroup", pg.getGroupName());
-            else
-                xmllog.writeAttribute("PointGroup", "Unknown");
-
-            xmllog.writeAttribute("PointGroupOrder", Integer.toString(sym.getPointGroupOrder()));
-
-            xmllog.endEntity();
-            xmllog.flush();
-            i++;
-            //break;
+        try {
+            //System.out.println("What the fuck!"+sFileIn);
+            int i = 0;
+            Cluster mol = new Cluster();
+            Scanner fileIn = new Scanner(new File(sFileIn));
+            while (mol.Read(fileIn, sFormatIn)) {
+                Symmetry sym = new Symmetry();
+                sym.setToleranceFinal(tolFinal);
+                sym.setTolerancePrimary(tolInitial);
+                sym.setToleranceSame(tolSame);
+                Symmetry.CalculateSymmetry(sym, mol, verbose);
+                xmllog.writeEntity("Cluster");
+                xmllog.writeAttribute("id", Integer.toString(i));
+                xmllog.writeAttribute("nAtoms", Integer.toString(mol.getNAtoms()));
+                xmllog.writeAttribute("SymmetryCode", sym.getSymmetryCode());
+                PointGroup pg = sym.identifyPointGroup();
+                if (pg != null) {
+                    xmllog.writeAttribute("PointGroup", pg.getGroupName());
+                } else {
+                    xmllog.writeAttribute("PointGroup", "Unknown");
+                }
+                xmllog.writeAttribute("PointGroupOrder", Integer.toString(sym.getPointGroupOrder()));
+                xmllog.endEntity();
+                xmllog.flush();
+                i++;
+                //break;
+            }
+            fileIn.close();
+        } catch (FileNotFoundException ex) {
+            logger.severe(ex.getMessage());
         }
-        fileIn.close();
 	}	
 }

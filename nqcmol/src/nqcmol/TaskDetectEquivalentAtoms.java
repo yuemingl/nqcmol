@@ -50,18 +50,17 @@ public class TaskDetectEquivalentAtoms extends Task{
 
 	@Override
 	protected void Process() {
-		try {			
+		try {
+            FileWriter fileOut=null;
 			if (!sFileOut.isEmpty()) {
 				fileOut = new FileWriter(new File(sFileOut));
 			}
 			
 			Cluster mol = new Cluster();
-			Scanner scanner = new Scanner(new File(sFileIn));
-			
+
+			Scanner fileIn = new Scanner(new File(sFileIn));
 			int i = 0;
-			while (mol.Read(scanner, sFormatIn)) {
-				
-				
+			while (mol.Read(fileIn, sFormatIn)) {	
 				//System.out.print(MTools.getExtension(sFileOut));
 				xmllog.writeEntity("Cluster");
 					xmllog.writeAttribute("id", Integer.toString(i));
@@ -70,7 +69,9 @@ public class TaskDetectEquivalentAtoms extends Task{
 				xmllog.endEntity().flush();
 				i++;
 				//break;
-			}			
+			}
+            fileIn.close();
+            fileOut.close();
 		} catch (IOException ex) {
 			Logger.getLogger(TaskDetectEquivalentAtoms.class.getName()).log(Level.SEVERE, null, ex);
 		}		

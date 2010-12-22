@@ -6,6 +6,7 @@
 package nqcmol.cluster;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -49,7 +50,7 @@ public class Cluster implements Cloneable{
 		setAtomicNumber(src.getAtomicNumber());
 		//System.out.println(" Come here");
         double[] p=src.getUSRsig();
-        for (int i=0; i<12; i++){	USRsig[i] = p[i];}
+        System.arraycopy(p, 0, USRsig, 0, 12);
 
         energy=src.getEnergy();
 		tag=src.getTag();
@@ -940,7 +941,7 @@ public class Cluster implements Cloneable{
 	}
 
     public int[] getMolecule(int i){
-        Vector<Integer> tmp=new Vector<Integer>();
+        ArrayList<Integer> tmp=new ArrayList<Integer>();
         tmp.add(i);
         for(int k=0;k<nAtoms;k++) if(k!=i){
            if(pairwise[i][k]==PairwiseType.HYD_NEAR){
@@ -948,7 +949,7 @@ public class Cluster implements Cloneable{
            }
         }
         int[] answer=new int[tmp.size()];
-        for(int k=0;k<tmp.size();k++) answer[k]=tmp.elementAt(k);
+        for(int k=0;k<tmp.size();k++) answer[k]=tmp.get(k);
         return answer;
     }
 
@@ -1742,7 +1743,7 @@ public class Cluster implements Cloneable{
 			s1=String.format("%s %1.10f %f ",tag,energy,rmsGrad)+"% ";
 			if(vib!=null){
                 double[] freqs=vib.getFreqs();
-				if(freqs.length>0){
+				if((freqs!=null)&&(freqs.length>0)){
 					s1+=String.format("@FREQ %d",freqs.length);
 					for(int i=0;i<freqs.length;i++)
 						s1+=String.format(" %1.3f",freqs[i]);

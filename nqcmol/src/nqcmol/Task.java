@@ -34,9 +34,6 @@ public class Task {
 	protected BufferedWriter stdwriter = new BufferedWriter(new OutputStreamWriter(System.out));
 	protected XmlWriter xmllog = new XmlWriter(stdwriter);
 
-	protected Scanner fileIn=null;
-	protected FileWriter fileOut=null;
-
 	protected String[] args=null;
 
     protected static Logger logger=Logger.getLogger(Task.class.getName());
@@ -126,13 +123,13 @@ public class Task {
 	public void Execute(String[] args) {
         try {
             ParseArguments(args);
-            if (!sFileIn.isEmpty()) {
-                fileIn = new Scanner(new File(sFileIn));
-            }
-            
-            if (!sFileOut.isEmpty()) {
-                    fileOut = new FileWriter(new File(sFileOut));
-            }
+//            if (!sFileIn.isEmpty()) {
+//                fileIn = new Scanner(new File(sFileIn));
+//            }
+//
+//            if (!sFileOut.isEmpty()) {
+//                    fileOut = new FileWriter(new File(sFileOut));
+//            }
             
             if (isHelp) {
                 System.out.println(" nqcmol - utilities for processing data. Author: Nguyen Quoc Chinh\n");
@@ -171,12 +168,12 @@ public class Task {
 	}
 
 	protected void Finalize() {
-		try {
-			if(fileIn!=null) fileIn.close();
-			if(fileOut!=null) fileOut.close();
-		} catch (IOException ex) {
-			logger.severe(ex.getMessage());
-		}
+//		try {
+//			if(fileIn!=null) fileIn.close();
+//			if(fileOut!=null) fileOut.close();
+//		} catch (IOException ex) {
+//			logger.severe(ex.getMessage());
+//		}
 	}
 
 
