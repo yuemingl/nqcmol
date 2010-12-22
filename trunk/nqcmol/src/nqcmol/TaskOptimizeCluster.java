@@ -5,8 +5,11 @@
 
 package nqcmol;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import nqcmol.cluster.Cluster;
 import java.io.*;
+import java.util.Scanner;
 import org.kohsuke.args4j.*;
 
 /**
@@ -41,58 +44,71 @@ public class TaskOptimizeCluster extends TaskCalculate {
 
 	@Override
 	protected void Process() {				
-        pot.setEnergyTol(ftol);
-        pot.setGradientTol(gtol);
-        pot.setMaxStepSize(mstep);
-        pot.setMaxEvals(nOpts);
+        try {
+            pot.setEnergyTol(ftol);
+            pot.setGradientTol(gtol);
+            pot.setMaxStepSize(mstep);
+            pot.setMaxEvals(nOpts);
+            int i = 0;
 
-        int i = 0;
-        while (mol.Read(fileIn, sFormatIn)) {
-            //mol.Write(System.out,"xyz");
-
-            Cluster oldMol=(Cluster) mol.clone();
-           // for(int k=0;k<12;k++) oldMol.getUSRsig()[k]=0;
-            //MTools.PrintArray(oldMol.getUSRsig());
-            oldMol.CalcUSRsignature();
-
-
-            double oldEnergy = mol.getEnergy();
-            pot.Optimize(mol);
-
-            double newEnergy = mol.getEnergy();
-            //				MultivariateRealOptimizer opt=new NelderMead();
-            //				PotentialFitting fit=new PotentialFitting();
-            //				fit.setF(pot);
-            //				double newEnergy=0;
-            //				RealPointValuePair r = null;//=new RealPointValuePair();
-            //				try {
-            //					r = opt.optimize(fit, GoalType.MINIMIZE, mol.getCoords());
-            //					newEnergy =r.getValue();
-            //				} catch (FunctionEvaluationException ex) {
-            //					Logger.getLogger(TaskSingleCluster.class.getName()).xmllog(Level.SEVERE, null, ex);
-            //				} catch (OptimizationException ex) {
-            //					Logger.getLogger(TaskSingleCluster.class.getName()).xmllog(Level.SEVERE, null, ex);
-            //				}
-            if ((fileOut!=null)&& !mol.isNAN()) {
-                mol.Write(fileOut, sFormatOut);
-                //MTools.PrintArray(mol.getUSRsig());
+            FileWriter fileOut=null;
+            if (!sFileOut.isEmpty()) {
+                fileOut = new FileWriter(new File(sFileOut));
             }
-            mol.CalcUSRsignature();
 
-            xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
-            xmllog.writeAttribute("nAtoms", Integer.toString(mol.getNAtoms()));
-            xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergy));
-            xmllog.writeAttribute("NewEnergy", Double.toString(newEnergy));
-            xmllog.writeAttribute("NEvals", Integer.toString(pot.getNEvals()));
-            xmllog.writeAttribute("RMSGrad", Double.toString(pot.getRMSGrad()));
-            xmllog.writeAttribute("MaxRMSGrad", Double.toString(pot.getMaxGrad()));
-            xmllog.writeAttribute("Similarity", String.format("%1.2f",mol.CalcUSRSimilarity(oldMol)));
-            xmllog.writeAttribute("Error", Boolean.toString(mol.isNAN()));
-            xmllog.endEntity();
-            xmllog.flush();
-            i++;
+            Scanner fileIn = new Scanner(new File(sFileIn));
+
+            Cluster mol=new Cluster();
+
+            while (mol.Read(fileIn, sFormatIn)) {
+                //mol.Write(System.out,"xyz");
+                Cluster oldMol = (Cluster) mol.clone();
+                // for(int k=0;k<12;k++) oldMol.getUSRsig()[k]=0;
+                //MTools.PrintArray(oldMol.getUSRsig());
+                oldMol.CalcUSRsignature();
+                double oldEnergy = mol.getEnergy();
+                pot.Optimize(mol);
+                double newEnergy = mol.getEnergy();
+                //				MultivariateRealOptimizer opt=new NelderMead();
+                //				PotentialFitting fit=new PotentialFitting();
+                //				fit.setF(pot);
+                //				double newEnergy=0;
+                //				RealPointValuePair r = null;//=new RealPointValuePair();
+                //				try {
+                //					r = opt.optimize(fit, GoalType.MINIMIZE, mol.getCoords());
+                //					newEnergy =r.getValue();
+                //				} catch (FunctionEvaluationException ex) {
+                //					Logger.getLogger(TaskSingleCluster.class.getName()).xmllog(Level.SEVERE, null, ex);
+                //				} catch (OptimizationException ex) {
+                //					Logger.getLogger(TaskSingleCluster.class.getName()).xmllog(Level.SEVERE, null, ex);
+                //				}
+
+
+                if ((fileOut != null) && !mol.isNAN()) {
+                    mol.Write(fileOut, sFormatOut);
+                    //MTools.PrintArray(mol.getUSRsig());
+                }
+
+                mol.CalcUSRsignature();
+                xmllog.writeEntity("Cluster").writeAttribute("id", Integer.toString(i));
+                xmllog.writeAttribute("nAtoms", Integer.toString(mol.getNAtoms()));
+                xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergy));
+                xmllog.writeAttribute("NewEnergy", Double.toString(newEnergy));
+                xmllog.writeAttribute("NEvals", Integer.toString(pot.getNEvals()));
+                xmllog.writeAttribute("RMSGrad", Double.toString(pot.getRMSGrad()));
+                xmllog.writeAttribute("MaxRMSGrad", Double.toString(pot.getMaxGrad()));
+                xmllog.writeAttribute("Similarity", String.format("%1.2f", mol.CalcUSRSimilarity(oldMol)));
+                xmllog.writeAttribute("Error", Boolean.toString(mol.isNAN()));
+                xmllog.endEntity();
+                xmllog.flush();
+                i++;
+            }
+            fileIn.close();
+            fileOut.close();
+            
+        } catch (IOException ex) {
+            Logger.getLogger(TaskOptimizeCluster.class.getName()).log(Level.SEVERE, null, ex);
         }
-        fileIn.close();
 		
 	}
 

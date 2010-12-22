@@ -14,6 +14,7 @@ package nqcmol.cluster;
 //import javax.xml.transform.TransformerFactory;
 //import javax.xml.transform.stream.StreamResult;
 //import javax.xml.transform.stream.StreamSource;
+import java.util.ArrayList;
 import java.util.Vector;
 import nqcmol.potential.*;
 
@@ -97,6 +98,25 @@ public class MolExtra {
 	 * @return
 	 */
 	static public int indexForBE(Cluster m,Vector<Cluster> ref){
+		int nO=m.getNonHydrogenNum();
+		int nH=m.getHydrogenNum();
+
+		int remain=nH-ref.get(0).getHydrogenNum()*(nO-1);		//cout<<" Charge =" <<data[i].GetTotalCharge()<<" Mass = "<<data[i].GetMolWt()<<" numNonH= "<<nF<<endl;
+
+		for(int k=0;k<ref.size();k++)
+			if(remain==ref.get(k).getHydrogenNum()){
+				 return k;
+			}
+		return 0;
+	}
+
+    /**
+	 *
+	 * @param m input cluster
+	 * @param ref
+	 * @return
+	 */
+	static public int indexForBE(Cluster m,ArrayList<Cluster> ref){
 		int nO=m.getNonHydrogenNum();
 		int nH=m.getHydrogenNum();
 

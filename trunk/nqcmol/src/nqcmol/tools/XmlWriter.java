@@ -1,10 +1,25 @@
 package nqcmol.tools;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+
+// DOM classes.
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.*;
+//JAXP 1.1
 
 
 /**
@@ -218,7 +233,7 @@ public class XmlWriter {
             return null;
         }
  
-        StringBuffer buffer = new StringBuffer(text.length());
+        StringBuilder buffer = new StringBuilder(text.length());
         int start = 0;
         int end = 0;
         while( (end = text.indexOf(repl, start)) != -1 ) {
@@ -255,4 +270,74 @@ public class XmlWriter {
         System.err.println(writer.toString());
     }
 
+
+    //for processing XML file
+    static public double getDoubleAttributeXML(String name,Element element){
+        return Double.parseDouble(element.getAttribute(name));
+    }
+
+    static public void addAttributeXML(String name, String value,Element node){
+        Attr attr=node.getOwnerDocument().createAttribute(name);
+        attr.setValue(value);
+        node.getAttributes().setNamedItem(attr);
+    }
+
+    /**
+     * create a child node under a parent one
+     * @param name Name/Identity of the child node
+     * @param parent
+     * @return child node
+     */
+    static public Element createNodeXML(String name, Element parent){
+        Document doc=parent.getOwnerDocument();
+        Element child=null;
+        if(doc!=null){
+           child =doc.createElement(name);
+            parent.appendChild(child);
+        }
+        return child;
+    }
+
+    /**
+     * remove a child node under a parent one if exists.
+     * @param Name/Identity of the child node
+     * @param parent
+     */
+    static public void removeNodeXML(String name, Element parent){
+        Element child=(Element)parent.getElementsByTagName(name).item(0);
+        if(child!=null)
+            child.getParentNode().removeChild(child);
+    }
+
+
+     /**
+     * create a new XML document
+     */
+    static public Document createDocXML(){
+        Document doc=null;
+        try {
+            doc=DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+        } catch (ParserConfigurationException ex) {
+            Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return doc;
+    }
+
+    /**
+     * @param doc XML document class
+     * @param sFileName output file name
+     */
+    static public void writeDocXML(Document doc,String sFileName){
+        if(!sFileName.isEmpty()){
+            try {
+                doc.normalize();
+                Transformer serializer = TransformerFactory.newInstance().newTransformer();
+                serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+                serializer.setOutputProperty(OutputKeys.INDENT,"yes");
+                serializer.transform(new DOMSource(doc), new StreamResult(new File(sFileName)));
+            } catch (TransformerException ex) {
+                Logger.getLogger(XmlWriter.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
 }

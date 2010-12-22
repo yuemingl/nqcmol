@@ -7,6 +7,7 @@ package nqcmol;
 
 import nqcmol.cluster.Crystal;
 import java.io.*;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -76,6 +77,10 @@ public class TaskCalculateRadialDistributionFunction extends Task{
            rdf = new double[length];
 
 			Crystal cryst=new Crystal();
+
+
+            Scanner fileIn = new Scanner(new File(sFileIn));
+
 			while (cryst.Read(fileIn, sFormatIn)) {			
 				accumulate(cryst);
 				xmllog.writeEntity("Cluster");
@@ -105,7 +110,8 @@ public class TaskCalculateRadialDistributionFunction extends Task{
 //            }
 //            xmllog.endEntity().flush();
 
-            if(fileOut!=null){
+            if(!sFileOut.isEmpty()){
+                FileWriter fileOut=new FileWriter(new File(sFileOut));
                 for(i=0;i<rdf.length;i++){
                     fileOut.write(String.format("%f\t%f\n",startCutoff+resolution*(i+0.5),rdf[i]));
 

@@ -5,7 +5,13 @@
 
 package nqcmol;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import nqcmol.cluster.Cluster;
 
 
 /**
@@ -28,18 +34,19 @@ public class TaskValidateGradient extends TaskCalculate {
 
 	@Override
 	protected void Process() {		
-//			xmllog.writeEntity("Note");
-//			xmllog.writeText(" Time is measured in seconds");
-//			xmllog.endEntity();
-			
-			int i = 0;
-			while (mol.Read(fileIn,sFormatIn)) {
-				//mol.Write(System.out,"xyz");
-				pot.setCluster(mol);
-				System.out.print(pot.ValidateGradient(1.0E-4));
-
-				i++;
-			}
-			fileIn.close();				
+        try {
+            int i = 0;
+            Scanner fileIn = new Scanner(new File(sFileIn));
+            Cluster mol = new Cluster();
+            while (mol.Read(fileIn, sFormatIn)) {
+                //mol.Write(System.out,"xyz");
+                pot.setCluster(mol);
+                System.out.print(pot.ValidateGradient(1.0E-4));
+                i++;
+            }
+            fileIn.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(TaskValidateGradient.class.getName()).log(Level.SEVERE, null, ex);
+        }
 	}	
 }

@@ -5,13 +5,15 @@
 
 package nqcmol;
 
-import java.io.*;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.util.*;
-import mpi.MPI;
-
-
+// DOM classes.
+import java.util.ArrayList;
+import java.util.List;
+import org.w3c.dom.*;
+//JAXP 1.1
+import nqcmol.hierarchical.Hierarchical;
+import nqcmol.hierarchical.LinkageCriterion;
+import nqcmol.hierarchical.Vector;
+import nqcmol.tools.XmlWriter;
 
 /**
  *
@@ -32,87 +34,109 @@ public class TaskTest extends Task {
         new TaskTest().Execute(args);
     }
 
-    double[] a=new double[]{12};
-    double[] b=new double[]{3};
 
-    class ThreadTest extends Thread{
-        private int n=12;
-        ThreadTest(int n){
-            setN(n);
-        }
 
-        void setN(int n){
-            this.n=n;
-        }
+//    double[] a=new double[]{12};
+//    double[] b=new double[]{3};
 
-        @Override
-        public void run() {
-            System.out.println(getName()+" -- Starting" );
-            System.out.println(getName()+" --" + fib(n));
-        }
-
-    }
-
-    public static int Ack(int m, int n) {
-        return (m == 0) ? (n + 1) : ((n == 0) ? Ack(m-1, 1) :     Ack(m-1, Ack(m, n - 1)));
-    }
-
-    public static int fib(int n) {
-        if (n < 2) return(1);
-        return( fib(n-2) + fib(n-1) );
-    }
-
-    @Override
-    public void Execute(String[] args) {
-//        System.out.println(args[0]);
-//        int n = Integer.parseInt(args[2]);
-        //System.out.println("Ack(3," + num + "): " + Ack(3, num));
-        Thread[] threads = new Thread[4];
-        for (int i = 0; i < threads.length; i++) {
-            threads[i] = new ThreadTest(45);
-            threads[i].start();            
-        }
-
-        for (int i = 0; i < threads.length; i++) {
-           try {
-              threads[i].join();
-           } catch (InterruptedException ignore) {}
-       }
-//            String[] newargs=MPI.Init(args);
-//            int me = MPI.COMM_WORLD.Rank();
-//            int size = MPI.COMM_WORLD.Size();
-//            System.out.println("Hi from <>"+me);
-//            ParseArguments(newargs);
-//            this.parser.printUsage(System.out);
+//    class ThreadTest extends Thread{
+//        private int n=12;
+//        ThreadTest(int n){
+//            setN(n);
+//        }
 //
-//            if(me==0){
-//                MPI.COMM_WORLD.Send(a,0, 1,MPI.DOUBLE,1,0);
-//                System.out.println(me+" I am sending "+a[0]);
-//            }else{
-//                a[0]=1233;
-//                MPI.COMM_WORLD.Recv(b,0, 1,MPI.DOUBLE, 0, 0);
-//                System.out.println(me+" I am receiving "+b[0]);
-//            }
+//        void setN(int n){
+//            this.n=n;
+//        }
 //
-//            MPI.COMM_WORLD.Barrier();
+//        @Override
+//        public void run() {
+//            System.out.println(getName()+" -- Starting" );
+//            System.out.println(getName()+" --" + fib(n));
+//        }
 //
-//            System.out.println(me+": a="+a[0]+" b="+b[0]);
+//    }
+//
+//    public static int Ack(int m, int n) {
+//        return (m == 0) ? (n + 1) : ((n == 0) ? Ack(m-1, 1) :     Ack(m-1, Ack(m, n - 1)));
+//    }
+//
+//    public static int fib(int n) {
+//        if (n < 2) return(1);
+//        return( fib(n-2) + fib(n-1) );
+//    }
+//
+//    @Override
+//    public void Execute(String[] args) {
+////        System.out.println(args[0]);
+////        int n = Integer.parseInt(args[2]);
+//        //System.out.println("Ack(3," + num + "): " + Ack(3, num));
+//        Thread[] threads = new Thread[4];
+//        for (int i = 0; i < threads.length; i++) {
+//            threads[i] = new ThreadTest(45);
+//            threads[i].start();
+//        }
+//
+//        for (int i = 0; i < threads.length; i++) {
+//           try {
+//              threads[i].join();
+//           } catch (InterruptedException ignore) {}
+//       }
+////            String[] newargs=MPI.Init(args);
+////            int me = MPI.COMM_WORLD.Rank();
+////            int size = MPI.COMM_WORLD.Size();
+////            System.out.println("Hi from <>"+me);
+////            ParseArguments(newargs);
+////            this.parser.printUsage(System.out);
+////
+////            if(me==0){
+////                MPI.COMM_WORLD.Send(a,0, 1,MPI.DOUBLE,1,0);
+////                System.out.println(me+" I am sending "+a[0]);
+////            }else{
+////                a[0]=1233;
+////                MPI.COMM_WORLD.Recv(b,0, 1,MPI.DOUBLE, 0, 0);
+////                System.out.println(me+" I am receiving "+b[0]);
+////            }
+////
+////            MPI.COMM_WORLD.Barrier();
+////
+////            System.out.println(me+": a="+a[0]+" b="+b[0]);
+////
+////
+////            Initialize();
+////            MPI.Finalize();
 //
 //
-//            Initialize();
-//            MPI.Finalize();
-        
-
-    }
+//    }
 
     @Override
     protected void Process() {
-        super.Process();
+        Document doc=XmlWriter.createDocXML();
+        Element root=doc.createElement("Test");
+        root.appendChild(doc.createElement("T1"));
+        root.appendChild(doc.createElement("T2"));
+
+        //doc.appendChild(root);
+        XmlWriter.writeDocXML(doc, "testXML.xml");
+
+        Vector v0 = new Vector(0);
+		Vector v1 = new Vector(1);
+		Vector v2 = new Vector(3);
+		Vector v3 = new Vector(5);
+		Vector v4 = new Vector(9);
+		Vector v5 = new Vector(10);
+
+		List<Vector> patternList = new ArrayList<Vector>();
+		patternList.add(v0);
+		patternList.add(v1);
+		patternList.add(v2);
+		patternList.add(v3);
+		patternList.add(v4);
+		patternList.add(v5);
+
+		Hierarchical hierarchical = new Hierarchical(patternList.toArray(new Vector[patternList.size()]), LinkageCriterion.SINGLE);
+		hierarchical.partition();
     }
-
-
-
-
 
 	
 /*

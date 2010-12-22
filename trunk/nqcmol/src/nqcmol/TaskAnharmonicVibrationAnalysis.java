@@ -8,6 +8,7 @@ package nqcmol;
 import nqcmol.cluster.Cluster;
 import nqcmol.cluster.MolExtra;
 import java.io.*;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import nqcmol.potential.GaussianInterfacePotential;
@@ -16,7 +17,6 @@ import nqcmol.tools.MTools;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.polynomials.PolynomialFunction;
 import org.apache.commons.math.optimization.OptimizationException;
-import org.apache.commons.math.optimization.fitting.CurveFitter;
 import org.apache.commons.math.optimization.fitting.ParametricRealFunction;
 import org.apache.commons.math.optimization.fitting.PolynomialFitter;
 import org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer;
@@ -33,6 +33,7 @@ import javax.xml.transform.*;
 import javax.xml.transform.stream.*;
 import javax.xml.transform.dom.*;
 import nqcmol.cluster.VibrationData;
+import nqcmol.tools.XmlWriter;
 
 
 /**
@@ -92,6 +93,8 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 	@Override
 	protected void Process() {
 		try {
+            Scanner fileIn = new Scanner(new File(sFileIn));
+
 			xmllog.writeEntity("Note");
 			xmllog.writeText(" There are two steps to calculate anharmonic frequencies. Firstly, perform Gaussian scanning  and pipeline the results to an XML file. Then, use XML file generated to approximate frequencies. Remember to specify the output file at the second step.");
 			xmllog.endEntity();
@@ -196,51 +199,12 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 		xmllog.endEntity().flush();
 	}
 
-    static double getDoubleAttributeXML(String name,Element element){
-        return Double.parseDouble(element.getAttribute(name));
-    }
-
-    static void addAttributeXML(String name, String value,Element node){
-        Attr attr=node.getOwnerDocument().createAttribute(name);
-        attr.setValue(value);
-        node.getAttributes().setNamedItem(attr);
-    }
-
-    /**
-     * create a child node under a parent one
-     * @param name Name/Identity of the child node
-     * @param parent
-     * @return child node
-     */
-    static Element createNodeXML(String name, Element parent){
-        Document doc=parent.getOwnerDocument();
-        Element child=null;
-        if(doc!=null){
-           child =doc.createElement(name);
-            parent.appendChild(child);
-        }
-        return child;
-    }
-
-    /**
-     * remove a child node under a parent one if exists.
-     * @param Name/Identity of the child node
-     * @param parent
-     */
-    static void removeNodeXML(String name, Element parent){
-        Element child=(Element)parent.getElementsByTagName(name).item(0);
-        if(child!=null)
-            child.getParentNode().removeChild(child);
-    }
-
-    
+      
 
     void ParseXMLFile(){
         try {
             File file = new File(sFileIn);
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            Document doc = db.parse(file);
+            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file);
             doc.getDocumentElement().normalize();
             
             //System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
@@ -255,7 +219,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
                //System.out.println("nAtom : "  + nodeCluster.getAttributes().getNamedItem("nAtom"));
                //System.out.println("Energy : "  + nodeCluster.getAttributes().getNamedItem("Energy"));
                
-               double energy=getDoubleAttributeXML("Energy",nodeCluster); //reading energy
+               double energy= XmlWriter.getDoubleAttributeXML("Energy",nodeCluster); //reading energy
 
                NodeList listNormalMode=nodeCluster.getElementsByTagName("NormalMode");             
 
@@ -263,7 +227,7 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 
                   // System.out.println("\tNormalMode : "  + iNormalMode);
                    Element nodeNormalMode=(Element)listNormalMode.item(iNormalMode);
-                   double reducedMass=getDoubleAttributeXML("ReducedMass",nodeNormalMode); //reading reduced mass
+                   double reducedMass= XmlWriter.getDoubleAttributeXML("ReducedMass",nodeNormalMode); //reading reduced mass
 
                    //System.out.println("\t\tReducedMass : "  + reducedMass);
 
@@ -279,8 +243,8 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
                    //deltaX[0]=0; energies[0]=energy;
                    for(int iStep=0;iStep < listStep.getLength();iStep++){//for every steps                        
                         Element nodeStep= (Element)listStep.item(iStep);
-                        deltaX[iStep]  =getDoubleAttributeXML("DeltaX",nodeStep);
-                        energies[iStep]=getDoubleAttributeXML("Energy",nodeStep);
+                        deltaX[iStep]  = XmlWriter.getDoubleAttributeXML("DeltaX",nodeStep);
+                        energies[iStep]= XmlWriter.getDoubleAttributeXML("Energy",nodeStep);
                        //System.out.println("\t\tStep : "  + iStep + " " + deltaX[iStep]+" "+energies[iStep]);
                    }
 
@@ -293,21 +257,8 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
             }
 
             //writing out the results
-            if(fileOut!=null){
-                doc.normalize();//              Normalize the DOM tree to combine all adjacent nodes
+            XmlWriter.writeDocXML(doc, sFileOut);
 
-                DOMSource domSource = new DOMSource(doc);
-                StreamResult streamResult = new StreamResult(fileOut);
-                TransformerFactory tf = TransformerFactory.newInstance();
-                Transformer serializer = tf.newTransformer();
-                serializer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-                serializer.setOutputProperty(OutputKeys.INDENT,"yes");
-
-                serializer.transform(domSource, streamResult);
-            }
-
-        } catch (TransformerException ex) {
-            Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);        
         } catch (SAXException ex) {
             Logger.getLogger(TaskAnharmonicVibrationAnalysis.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -350,18 +301,18 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 
 
             //remove the old fit if exists
-            removeNodeXML("PolynomialFit",nodeNormalMode);            
+            XmlWriter.removeNodeXML("PolynomialFit",nodeNormalMode);
             //create a new one
-            Element nodePoly=createNodeXML("PolynomialFit",nodeNormalMode);
+            Element nodePoly=XmlWriter.createNodeXML("PolynomialFit",nodeNormalMode);
 
             //add result
-            addAttributeXML("HarFreq",Double.toString(omega),nodePoly);
+            XmlWriter.addAttributeXML("HarFreq",Double.toString(omega),nodePoly);
 
 
             for (int j = 0; j < params.length; j++) {//details of parameters
-                Element nodeTerm=createNodeXML("Term",nodePoly);
-                addAttributeXML("Degree", Integer.toString(j),nodeTerm);
-                addAttributeXML("Coefficient",  Double.toString(params[j]),nodeTerm);
+                Element nodeTerm=XmlWriter.createNodeXML("Term",nodePoly);
+                XmlWriter.addAttributeXML("Degree", Integer.toString(j),nodeTerm);
+                XmlWriter.addAttributeXML("Coefficient",  Double.toString(params[j]),nodeTerm);
             }
             
 //            xmllog.writeEntity("PolynomialFitting");
@@ -463,16 +414,16 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
                 double anFreq=omega-ksiomega*2.0;
 
                 //remove the old fit if exists
-                removeNodeXML("MorseFit",nodeNormalMode);
+                XmlWriter.removeNodeXML("MorseFit",nodeNormalMode);
                 //create a new one
-                Element nodeMorse=createNodeXML("MorseFit",nodeNormalMode);
+                Element nodeMorse= XmlWriter.createNodeXML("MorseFit",nodeNormalMode);
 
                 //add result
-                addAttributeXML("De",Double.toString(De),nodeMorse);
-                addAttributeXML("alpha",Double.toString(alpha),nodeMorse);
-                addAttributeXML("HarFreq",Double.toString(omega),nodeMorse);
-                addAttributeXML("AnharConstant",Double.toString(ksiomega),nodeMorse);
-                addAttributeXML("AnharFreq",Double.toString(anFreq),nodeMorse);
+                XmlWriter.addAttributeXML("De",Double.toString(De),nodeMorse);
+                XmlWriter.addAttributeXML("alpha",Double.toString(alpha),nodeMorse);
+                XmlWriter.addAttributeXML("HarFreq",Double.toString(omega),nodeMorse);
+                XmlWriter.addAttributeXML("AnharConstant",Double.toString(ksiomega),nodeMorse);
+                XmlWriter.addAttributeXML("AnharFreq",Double.toString(anFreq),nodeMorse);
 
 
 //                xmllog.writeEntity("MorseFitting");
@@ -528,19 +479,19 @@ public class TaskAnharmonicVibrationAnalysis extends Task {
 			rmsE = Math.sqrt(rmsE / energies.length);
 
             //create a new one
-            Element nodeValidity=createNodeXML("Validity",node);
+            Element nodeValidity=XmlWriter.createNodeXML("Validity",node);
 
             //add result
-            addAttributeXML("RMSE",Double.toString(rmsE),nodeValidity);
+            XmlWriter.addAttributeXML("RMSE",Double.toString(rmsE),nodeValidity);
 
             for (int j = 0; j < energies.length; j++) {
 				double deltaE = Math.abs(calcE[j] - energies[j]);
-                Element nodeStep=createNodeXML("Step",nodeValidity);
-                addAttributeXML("DeltaE",Double.toString(deltaE),nodeStep);
-                addAttributeXML("CalcE",Double.toString(calcE[j]),nodeStep);
-                addAttributeXML("ObservedE",Double.toString(energies[j]),nodeStep);
-                addAttributeXML("DeltaX",Double.toString(deltaX[j]),nodeStep);                
-                addAttributeXML("id",Integer.toString(j),nodeStep);
+                Element nodeStep=XmlWriter.createNodeXML("Step",nodeValidity);
+                XmlWriter.addAttributeXML("DeltaE",Double.toString(deltaE),nodeStep);
+                XmlWriter.addAttributeXML("CalcE",Double.toString(calcE[j]),nodeStep);
+                XmlWriter.addAttributeXML("ObservedE",Double.toString(energies[j]),nodeStep);
+                XmlWriter.addAttributeXML("DeltaX",Double.toString(deltaX[j]),nodeStep);
+                XmlWriter.addAttributeXML("id",Integer.toString(j),nodeStep);
 
 			}
            

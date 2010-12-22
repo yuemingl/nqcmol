@@ -8,6 +8,7 @@ package nqcmol;
 import nqcmol.cluster.Cluster;
 import nqcmol.cluster.MolExtra;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -47,7 +48,8 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 			xmllog.endEntity();			
 
 			Scanner scanRef=new Scanner(new File(sFileRef));
-			Vector<Cluster> molRef= new Vector<Cluster>();
+
+			ArrayList<Cluster> molRef= new ArrayList<Cluster>();
 			while (scanRef.hasNext()) {
 					Cluster tmpMol = new Cluster();
 					if(!tmpMol.Read(scanRef, sFormatIn)){
@@ -74,7 +76,7 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 				newEnergyRef[i]=pot.getEnergy(true);
 				xmllog.writeEntity("Cluster");
 				xmllog.writeAttribute("id", Integer.toString(i));
-				xmllog.writeAttribute("Tag", mol.getTag());
+				xmllog.writeAttribute("Tag", m.getTag());
 				xmllog.writeAttribute("nAtoms", Integer.toString(m.getNAtoms()));
 				xmllog.writeAttribute("OldEnergy", Double.toString(oldEnergyRef[i]));
 				xmllog.writeAttribute("NewEnergy", Double.toString(newEnergyRef[i]));
@@ -86,6 +88,9 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 
 			int i = 0;
 			//JSONArray jsChild2=new JSONArray();
+
+            Scanner fileIn = new Scanner(new File(sFileIn));
+            Cluster mol=new Cluster();
 			while (mol.Read(fileIn, sFormatIn)) {
 				//mol.Write(System.out,"xyz");
 
@@ -112,6 +117,7 @@ public class TaskCalculateBindingEnergy extends TaskCalculate {
 
 				//break;
 			}
+            fileIn.close();
 		} catch (IOException ex) {
 			logger.severe(ex.getMessage());
 		}
