@@ -41,6 +41,9 @@ public class TaskFitPotential extends TaskCalculate {
     @Option(name="-b",usage="Bound file. Each line should consist of at least three columns including [upper] [lower] [fixed].[]",metaVar="STRING")
 	String sFileBound="";
 
+    @Option(name="-weight",usage="Using linear weighted scheme.")
+	boolean bWeighted=false;
+
 
 
     //@Option(name="-mpi",usage="Using MPI to run parallel or not.[false]",metaVar="STRING")
@@ -135,10 +138,6 @@ public class TaskFitPotential extends TaskCalculate {
                     xmllog.endEntity().flush();
                 xmllog.endEntity().flush();
 
-
-                xmllog.writeEntity("ProcessData");
-                    ProcessData();
-                xmllog.endEntity().flush();
             xmllog.endEntity().flush();
 
             } catch (IOException ex) {
@@ -200,24 +199,24 @@ public class TaskFitPotential extends TaskCalculate {
 			}
 
 			for(int i=0;i<50;i++){
-				boolean bSet=false;
+				//boolean bSet=false;
 				String opt=String.format("-i%d",i+1);
 					for(int j=0;j<args.length-1;j++)
 						if(args[j].contentEquals(opt)){
-							bSet=true;
+							//bSet=true;
 							datafile.add(args[j+1]);
 						}
 
-				if(bSet){
-					double t=1;
-					opt=String.format("-w%d",i+1);
-
-					for(int j=0;j<args.length-1;j++)
-						if(args[j].contentEquals(opt))
-							t=Double.parseDouble(args[j+1]);
-
-					dataWeight.add(t);
-				}
+//				if(bSet){
+//					double t=1;
+//					opt=String.format("-w%d",i+1);
+//
+//					for(int j=0;j<args.length-1;j++)
+//						if(args[j].contentEquals(opt))
+//							t=Double.parseDouble(args[j+1]);
+//
+//					dataWeight.add(t);
+//				}
 			}
 		} catch (CmdLineException ex) {
 			logger.severe(ex.getMessage());
@@ -253,24 +252,11 @@ public class TaskFitPotential extends TaskCalculate {
 	double[] target; //!< contain target data, in that case is binding energy +rms
 
 	Vector<String> datafile=new Vector<String>();
-	Vector<Double> dataWeight=new Vector<Double>();
-
 
     int nIterations=0;
     int nEvaluations=0;
     double[] finalParam;
     double finalRMS=0;
-
-
-    void ProcessData(){
-        double[] ener_ref={molRef.get(0).getEnergy(),molRef.get(1).getEnergy(),molRef.get(2).getEnergy()};
-		target=new double[data.size()];
-		for (int i=0; i< data.size(); i++){
-			Cluster m=data.get(i);
-			target[i]= CalcBindingEnergy(m,m.getEnergy(),ener_ref);
-			//target[i]*=1000;
-		}
-	}
 
     private double CalcBindingEnergy(Cluster m,double ener,double[] ener_shift){
         double be=0;
@@ -305,8 +291,10 @@ public class TaskFitPotential extends TaskCalculate {
     }
 
     protected void ReadData() throws FileNotFoundException{
-        Vector<Double> tmpWeight=new Vector<Double>();
+        ArrayList<ArrayList<Double> > arrayData=new ArrayList<ArrayList<Double>>();
+        //reading the data
         for (int i = 0; i < datafile.size();i++) {
+            ArrayList<Double> tmpData= new ArrayList<Double>();
 			Scanner scanData = new Scanner(new File(datafile.get(i)));
 			int count=0;
 
@@ -317,23 +305,63 @@ public class TaskFitPotential extends TaskCalculate {
 				tmpMol.CorrectOrder();
 
 				data.add(tmpMol);
-				tmpWeight.add(dataWeight.get(i));
+
+                tmpData.add(tmpMol.getEnergy());
 				count++;
 			}
+            arrayData.add(tmpData);
+
 			xmllog.writeEntity("Data");
 			xmllog.writeAttribute("File", datafile.get(i));
 			xmllog.writeAttribute("Size", Integer.toString(count));
-			xmllog.writeAttribute("Weight", Double.toString(dataWeight.get(i)));
 			xmllog.endEntity().flush();
 			scanData.close();
 		}
         
-        weight = new double[tmpWeight.size()];
-        for (int i = 0; i < weight.length; i++) {
-            weight[i] = tmpWeight.get(i);
-        }
+        //calculate target energies
+        double[] ener_ref={molRef.get(0).getEnergy(),molRef.get(1).getEnergy(),molRef.get(2).getEnergy()};
+		target=new double[data.size()];
+		for (int i=0; i< data.size(); i++){
+			Cluster m=data.get(i);
+			target[i]= CalcBindingEnergy(m,m.getEnergy(),ener_ref);
+			//target[i]*=1000;
+		}
+        
+        
+        //calculate weighted numbers
+        weight = new double[data.size()];
+        if(bWeighted){
+            int i=0;
+            for (ArrayList<Double> d : arrayData) {
+                //finding the smallest ones
+                double minE=Double.MAX_VALUE;
+                double maxE=-Double.MAX_VALUE;
+                for(Double k : d){
+                    minE=Math.min(minE,k);
+                    maxE=Math.max(maxE,k);
+                }
 
-    }
+                //System.out.println(" Min = " + minE + " max = "+maxE);
+                double c=maxE+0.1*(maxE-minE)/d.size();
+                double normalizationFactor=0;
+               
+                for(Double k : d){
+                   normalizationFactor+=(c-k);
+                }
+                
+
+                //scale weighted numbers
+                for(Double k : d){
+                    weight[i]=(c-k)/normalizationFactor*d.size()/weight.length;
+                    i++;
+                }
+
+            }
+        }else //if not weighted
+            for(int i=0;i<weight.length;i++){
+                weight[i]=1.0/weight.length;
+            }
+    }   
 
     protected void ReadBound() throws FileNotFoundException, IOException{		
         param_inp=pot.getParam().clone();
@@ -442,38 +470,38 @@ public class TaskFitPotential extends TaskCalculate {
 			}       
     }
 
-    class ThreadEvaluate extends Thread{
-        private double[] calcEner;
-        private int iFrom=0;
-        private int iTo=0;
-        private Potential pot;
-
-        public void setRange(int iFrom,int iTo){
-            this.iFrom=iFrom;
-            this.iTo=iTo;
-        }
-
-        public void setCalcEner(double[] a){
-            this.calcEner=a;
-        }
-
-        public void setPotential(Potential pot){
-            this.pot=pot;
-        }
-
-
-        @Override
-        public void run() {
-			for (int i=iFrom; i<iTo; i++){
-				Cluster m=data.get(i);
-				//calculate binding energy
-				this.pot.setCluster(m);
-				this.calcEner[i] = this.pot.getEnergy(m.getCoords());
-                //System.out.println(Thread.currentThread().getName()+" id = "+i+" e="+this.calcEner[i]);//
-			}
-        }
-
-    }
+//    class ThreadEvaluate extends Thread{
+//        private double[] calcEner;
+//        private int iFrom=0;
+//        private int iTo=0;
+//        private Potential pot;
+//
+//        public void setRange(int iFrom,int iTo){
+//            this.iFrom=iFrom;
+//            this.iTo=iTo;
+//        }
+//
+//        public void setCalcEner(double[] a){
+//            this.calcEner=a;
+//        }
+//
+//        public void setPotential(Potential pot){
+//            this.pot=pot;
+//        }
+//
+//
+//        @Override
+//        public void run() {
+//			for (int i=iFrom; i<iTo; i++){
+//				Cluster m=data.get(i);
+//				//calculate binding energy
+//				this.pot.setCluster(m);
+//				this.calcEner[i] = this.pot.getEnergy(m.getCoords());
+//                //System.out.println(Thread.currentThread().getName()+" id = "+i+" e="+this.calcEner[i]);//
+//			}
+//        }
+//
+//    }
 
     double Evaluate(double[] p,int verbose){
 		double[] y=new double[data.size()];
@@ -520,39 +548,41 @@ public class TaskFitPotential extends TaskCalculate {
         //calculate y here
         double[] calcEner=new double[data.size()];
         //calculate y here
-        ThreadEvaluate[] threads=new ThreadEvaluate[ncpu];
-        
-        for(int i=0;i<threads.length;i++){
-            System.out.println("Iniatialize " + i);
-            threads[i] = new ThreadEvaluate();
-            threads[i].setCalcEner(calcEner);
-            threads[i].setPotential(potpool[i]);
-            int nCalcs=(int)(data.size()/ncpu)+1;
-            if(i!=threads.length-1) threads[i].setRange(nCalcs*i,nCalcs*(i+1));
-            else threads[i].setRange(nCalcs*i,data.size());
-        }
-
-        for(int i=0;i<threads.length;i++){
-            threads[i].start();
-        }
-
-        for (int i = 0; i < threads.length; i++) {
-           System.out.println("Join " + i);
-           try {
-              threads[i].join();
-           } catch (InterruptedException ignore) {
-           }
-       }
+//        ThreadEvaluate[] threads=new ThreadEvaluate[ncpu];
+//
+//        for(int i=0;i<threads.length;i++){
+//            System.out.println("Iniatialize " + i);
+//            threads[i] = new ThreadEvaluate();
+//            threads[i].setCalcEner(calcEner);
+//            threads[i].setPotential(potpool[i]);
+//            int nCalcs=(int)(data.size()/ncpu)+1;
+//            if(i!=threads.length-1) threads[i].setRange(nCalcs*i,nCalcs*(i+1));
+//            else threads[i].setRange(nCalcs*i,data.size());
+//        }
+//
+//        for(int i=0;i<threads.length;i++){
+//            threads[i].start();
+//        }
+//
+//        for (int i = 0; i < threads.length; i++) {
+//           System.out.println("Join " + i);
+//           try {
+//              threads[i].join();
+//           } catch (InterruptedException ignore) {
+//           }
+//       }
 
 
         for (int i=0; i<data.size(); i++){
             Cluster m=data.get(i);
             //calculate binding energy
+            pot.setCluster(m);
+            calcEner[i] = pot.getEnergy(m.getCoords());
             double ener=calcEner[i];
             y[i] = CalcBindingEnergy(m,ener,ener_shift);
 
-            double dE = Math.abs(y[i] - target[i])* Math.sqrt(weight[i]);
-            rms+=dE*dE;
+            double dE = Math.abs(y[i] - target[i]);
+            rms+=dE*dE*weight[i];
 
             if(verbose>=4){
                 xmllog.writeEntity("Eval");
@@ -567,7 +597,7 @@ public class TaskFitPotential extends TaskCalculate {
             }
         }
 
-        rms=Math.sqrt(rms/data.size());
+        rms=Math.sqrt(rms);
 
         if (verbose>=1){
              xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(nEvaluations));
@@ -578,7 +608,6 @@ public class TaskFitPotential extends TaskCalculate {
         nEvaluations++;
         return rms;
     }
-
 
 	double Evaluate_old(double[] p,double[] y,int verbose){
         double[] alpha=new double[param_inp.length];
@@ -644,6 +673,9 @@ public class TaskFitPotential extends TaskCalculate {
         }
 
         rms=Math.sqrt(rms/data.size());
+
+        //convert unit
+        rms=Potential.ConvertUnit(rms,"Hartree","kcal/mol");
 
         if (verbose>=1){
              xmllog.writeEntity("Step").writeAttribute("id", Integer.toString(nEvaluations));
