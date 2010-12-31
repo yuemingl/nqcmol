@@ -77,10 +77,10 @@ public class KKYPotential extends Potential{
             
             Set set = params.entrySet();
             Iterator i = set.iterator();
-            logger.finest("Parameters of KKY:" );
+           // logger.finest("Parameters of KKY:" );
             while(i.hasNext()){
               Map.Entry me = (Map.Entry)i.next();
-              logger.finest(me.getKey() + " = " + me.getValue() );
+              //logger.finest(me.getKey() + " = " + me.getValue() );
             }
 
         } catch (FileNotFoundException ex) {
@@ -141,7 +141,7 @@ public class KKYPotential extends Potential{
 	protected double Energy_(double[] _p){
 		double energy=0;
 		if(_p.length<=3) return 0;
-		logger.finest(" Size of vec = "+ _p.length);
+		//logger.finest(" Size of vec = "+ _p.length);
 		AllocatePrivateVariables(_p.length/3);
 
 		CalcDistanceAndCharge(_p,false);
@@ -151,14 +151,14 @@ public class KKYPotential extends Potential{
 
 		energy=V_2body + V_3body;
 
-        logger.fine("Summary ");
-        logger.fine("     1. v_Coulomb         ="+v_Coulomb);
-        logger.fine("     2. v_ShortRangeRepuls="+v_ShortRangeRepuls);
-        logger.fine("     3. v_VanDerWaals     ="+v_VanDerWaals);
-        logger.fine("     4. v_CovalentBond    ="+v_CovalentBond);
-        logger.fine(" 5. V_2body (1+2+3+4) = "+V_2body);
-        logger.fine(" 6. V_3body           = "+V_3body);
-        logger.fine(" 7. Energy (5+6)      = "+energy);
+//        logger.fine("Summary ");
+//        logger.fine("     1. v_Coulomb         ="+v_Coulomb);
+//        logger.fine("     2. v_ShortRangeRepuls="+v_ShortRangeRepuls);
+//        logger.fine("     3. v_VanDerWaals     ="+v_VanDerWaals);
+//        logger.fine("     4. v_CovalentBond    ="+v_CovalentBond);
+//        logger.fine(" 5. V_2body (1+2+3+4) = "+V_2body);
+//        logger.fine(" 6. V_3body           = "+V_3body);
+//        logger.fine(" 7. Energy (5+6)      = "+energy);
 
 		energy=ConvertUnit(energy,nativeUnit,unit);
 
