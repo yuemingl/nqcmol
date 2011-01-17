@@ -38,6 +38,33 @@ public class SparseMatrix {
 		
 		average = sum / (double)counter;
 	}
+
+    /**
+     *
+     * @param patterns Square matrix of distances
+     * @param linkageCriterion
+     */
+    public SparseMatrix(double[][] patterns, LinkageCriterion linkageCriterion) {
+		this.linkageCriterion = linkageCriterion;
+		distanceFactorCalculator = DistanceFactorCalculator.Factory.create(linkageCriterion);
+
+		rows = new ArrayList<List<Double>>();
+		for (int i = 0; i < patterns.length; i++) {
+			rows.add(new ArrayList<Double>());
+		}
+
+		int counter = 0;
+		double sum = 0;
+		for (int row = 0; row < rows.size(); row++) {
+			for (int col = 0; col < row; col++) {
+				double distance=patterns[row][col];
+				sum += distance;
+				counter++;
+                rows.get(row).add(distance);
+			}
+		}
+		average = sum / (double)counter;
+	}
 	
 	private double getCell(int row, int column) {
 		if (row >= column) 

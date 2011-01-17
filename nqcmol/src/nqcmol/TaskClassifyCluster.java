@@ -8,8 +8,11 @@ package nqcmol;
 import nqcmol.cluster.WaterCluster;
 import nqcmol.cluster.Cluster;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
+import nqcmol.hierarchical.Hierarchical;
+import nqcmol.hierarchical.LinkageCriterion;
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
 
@@ -54,11 +57,7 @@ public class TaskClassifyCluster extends Task{
 
 	@Override
 	protected void Process() {					
-        try {
-           
-
-            
-
+        try {           
             HashMap<String, Integer> statCount = new HashMap<String, Integer>();
             statCount.put("Total", 0);
 
@@ -66,17 +65,26 @@ public class TaskClassifyCluster extends Task{
             double[] avgCoordNum = new double[Cluster.cNumCountMax];
             MTools.VEC_EQU_NUM(avgCoordNum, 0);
             double avgCompactness = 0;
-            int i = 0;
+            
 
             FileWriter fileOut=null;
             if (!sFileOut.isEmpty()) {
                 fileOut = new FileWriter(new File(sFileOut));
             }
 
-            WaterCluster mol = new WaterCluster();
+            ArrayList<Cluster> pop=new ArrayList<Cluster>();
+
+            int i = 0;
             
             Scanner fileIn = new Scanner(new File(sFileIn));
-            while (mol.Read(fileIn, sFormatIn)) {
+            while (fileIn.hasNext()) {
+                WaterCluster mol = new WaterCluster();
+                mol.Read(fileIn, sFormatIn);
+				if(mol.getNAtoms()<=0) break;
+
+                mol.CalcUSRsignature();
+                pop.add(mol);
+                
                 mol.getPairwiseBond();
                 String morph = mol.getMorphology(false);
                 if (morph.contentEquals(sPattern)) {
@@ -129,7 +137,7 @@ public class TaskClassifyCluster extends Task{
             }
 
             fileIn.close();
-            fileOut.close();
+            if (!sFileOut.isEmpty())  fileOut.close();
 
             xmllog.writeEntity("Statistics");
             for (String s : statCount.keySet()) {
@@ -140,11 +148,19 @@ public class TaskClassifyCluster extends Task{
             for (int j = 0; j < avgCoordNum.length; j++) {
                 xmllog.writeAttribute("AvgCoordNum_" + Integer.toString(j), Double.toString(avgCoordNum[j]));
             }
-            xmllog.endEntity();
+            xmllog.endEntity().flush();
 
             //hierrachical clustering is performed
             if(!sFileXMLClustering.isEmpty()){
+                double[][] mUSR=new double[pop.size()][pop.size()];
+                for(i=0;i< pop.size();i++){
+                    for(int j=i+1;j<pop.size();j++)
+                        mUSR[i][j]=mUSR[j][i]=pop.get(i).CalcUSRSimilarity(pop.get(j));
+                }
 
+                //MTools.PrintArray(mUSR);
+                Hierarchical hierarchical = new Hierarchical(mUSR, LinkageCriterion.SINGLE);
+                hierarchical.partition();
             }
 
         } catch (FileNotFoundException ex) {
