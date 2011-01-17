@@ -12,28 +12,48 @@ import nqcmol.hierarchical.SparseMatrix.DistanceInfo;
  */
 public class Hierarchical  {
 
-	Vector[] patterns;
-	LinkageCriterion linkageCriterion;
+	//Vector[] patterns;
+	//LinkageCriterion linkageCriterion;
 	
-	List<Node> clusters;
+	List<Node> nodes;
 	
 	SparseMatrix sm;
 	
 	public Hierarchical(Vector[] patterns, LinkageCriterion linkageCriterion) {
-		this.patterns = patterns;
-		this.linkageCriterion = linkageCriterion;
-	}
-	
-	public List<Integer> partition() {
+		//this.patterns = patterns;
+		//this.linkageCriterion = linkageCriterion;
+
 		// create a cluster for each pattern.
-		clusters = new ArrayList<Node>();
+        nodes = new ArrayList<Node>();
 		for (int i = 0; i < patterns.length; i++) {
-			clusters.add(new Node("C" + i, i));
+			nodes.add(new Node("C" + i, i));
 		}
 
 		sm = new SparseMatrix(patterns, linkageCriterion);
+	}
+
+    public Hierarchical(double[][] patterns, LinkageCriterion linkageCriterion) {
+		//this.patterns = patterns;
+		//this.linkageCriterion = linkageCriterion;
+
+		// create a cluster for each pattern.
+        nodes = new ArrayList<Node>();
+		for (int i = 0; i < patterns.length; i++) {
+			nodes.add(new Node("C" + i, i));
+		}
+
+		sm = new SparseMatrix(patterns, linkageCriterion);
+	}
+
+    public void setNodeName(int i,String name){
+        this.nodes.get(i).setName(name);
+    }
+	
+	public List<Integer> partition() {	
 		
 		int iterationCount = 0;
+        String s="";
+
 		for (DistanceInfo distanceInfo = sm.getClosestPair(); 
 			distanceInfo != null; 
 			distanceInfo = sm.getClosestPair()) {
@@ -45,24 +65,25 @@ public class Hierarchical  {
 			//  2. merging the clusters themselves that are stored in clusters list
 			sm.merge(distanceInfo.row, distanceInfo.column);
 			
-			Node newCluster = new Node(clusters.get(distanceInfo.row), clusters.get(distanceInfo.column), distanceInfo.distance);
-			clusters.remove(distanceInfo.column);
-			clusters.remove(distanceInfo.row);
-			clusters.add(distanceInfo.row, newCluster);
+			Node newCluster = new Node(nodes.get(distanceInfo.row), nodes.get(distanceInfo.column), distanceInfo.distance);
+			nodes.remove(distanceInfo.column);
+			nodes.remove(distanceInfo.row);
+			nodes.add(distanceInfo.row, newCluster);
 			
 			iterationCount++;
 
+            s=newCluster.toString();
             System.out.println(newCluster);
 		}
 
         //System.out.println(clusters.size());
-		System.out.println(clusters.get(0));
+		System.out.println(s);
 		
 		return null;
 	}
 	
 	public Node getRootCluster() {
-		return clusters.get(0);
+		return nodes.get(0);
 	}
 	
 	public void adjustRange() {

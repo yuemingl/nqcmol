@@ -74,7 +74,7 @@ public class TaskRemoveDuplicateCluster extends Task{
 			ArrayList<Cluster> pop=new ArrayList<Cluster>();
             double minE=1e100;
 			while (fileIn.hasNext()) {
-				Cluster mol = new WaterCluster();
+				Cluster mol = new Cluster();
 				mol.Read(fileIn, sFormatIn);
 				
 				if(mol.getNAtoms()<=0) break;

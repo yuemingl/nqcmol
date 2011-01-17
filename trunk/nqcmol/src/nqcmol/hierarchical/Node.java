@@ -57,4 +57,8 @@ public class Node {
 	public String toString() {
 		return this.name = "[" + left.name + "," + right.name + ": " + distanceBetweenLeftAndRightClusters + "]";
 	}
+
+    public void setName(String name){
+        this.name=name;
+    }
 }
