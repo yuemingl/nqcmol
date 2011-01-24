@@ -6,13 +6,8 @@
 package nqcmol;
 
 // DOM classes.
-import java.util.ArrayList;
-import java.util.List;
 import org.w3c.dom.*;
 //JAXP 1.1
-import nqcmol.hierarchical.Hierarchical;
-import nqcmol.hierarchical.LinkageCriterion;
-import nqcmol.hierarchical.Vector;
 import nqcmol.tools.XmlWriter;
 
 /**
@@ -119,23 +114,23 @@ public class TaskTest extends Task {
         //doc.appendChild(root);
         XmlWriter.writeDocXML(doc, "testXML.xml");
 
-        Vector v0 = new Vector(0);
-		Vector v1 = new Vector(1);
-		Vector v2 = new Vector(3);
-		Vector v3 = new Vector(5);
-		Vector v4 = new Vector(9);
-		Vector v5 = new Vector(10);
+//        Vector v0 = new Vector(0);
+//		Vector v1 = new Vector(1);
+//		Vector v2 = new Vector(3);
+//		Vector v3 = new Vector(5);
+//		Vector v4 = new Vector(9);
+//		Vector v5 = new Vector(10);
+//
+//		List<Vector> patternList = new ArrayList<Vector>();
+//		patternList.add(v0);
+//		patternList.add(v1);
+//		patternList.add(v2);
+//		patternList.add(v3);
+//		patternList.add(v4);
+//		patternList.add(v5);
 
-		List<Vector> patternList = new ArrayList<Vector>();
-		patternList.add(v0);
-		patternList.add(v1);
-		patternList.add(v2);
-		patternList.add(v3);
-		patternList.add(v4);
-		patternList.add(v5);
-
-		Hierarchical hierarchical = new Hierarchical(patternList.toArray(new Vector[patternList.size()]), LinkageCriterion.SINGLE);
-		hierarchical.partition();
+//		Hierarchical hierarchical = new Hierarchical(patternList.toArray(new Vector[patternList.size()]), LinkageCriterion.SINGLE);
+//		hierarchical.partition();
     }
 
 	
