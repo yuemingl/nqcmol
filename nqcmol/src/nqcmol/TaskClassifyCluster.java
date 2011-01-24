@@ -11,8 +11,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
-import nqcmol.hierarchical.Hierarchical;
-import nqcmol.hierarchical.LinkageCriterion;
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
 
@@ -21,14 +19,14 @@ import org.kohsuke.args4j.*;
  * @author nqc
  */
 public class TaskClassifyCluster extends Task{
-	@Option(name="-pattern",usage="pattern of morphology to filter: Cage, MultiRing, DoubleRing, SingleRing, TreeLike, Liner",metaVar="String")
+	@Option(name="-pattern",usage="pattern of morphology to filter: Cage, MultiRing, DoubleRing, SingleRing, TreeLike, Linear",metaVar="String")
     String sPattern="";
 
 	@Option(name="-bWater",usage="classify according to coordination number (for protonated/deprotonated water cluster")
     boolean bWaterCoordNum=false;
 
-    @Option(name="-clustering",usage="generate hierachical clustering",metaVar="STRING")
-    String sFileXMLClustering="";
+    @Option(name="-dm",usage="generate distance matrix for hierachical clustering. Use hcluster (http://code.google.com/p/scipy-cluster/) to produce dendogram.",metaVar="STRING")
+    String sFileDistanceMatrix="";
 
 	@Override
 	public String getName(){
@@ -151,16 +149,24 @@ public class TaskClassifyCluster extends Task{
             xmllog.endEntity().flush();
 
             //hierrachical clustering is performed
-            if(!sFileXMLClustering.isEmpty()){
-                double[][] mUSR=new double[pop.size()][pop.size()];
+            if(!sFileDistanceMatrix.isEmpty()){
+//                double[][] mUSR=new double[pop.size()][pop.size()];
+//                for(i=0;i< pop.size();i++){
+//                    for(int j=i+1;j<pop.size();j++)
+//                        mUSR[i][j]=mUSR[j][i]=pop.get(i).CalcUSRSimilarity(pop.get(j));
+//                }
+                //write out label
+                FileWriter fileClustering=new FileWriter(new File(sFileDistanceMatrix));
+                for(i=0;i< pop.size();i++)
+                    fileClustering.append(pop.get(i).getTag()+" ");
+                fileClustering.append("\n");
+
                 for(i=0;i< pop.size();i++){
                     for(int j=i+1;j<pop.size();j++)
-                        mUSR[i][j]=mUSR[j][i]=pop.get(i).CalcUSRSimilarity(pop.get(j));
+                        fileClustering.append((1-pop.get(i).CalcUSRSimilarity(pop.get(j)))+" ");
                 }
+                fileClustering.close();
 
-                //MTools.PrintArray(mUSR);
-                Hierarchical hierarchical = new Hierarchical(mUSR, LinkageCriterion.SINGLE);
-                hierarchical.partition();
             }
 
         } catch (FileNotFoundException ex) {
