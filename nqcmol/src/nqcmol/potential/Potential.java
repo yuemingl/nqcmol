@@ -28,7 +28,7 @@ public class Potential {
 	}
 
 	public Potential(Cluster cluster) {
-		setCluster(cluster);
+		this.setCluster(cluster);
 		isValidSetup=false;
 	}
 
@@ -213,10 +213,11 @@ public class Potential {
 		return Energy_(coords_);
 	}
 
-	public double[][] getGradient(Cluster cluster_){
+	public double[] getGradient(Cluster cluster_){
 		setCluster(cluster_);
+		cluster.initGradient();
 		Gradient_(cluster.getCoords(),cluster.getGradient());
-		return cluster.getHessian();
+		return cluster.getGradient();
 	}
 
 	/**
@@ -226,6 +227,7 @@ public class Potential {
 	 */
 	public double[] getGradient(final double[] coords_){
 		cluster.setCoords(coords_);
+		cluster.initGradient();
 		Gradient_(cluster.getCoords(),cluster.getGradient());
 		return cluster.getGradient();
 	}
@@ -244,24 +246,30 @@ public class Potential {
 	 */
 	public double[] getGradient(boolean isGradUpdate){
 		if(isGradUpdate){
+			cluster.initGradient();
 			Gradient_(cluster.getCoords(),cluster.getGradient());
 		}
 		return cluster.getGradient();
 	}
 
 	public double[][] getHessian(boolean isHessianUpdate){
-		if(isHessianUpdate) Hessian_(cluster.getCoords(),cluster.getHessian());
+		if(isHessianUpdate){
+			cluster.initHessian();
+			Hessian_(cluster.getCoords(),cluster.getHessian());
+		}
 		return cluster.getHessian();
 	}
 
 	public double[][] getHessian(Cluster cluster_){
 		setCluster(cluster_);
+		cluster.initHessian();
 		Hessian_(cluster.getCoords(),cluster.getHessian());
 		return cluster.getHessian();
 	}
 
 	public double[][] getNumericalHessian(Cluster cluster_,double delta){
 		setCluster(cluster_);
+		cluster.initHessian();
 		NumericalHessian_(cluster.getCoords(),cluster.getHessian(),delta);
 		return cluster.getHessian();
 	}
@@ -359,7 +367,7 @@ public class Potential {
 //				System.out.print("-------------------------------------------------------------------------------------------------------------------------------\n");
 //			}
 			if (HasAnalyticalGradients()) {
-				Gradient_(cluster.getCoords(), cluster.getGradient());
+				getGradient(true);
 			}
 			double[] anagrad = cluster.getGradient();
 			double[] numgrad = new double[cluster.getNcoords()];

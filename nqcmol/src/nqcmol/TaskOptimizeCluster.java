@@ -104,7 +104,7 @@ public class TaskOptimizeCluster extends TaskCalculate {
                 i++;
             }
             fileIn.close();
-            fileOut.close();
+            if(fileOut!=null) fileOut.close();
             
         } catch (IOException ex) {
             Logger.getLogger(TaskOptimizeCluster.class.getName()).log(Level.SEVERE, null, ex);

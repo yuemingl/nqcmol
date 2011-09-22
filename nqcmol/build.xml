@@ -71,4 +71,12 @@
     nbproject/build-impl.xml file. 
 
     -->
+
+	<target name="calc" depends="nqcmol-impl.jar">
+        <jar destfile="dist/nqcCalc.jar" basedir="build/classes">
+            <manifest>
+                <attribute name="Main-Class" value="nqcmol.TaskCalc"/>
+            </manifest>
+        </jar>
+    </target>
 </project>

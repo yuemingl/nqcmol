@@ -23,7 +23,7 @@ import org.kohsuke.args4j.*;
  *
  * @author nqc
  */
-public class TaskRandomGenerateCluster extends Task {
+public class TaskGenerateRandomCluster extends Task {
 
 	@Option(name = "-fm", usage = "Formula of clusters. It MUST be in quote. For example: (H3O)2(H2O)4(NH3)4", metaVar = "STRING")
 	String sFormula = "(H2O)4";
@@ -37,7 +37,7 @@ public class TaskRandomGenerateCluster extends Task {
 	@Option(name = "-DMax", usage = "Maximum distance of any neighbour molecules. [4.0]", metaVar = "DOUBLE")
 	double DMax=4.0;
 
-    @Option(name = "-shape", usage = "Shape of containner where molecules are generated inside. Choose one of (BOX, SPHERE, CYLINDER). [CUBE]", metaVar = "BOOLEAN")
+    @Option(name = "-shape", usage = "Shape of containner where molecules are generated inside. Choose one of (BOX, SPHERE, CYLINDER). [BOX]", metaVar = "BOOLEAN")
 	Shape shape=Shape.BOX;
 
     @Option(name = "-a1", usage = "1st geometry parameters of container if applicant. Is radius in case of sphere and cylinder. [5]", metaVar = "DOUBLE")
@@ -48,8 +48,6 @@ public class TaskRandomGenerateCluster extends Task {
 
     @Option(name = "-a3", usage = "3rd geometry parameters of container if applicant. [5]", metaVar = "DOUBLE")
 	double a3=5;
-
-
 
     @Option(name = "-nocenter", usage = "Move mass center to origin. [no]", metaVar = "BOOLEAN")
 	boolean bNoCenter=false;
@@ -67,7 +65,7 @@ public class TaskRandomGenerateCluster extends Task {
     static final public String Descriptions="\t "+Option+" \t - "+ "Randomly generate clusters\n";
 
     public static void main(String[] args) throws IOException  {
-        new TaskRandomGenerateCluster().Execute(args);
+        new TaskGenerateRandomCluster().Execute(args);
 	}
 
 //	@Override
@@ -132,12 +130,12 @@ public class TaskRandomGenerateCluster extends Task {
             }
             fileOut.close();
         } catch (IOException ex) {
-            Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TaskGenerateRandomCluster.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
                 fileOut.close();
             } catch (IOException ex) {
-                Logger.getLogger(TaskRandomGenerateCluster.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(TaskGenerateRandomCluster.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
 			
@@ -299,6 +297,7 @@ public class TaskRandomGenerateCluster extends Task {
             p[i*3+2]=x[2];
 
             xmllog.writeEntity("Molecule").writeAttribute("Type",listMol.get(i));
+			xmllog.writeAttribute("id", ""+i);
             xmllog.writeAttribute("Dmin", String.format("%1.3f", dmin));
             xmllog.writeAttribute("x", Double.toString(x[0]));
             xmllog.writeAttribute("y", Double.toString(x[0]));

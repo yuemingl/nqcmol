@@ -5,12 +5,10 @@
 
 package nqcmol;
 
-import nqcmol.cluster.WaterCluster;
 import nqcmol.cluster.Cluster;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
-import java.util.Vector;
 import nqcmol.tools.MTools;
 import org.kohsuke.args4j.*;
 
@@ -145,7 +143,8 @@ public class TaskRemoveDuplicateCluster extends Task{
 //						}
 					}
             
-            fileOut.close();
+            if(fileOut!=null) fileOut.close();
+			
 			xmllog.writeEntity("Summary");
                 xmllog.writeAttribute("NumOfDistincClusters",Integer.toString(count));
                 xmllog.writeAttribute("NumOfOutOfRange",Integer.toString(countOutOfRange));
