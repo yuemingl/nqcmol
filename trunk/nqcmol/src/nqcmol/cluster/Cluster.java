@@ -130,10 +130,10 @@ public class Cluster implements Cloneable{
 			this.nAtoms = nAtoms;
 			ncoords=nAtoms*3;
 			coords=new double[ncoords];
-			gradient=new double[ncoords];
-			hessian=new double[ncoords][ncoords];
+			//gradient=new double[ncoords];
+			//hessian=new double[ncoords][ncoords];
 			Nz=new int [nAtoms];
-			pairwise=new PairwiseType[nAtoms][nAtoms];
+			//pairwise=new PairwiseType[nAtoms][nAtoms];
 		}
 	}
 
@@ -181,6 +181,9 @@ public class Cluster implements Cloneable{
 		this.coords[index] = newCoords;
 	}
 
+	/**
+	 * number of coordinations. Basically, it is equal to 3*nAtoms
+	 */
 	protected int ncoords = 0;
 
 	public int getNcoords() {
@@ -207,7 +210,16 @@ public class Cluster implements Cloneable{
 		this.energy = energy;
 	}
 
-	protected double[] gradient;
+	protected double[] gradient=null;
+
+	/**
+	 * initialize gradient if null
+	 * @return reference of gradient
+	 */
+	public double[] initGradient(){
+		if(gradient==null) gradient=new double[ncoords];
+		return gradient;
+	}
 
 	/**
 	 * Get the value of gradient
@@ -224,42 +236,30 @@ public class Cluster implements Cloneable{
 	 * @param gradient new value of gradient
 	 */
 	public void setGradient(double[] gradient_) {
-		assert ncoords<=gradient_.length;
-		System.arraycopy(gradient_,0,this.gradient,0,ncoords);
-	}
+		//assert ncoords<=gradient_.length;
+		//System.arraycopy(gradient_,0,this.gradient,0,ncoords);
+		this.gradient = (gradient_!=null)? gradient_.clone() :null;
+	}	
+
+	protected double[][] hessian=null;
 
 	/**
-	 * Get the value of gradient at specified index
-	 *
-	 * @param index
-	 * @return the value of gradient at specified index
+	 * initialize hessian if null
+	 * @return reference of gradient
 	 */
-	public double getGradient(int index) {
-		return this.gradient[index];
+	public double[][] initHessian(){
+		if(hessian==null){
+			hessian=new double[ncoords][ncoords];
+		}
+		return hessian;
 	}
-
-	/**
-	 * Set the value of gradient at specified index.
-	 *
-	 * @param index
-	 * @param newGrad new value of gradient at specified index
-	 */
-	public void setGradient(int index, double newGrad) {
-		this.gradient[index] = newGrad;
-	}
-
-	protected double[][] hessian;
 
 	public double[][] getHessian(){
 		return hessian;
 	}
 
-	public void setHessian(double[][] hessian_){
-		assert ncoords<=hessian_.length;
-		for(int i=0;i<ncoords;i++){
-			assert ncoords<=hessian_[i].length;
-			System.arraycopy(hessian_[i],0,this.hessian[i],0,ncoords);
-		}
+	public void setHessian(double[][] hessian){
+		this.hessian = (hessian!=null)? hessian.clone() :null;
 	}
 	
 	protected double rmsGrad=0;
@@ -320,7 +320,7 @@ public class Cluster implements Cloneable{
      * @param vib new value of vib
      */
     public void setVibrationData(VibrationData vib) {
-            this.vib = (vib!=null)? (VibrationData) vib.clone() :null;
+        this.vib = (vib!=null)? (VibrationData) vib.clone() :null;
     }
 
 	/**
@@ -447,7 +447,7 @@ public class Cluster implements Cloneable{
 
 	public void Clear(){
 		MTools.VEC_EQU_NUM(coords, 0);
-		MTools.VEC_EQU_NUM(gradient, 0);
+		//MTools.VEC_EQU_NUM(gradient, 0);
 		MTools.VEC_EQU_NUM(nType, 0);
 		MTools.VEC_EQU_NUM(Nz, 0);
 
@@ -706,6 +706,9 @@ public class Cluster implements Cloneable{
 		}
 	}
 
+	/**
+	 * translate clusters to make mass center centered at the origin (0,0,0)
+	 */
 	public void Center(){
 		int i,k;
 		//fix to origin
@@ -881,13 +884,14 @@ public class Cluster implements Cloneable{
 	 */
 	public enum PairwiseType { NONE, HYD_NEAR, HYD_FAR, SINGLEBOND, DOUBLEBOND };
 
-	protected PairwiseType[][] pairwise;
+	protected PairwiseType[][] pairwise=null;
 
 	/**
 	 * Calculate Bond2 matrix
 	 * @return true if connected, false if disconnected
 	 */
 	public boolean getPairwiseBond(){
+		pairwise=new PairwiseType[nAtoms][nAtoms];
 		for(int i=0;i<nAtoms;i++){
 			for(int j=0;j<nAtoms;j++)
 				pairwise[i][j]=pairwise[j][i]=getPairwiseBond(i,j);

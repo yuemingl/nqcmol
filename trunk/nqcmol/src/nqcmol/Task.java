@@ -65,11 +65,12 @@ public class Task {
 		TaskHarmonicSuperpositionApproximation.Descriptions+
         TaskCalculateSymmetryPointGroup.Descriptions+
 		TaskDetectEquivalentAtoms.Descriptions+
-        TaskRandomGenerateCluster.Descriptions+
+        TaskGenerateRandomCluster.Descriptions+
         TaskGenerateCluster.Descriptions+
         TaskConvertWaterToRadicalWater.Descriptions+
         TaskFitPotential.Descriptions+
         TaskMonteCarlo.Descriptions+
+		TaskAlignCluster.Descriptions+
         //"\t cutLattice \t - Generate clusters by cutting from lattice\n" +
         //"\t rdf \t - Calculate Radial Distribution Function\n" +
 		TaskRemoveDuplicateCluster.Descriptions+

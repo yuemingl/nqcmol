@@ -27,7 +27,7 @@ public class NQCMol {
 		TaskHarmonicSuperpositionApproximation.Descriptions+
         TaskCalculateSymmetryPointGroup.Descriptions+
 		TaskDetectEquivalentAtoms.Descriptions+
-        TaskRandomGenerateCluster.Descriptions+
+        TaskGenerateRandomCluster.Descriptions+
         TaskGenerateCluster.Descriptions+
         TaskConvertWaterToRadicalWater.Descriptions+
         TaskFitPotential.Descriptions+
@@ -115,8 +115,8 @@ public class NQCMol {
 			calc.Execute(args);			return;
 		}
 
-		else if(sTask.contentEquals(TaskRandomGenerateCluster.Option)){
-			Task calc=new TaskRandomGenerateCluster();
+		else if(sTask.contentEquals(TaskGenerateRandomCluster.Option)){
+			Task calc=new TaskGenerateRandomCluster();
 			calc.Execute(args);			return;
 		}
 
